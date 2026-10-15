@@ -141,6 +141,54 @@ export default class Game extends Phaser.Scene {
     this.cameras.main.zoom = 1.5
     this.cameras.main.startFollow(this.myPlayer, true)
 
+    // Suporte a Zoom (Roda do Mouse)
+    this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any, deltaX: number, deltaY: number) => {
+      let newZoom = this.cameras.main.zoom - deltaY * 0.001
+      // Limita o zoom entre 0.7x (visão panorâmica) e 2.5x (zoom de perto)
+      newZoom = Phaser.Math.Clamp(newZoom, 0.7, 2.5)
+      this.cameras.main.setZoom(newZoom)
+    })
+
+    // Suporte a Arrastar o Mapa com o Mouse (Pan)
+    let isPanning = false
+    let startPanX = 0
+    let startPanY = 0
+
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      // Arrastar com o botão direito (ou segurando botão esquerdo se desejar)
+      if (pointer.rightButtonDown() || pointer.middleButtonDown()) {
+        isPanning = true
+        startPanX = pointer.x
+        startPanY = pointer.y
+        this.cameras.main.stopFollow()
+      }
+    })
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (isPanning) {
+        const dx = (startPanX - pointer.x) / this.cameras.main.zoom
+        const dy = (startPanY - pointer.y) / this.cameras.main.zoom
+        this.cameras.main.scrollX += dx
+        this.cameras.main.scrollY += dy
+        startPanX = pointer.x
+        startPanY = pointer.y
+      }
+    })
+
+    const stopPan = () => {
+      if (isPanning) {
+        isPanning = false
+        // Retoma o foco suave no seu personagem ao soltar o mouse
+        this.cameras.main.startFollow(this.myPlayer, true, 0.08, 0.08)
+      }
+    }
+
+    this.input.on('pointerup', stopPan)
+    this.input.on('gameout', stopPan)
+
+    // Previne menu de contexto do navegador ao usar o botão direito para arrastar o mapa
+    this.input.mouse.disableContextMenu()
+
     this.physics.add.collider([this.myPlayer, this.myPlayer.playerContainer], groundLayer)
     this.physics.add.collider([this.myPlayer, this.myPlayer.playerContainer], vendingMachines)
 

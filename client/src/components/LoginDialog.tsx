@@ -141,8 +141,18 @@ for (let i = avatars.length - 1; i > 0; i--) {
 }
 
 export default function LoginDialog() {
-  const [name, setName] = useState<string>('')
-  const [avatarIndex, setAvatarIndex] = useState<number>(0)
+  // Lê valores salvos previamente ou inicia com padrões
+  const savedName = localStorage.getItem('skyoffice_user_name') || ''
+  const savedAvatar = localStorage.getItem('skyoffice_user_avatar') || ''
+
+  let initialAvatarIndex = 0
+  if (savedAvatar) {
+    const foundIdx = avatars.findIndex((a) => a.name.toLowerCase() === savedAvatar.toLowerCase())
+    if (foundIdx !== -1) initialAvatarIndex = foundIdx
+  }
+
+  const [name, setName] = useState<string>(savedName)
+  const [avatarIndex, setAvatarIndex] = useState<number>(initialAvatarIndex)
   const [nameFieldEmpty, setNameFieldEmpty] = useState<boolean>(false)
   const dispatch = useAppDispatch()
   const videoConnected = useAppSelector((state) => state.user.videoConnected)
@@ -156,10 +166,20 @@ export default function LoginDialog() {
     if (name === '') {
       setNameFieldEmpty(true)
     } else if (roomJoined) {
-      console.log('Join! Name:', name, 'Avatar:', avatars[avatarIndex].name)
+      const chosenAvatar = avatars[avatarIndex]?.name || 'adam'
+      console.log('Join! Name:', name, 'Avatar:', chosenAvatar)
+
+      // Persiste as preferências no navegador
+      try {
+        localStorage.setItem('skyoffice_user_name', name.trim())
+        localStorage.setItem('skyoffice_user_avatar', chosenAvatar)
+      } catch (err) {
+        console.warn('Erro ao salvar preferências no localStorage', err)
+      }
+
       game.registerKeys()
       game.myPlayer.setPlayerName(name)
-      game.myPlayer.setPlayerTexture(avatars[avatarIndex].name)
+      game.myPlayer.setPlayerTexture(chosenAvatar)
       game.network.readyToConnect()
       dispatch(setLoggedIn(true))
     }
@@ -167,7 +187,7 @@ export default function LoginDialog() {
 
   return (
     <Wrapper onSubmit={handleSubmit}>
-      <Title>Joining</Title>
+      <Title>Entrando na Sala</Title>
       <RoomName>
         <Avatar style={{ background: getColorByString(roomName) }}>
           {getAvatarString(roomName)}
@@ -179,10 +199,11 @@ export default function LoginDialog() {
       </RoomDescription>
       <Content>
         <Left>
-          <SubTitle>Select an avatar</SubTitle>
+          <SubTitle>Escolha seu avatar</SubTitle>
           <Swiper
             modules={[Navigation]}
             navigation
+            initialSlide={initialAvatarIndex}
             spaceBetween={0}
             slidesPerView={1}
             onSlideChange={(swiper) => {
@@ -200,20 +221,21 @@ export default function LoginDialog() {
           <TextField
             autoFocus
             fullWidth
-            label="Name"
+            label="Seu Nome ou Apelido"
             variant="outlined"
             color="secondary"
+            value={name}
             error={nameFieldEmpty}
-            helperText={nameFieldEmpty && 'Name is required'}
-            onInput={(e) => {
-              setName((e.target as HTMLInputElement).value)
+            helperText={nameFieldEmpty && 'Por favor, digite seu nome'}
+            onChange={(e) => {
+              setName(e.target.value)
             }}
           />
           {!videoConnected && (
             <Warning>
               <Alert variant="outlined" severity="warning">
-                <AlertTitle>Warning</AlertTitle>
-                No webcam/mic connected - <strong>connect one for best experience!</strong>
+                <AlertTitle>Atenção</AlertTitle>
+                Câmera/microfone desconectados - <strong>conecte para a melhor experiência!</strong>
               </Alert>
               <Button
                 variant="outlined"
@@ -222,21 +244,21 @@ export default function LoginDialog() {
                   game.network.webRTC?.getUserMedia()
                 }}
               >
-                Connect Webcam
+                Ativar Câmera e Microfone
               </Button>
             </Warning>
           )}
 
           {videoConnected && (
             <Warning>
-              <Alert variant="outlined">Webcam connected!</Alert>
+              <Alert variant="outlined">Câmera conectada com sucesso!</Alert>
             </Warning>
           )}
         </Right>
       </Content>
       <Bottom>
         <Button variant="contained" color="secondary" size="large" type="submit">
-          Join
+          Entrar no Escritório
         </Button>
       </Bottom>
     </Wrapper>

@@ -18,20 +18,22 @@ import { getColorByString } from '../util'
 import { useAppDispatch, useAppSelector } from '../hooks'
 import { MessageType, setFocused, setShowChat } from '../stores/ChatStore'
 
-const Backdrop = styled.div`
+const Backdrop = styled.div<{ $pos: { x: number; y: number } }>`
   position: fixed;
-  bottom: 60px;
-  left: 0;
-  height: 400px;
-  width: 500px;
-  max-height: 50%;
-  max-width: 100%;
+  left: ${({ $pos }) => $pos.x}px;
+  top: ${({ $pos }) => $pos.y}px;
+  height: 380px;
+  width: 420px;
+  max-height: 80vh;
+  max-width: 90vw;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
 `
 
 const Wrapper = styled.div`
   position: relative;
   height: 100%;
-  padding: 16px;
   display: flex;
   flex-direction: column;
 `
@@ -42,21 +44,40 @@ const FabWrapper = styled.div`
 
 const ChatHeader = styled.div`
   position: relative;
-  height: 35px;
-  background: #000000a7;
-  border-radius: 10px 10px 0px 0px;
+  height: 38px;
+  background: #171821;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
+  border-radius: 12px 12px 0px 0px;
+  cursor: grab;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:active {
+    cursor: grabbing;
+  }
 
   h3 {
-    color: #fff;
-    margin: 7px;
-    font-size: 17px;
-    text-align: center;
+    color: #f8fafc;
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .close {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    &:hover {
+      color: #fff;
+    }
   }
 `
 
@@ -164,6 +185,40 @@ export default function Chat() {
   const [inputValue, setInputValue] = useState('')
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [readyToSubmit, setReadyToSubmit] = useState(false)
+
+  // Posição padrão do chat (canto inferior esquerdo com margem de 20px da borda e 80px do fundo)
+  const [pos, setPos] = useState({
+    x: 20,
+    y: Math.max(100, window.innerHeight - 460),
+  })
+  const isDragging = useRef(false)
+  const dragOffset = useRef({ x: 0, y: 0 })
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    isDragging.current = true
+    dragOffset.current = {
+      x: e.clientX - pos.x,
+      y: e.clientY - pos.y,
+    }
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isDragging.current) return
+      setPos({
+        x: Math.max(10, Math.min(window.innerWidth - 440, moveEvent.clientX - dragOffset.current.x)),
+        y: Math.max(10, Math.min(window.innerHeight - 390, moveEvent.clientY - dragOffset.current.y)),
+      })
+    }
+
+    const handleMouseUp = () => {
+      isDragging.current = false
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+  }
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const chatMessages = useAppSelector((state) => state.chat.chatMessages)
@@ -187,15 +242,10 @@ export default function Chat() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    // this is added because without this, 2 things happen at the same
-    // time when Enter is pressed, (1) the inputRef gets focus (from
-    // useEffect) and (2) the form gets submitted (right after the input
-    // gets focused)
     if (!readyToSubmit) {
       setReadyToSubmit(true)
       return
     }
-    // move focus back to the game
     inputRef.current?.blur()
 
     const val = inputValue.trim()
@@ -221,12 +271,12 @@ export default function Chat() {
   }, [chatMessages, showChat])
 
   return (
-    <Backdrop>
+    <Backdrop $pos={pos}>
       <Wrapper>
         {showChat ? (
           <>
-            <ChatHeader>
-              <h3>Chat</h3>
+            <ChatHeader onMouseDown={handleMouseDown}>
+              <h3>💬 Chat do Escritório (arraste aqui)</h3>
               <IconButton
                 aria-label="close dialog"
                 className="close"
@@ -262,7 +312,7 @@ export default function Chat() {
                 inputRef={inputRef}
                 autoFocus={focused}
                 fullWidth
-                placeholder="Press Enter to chat"
+                placeholder="Pressione Enter para conversar..."
                 value={inputValue}
                 onKeyDown={handleKeyDown}
                 onChange={handleChange}
