@@ -61,12 +61,12 @@ export default class WebRTC {
   }
 
   getUserMedia(alertOnError = true) {
-    // ask the browser to get user media
-    navigator.mediaDevices
-      ?.getUserMedia({
-        video: true,
-        audio: true,
-      })
+    const askMedia = (constraints: MediaStreamConstraints) => {
+      return navigator.mediaDevices?.getUserMedia(constraints)
+    }
+
+    // Tenta primeiro áudio + vídeo
+    askMedia({ video: true, audio: true })
       .then((stream) => {
         this.myStream = stream
         this.addVideoStream(this.myVideo, this.myStream)
@@ -74,8 +74,28 @@ export default class WebRTC {
         store.dispatch(setVideoConnected(true))
         this.network.videoConnected()
       })
-      .catch((error) => {
-        if (alertOnError) window.alert('No webcam or microphone found, or permission is blocked')
+      .catch((err) => {
+        console.warn('Erro ao obter áudio e vídeo juntos, tentando apenas microfone...', err)
+        // Se falhou (ex: sem webcam), tenta apenas microfone
+        askMedia({ audio: true, video: false })
+          .then((stream) => {
+            this.myStream = stream
+            this.setUpButtons()
+            store.dispatch(setVideoConnected(true))
+            this.network.videoConnected()
+          })
+          .catch((finalErr) => {
+            console.error('Falha de permissão de mídia:', finalErr)
+            if (alertOnError) {
+              const msg =
+                finalErr.name === 'NotAllowedError' || finalErr.name === 'PermissionDeniedError'
+                  ? 'Permissão negada! Clique no ícone de configurações ao lado do endereço (ou no cadeado/ícone de slide) e mude Câmera e Microfone para "Permitir".'
+                  : finalErr.name === 'NotFoundError' || finalErr.name === 'DevicesNotFoundError'
+                  ? 'Nenhum microfone ou webcam detectado no seu computador.'
+                  : `Aviso de mídia: ${finalErr.message || 'Verifique as permissões de microfone do navegador.'}`
+              window.alert(msg)
+            }
+          })
       })
   }
 
