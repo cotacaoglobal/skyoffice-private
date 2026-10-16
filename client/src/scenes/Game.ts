@@ -22,6 +22,7 @@ import { phaserEvents, Event } from '../events/EventCenter'
 import store from '../stores'
 import { setFocused, setShowChat } from '../stores/ChatStore'
 import { NavKeys, Keyboard } from '../../../types/KeyboardState'
+import { Pathfinding } from '../utils/Pathfinding'
 
 export default class Game extends Phaser.Scene {
   network!: Network
@@ -145,6 +146,9 @@ export default class Game extends Phaser.Scene {
     this.addGroupFromTiled('GenericObjects', 'generic', 'Generic', false)
     this.addGroupFromTiled('GenericObjectsOnCollide', 'generic', 'Generic', true)
     this.addGroupFromTiled('Basement', 'basement', 'Basement', true)
+
+    // Inicializa a malha de navegação para cálculo de rotas com desvio de obstáculos (A*)
+    Pathfinding.init(this.map)
 
     this.otherPlayers = this.physics.add.group({ classType: OtherPlayer })
 

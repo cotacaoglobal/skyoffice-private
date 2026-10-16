@@ -15,6 +15,7 @@ import { ItemType } from '../../../types/Items'
 import { NavKeys } from '../../../types/KeyboardState'
 import { JoystickMovement } from '../components/Joystick'
 import { openURL } from '../utils/helpers'
+import { Pathfinding } from '../utils/Pathfinding'
 
 export default class MyPlayer extends Player {
   private playContainerBody: Phaser.Physics.Arcade.Body
@@ -48,7 +49,8 @@ export default class MyPlayer extends Player {
     this.joystickMovement = movement
   }
 
-  public autoWalkTarget?: { x: number; y: number; chair: Chair } | null
+  public autoWalkPath: Array<{ x: number; y: number }> = []
+  public autoWalkTargetChair?: Chair | null
   private autoWalkStartTime = 0
 
   autoWalkToAndSit(chair: Chair, network: Network) {
@@ -67,13 +69,17 @@ export default class MyPlayer extends Player {
       return
     }
 
-    this.autoWalkTarget = { x: chair.x, y: chair.y, chair }
+    // Calcula rota desviando de paredes e obstáculos com A*
+    const waypoints = Pathfinding.findPath(this.x, this.y, chair.x, chair.y)
+    this.autoWalkPath = waypoints
+    this.autoWalkTargetChair = chair
     this.autoWalkStartTime = Date.now()
     this.scene.cameras.main.startFollow(this, true, 0.1, 0.1)
   }
 
   sitOnChair(chairItem: Chair, network: Network, playerSelector?: PlayerSelector) {
-    this.autoWalkTarget = null
+    this.autoWalkPath = []
+    this.autoWalkTargetChair = null
     this.setVelocity(0, 0)
     this.playContainerBody.setVelocity(0, 0)
 
@@ -172,8 +178,8 @@ export default class MyPlayer extends Player {
           return
         }
 
-        // Se estiver em caminhada automática até a mesa de trabalho:
-        if (this.autoWalkTarget) {
+        // Se estiver em caminhada automática pela rota planejada desviando de obstáculos:
+        if (this.autoWalkPath.length > 0 && this.autoWalkTargetChair) {
           const manualInput =
             cursors.left?.isDown ||
             cursors.right?.isDown ||
@@ -185,28 +191,40 @@ export default class MyPlayer extends Player {
             cursors.S?.isDown ||
             this.joystickMovement?.isMoving
 
-          // Se o jogador pressionar qualquer tecla de movimento, cancela o auto-walk
-          if (manualInput || Date.now() - this.autoWalkStartTime > 15000) {
-            this.autoWalkTarget = null
+          // Se o jogador pressionar qualquer tecla de movimento manual ou timeout (25s), cancela
+          if (manualInput || Date.now() - this.autoWalkStartTime > 25000) {
+            this.autoWalkPath = []
+            this.autoWalkTargetChair = null
           } else {
-            const dist = Phaser.Math.Distance.Between(
+            // Próximo waypoint no caminho
+            const nextWaypoint = this.autoWalkPath[0]
+            const distToWaypoint = Phaser.Math.Distance.Between(
               this.x,
               this.y,
-              this.autoWalkTarget.x,
-              this.autoWalkTarget.y
+              nextWaypoint.x,
+              nextWaypoint.y
             )
 
-            if (dist <= 22) {
-              const targetChair = this.autoWalkTarget.chair
+            // Se for o último waypoint (a própria cadeira) e estiver perto (<= 24px)
+            const isFinalWaypoint = this.autoWalkPath.length === 1
+            if (isFinalWaypoint && distToWaypoint <= 24) {
+              const targetChair = this.autoWalkTargetChair
               this.sitOnChair(targetChair, network, playerSelector)
               return
             }
 
+            // Se alcançou o waypoint intermediário atual (<= 14px), avança para o próximo waypoint
+            if (!isFinalWaypoint && distToWaypoint <= 14) {
+              this.autoWalkPath.shift()
+              return
+            }
+
+            // Move-se em direção ao waypoint atual
             const angle = Phaser.Math.Angle.Between(
               this.x,
               this.y,
-              this.autoWalkTarget.x,
-              this.autoWalkTarget.y
+              nextWaypoint.x,
+              nextWaypoint.y
             )
             const speed = 200
             const autoVx = Math.cos(angle) * speed
