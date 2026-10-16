@@ -48,10 +48,10 @@ const ToggleButton = styled(Fab)`
   }
 `
 
-const SidebarContainer = styled.div<{ $open: boolean; $pos: { x: number; y: number } }>`
+const SidebarContainer = styled.div<{ $open: boolean }>`
   position: fixed;
-  top: ${({ $pos }) => $pos.y}px;
-  left: ${({ $pos }) => $pos.x}px;
+  top: 0;
+  left: 0;
   width: 320px;
   max-height: calc(100vh - 40px);
   background: #171821;
@@ -67,6 +67,10 @@ const SidebarContainer = styled.div<{ $open: boolean; $pos: { x: number; y: numb
   pointer-events: ${({ $open }) => ($open ? 'all' : 'none')};
   color: #e2e8f0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  contain: layout paint;
 `
 
 const Header = styled.div`
@@ -402,8 +406,13 @@ export default function MembersSidebar() {
   const [pos, setPos] = useState({ x: 16, y: 16 })
   const isDragging = React.useRef(false)
   const dragOffset = React.useRef({ x: 0, y: 0 })
+  const rAF = React.useRef<number | null>(null)
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return
+    const target = e.target as HTMLElement
+    if (target.closest('button') || target.closest('svg')) return
+
     isDragging.current = true
     dragOffset.current = {
       x: e.clientX - pos.x,
@@ -412,14 +421,23 @@ export default function MembersSidebar() {
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!isDragging.current) return
-      setPos({
-        x: Math.max(8, Math.min(window.innerWidth - 340, moveEvent.clientX - dragOffset.current.x)),
-        y: Math.max(8, Math.min(window.innerHeight - 300, moveEvent.clientY - dragOffset.current.y)),
+      if (rAF.current !== null) {
+        cancelAnimationFrame(rAF.current)
+      }
+      rAF.current = requestAnimationFrame(() => {
+        setPos({
+          x: Math.max(8, Math.min(window.innerWidth - 340, moveEvent.clientX - dragOffset.current.x)),
+          y: Math.max(8, Math.min(window.innerHeight - 300, moveEvent.clientY - dragOffset.current.y)),
+        })
       })
     }
 
     const handleMouseUp = () => {
       isDragging.current = false
+      if (rAF.current !== null) {
+        cancelAnimationFrame(rAF.current)
+        rAF.current = null
+      }
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
@@ -520,7 +538,10 @@ export default function MembersSidebar() {
         </Tooltip>
       )}
 
-      <SidebarContainer $open={open} $pos={pos}>
+      <SidebarContainer
+        $open={open}
+        style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
+      >
         <Header onMouseDown={handleMouseDown}>
           <h2>
             <PeopleAltIcon style={{ color: '#00ebc7', fontSize: 18 }} />
