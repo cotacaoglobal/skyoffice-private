@@ -29,6 +29,13 @@ export default class Network {
 
   mySessionId!: string
 
+  // Players that were already in the room when we joined but whose PLAYER_JOINED
+  // event fired before the Game scene was ready to listen. Flushed by flushPendingPlayers().
+  private pendingPlayers: Array<{ player: IPlayer; key: string }> = []
+  private gameSceneReady = false
+  // Tracks which player IDs have already had PLAYER_JOINED emitted to avoid duplicates
+  private emittedJoinIds = new Set<string>()
+
   constructor() {
     const protocol = window.location.protocol.replace('http', 'ws')
     const port = window.location.port
@@ -104,10 +111,16 @@ export default class Network {
     this.room.state.players.onAdd = (player: IPlayer, key: string) => {
       if (key === this.mySessionId) return
 
-      // If the player already has a name (e.g. was already in the room before we joined)
+      // If the player already has a name they were in the room before we joined.
+      // The Game scene may not be listening yet, so queue the event and flush later.
       if (player.name && player.name !== '') {
-        phaserEvents.emit(Event.PLAYER_JOINED, player, key)
         store.dispatch(setPlayerNameMap({ id: key, name: player.name }))
+        this.emittedJoinIds.add(key)
+        if (this.gameSceneReady) {
+          phaserEvents.emit(Event.PLAYER_JOINED, player, key)
+        } else {
+          this.pendingPlayers.push({ player, key })
+        }
       }
 
       // track changes on every child object inside the players MapSchema
@@ -116,9 +129,13 @@ export default class Network {
           const { field, value } = change
           phaserEvents.emit(Event.PLAYER_UPDATED, field, value, key)
 
-          // when a new player finished setting up player name
+          // when a new player finished setting up their name for the first time
           if (field === 'name' && value !== '') {
-            phaserEvents.emit(Event.PLAYER_JOINED, player, key)
+            // Only emit PLAYER_JOINED if we haven't already done so via onAdd
+            if (!this.emittedJoinIds.has(key)) {
+              this.emittedJoinIds.add(key)
+              phaserEvents.emit(Event.PLAYER_JOINED, player, key)
+            }
             store.dispatch(setPlayerNameMap({ id: key, name: value }))
             store.dispatch(pushPlayerJoinedMessage(value))
           }
@@ -188,6 +205,18 @@ export default class Network {
       const computerState = store.getState().computer
       computerState.shareScreenManager?.onUserLeft(clientId)
     })
+  }
+
+  /**
+   * Called by the Game scene once its listeners are registered.
+   * Replays any PLAYER_JOINED events that fired before the scene was ready.
+   */
+  flushPendingPlayers() {
+    this.gameSceneReady = true
+    this.pendingPlayers.forEach(({ player, key }) => {
+      phaserEvents.emit(Event.PLAYER_JOINED, player, key)
+    })
+    this.pendingPlayers = []
   }
 
   // method to register event listener and call back function when a item user added

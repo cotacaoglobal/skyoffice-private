@@ -219,6 +219,10 @@ export default class Game extends Phaser.Scene {
     this.network.onItemUserAdded(this.handleItemUserAdded, this)
     this.network.onItemUserRemoved(this.handleItemUserRemoved, this)
     this.network.onChatMessageAdded(this.handleChatMessageAdded, this)
+
+    // Flush any PLAYER_JOINED events that fired before the Game scene was ready.
+    // This handles existing players in the room when we join or after a page refresh.
+    this.network.flushPendingPlayers()
   }
 
   private handleItemSelectorOverlap(playerSelector, selectionItem) {
