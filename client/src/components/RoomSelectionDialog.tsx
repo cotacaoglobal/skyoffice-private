@@ -135,7 +135,7 @@ export default function RoomSelectionDialog() {
           // overwrites the dark theme on render
           style={{ background: '#fdeded', color: '#7d4747' }}
         >
-          Trying to connect to server, please try again!
+          Tentando conectar ao servidor, por favor tente novamente!
         </Alert>
       </Snackbar>
       <Backdrop>
@@ -146,7 +146,7 @@ export default function RoomSelectionDialog() {
                 <IconButton className="back-button" onClick={() => setShowCreateRoomForm(false)}>
                   <ArrowBackIcon />
                 </IconButton>
-                <Title>Create Custom Room</Title>
+                <Title>Criar Sala Privada</Title>
               </TitleWrapper>
               <CreateRoomForm />
             </CustomRoomWrapper>
@@ -157,9 +157,9 @@ export default function RoomSelectionDialog() {
                   <ArrowBackIcon />
                 </IconButton>
                 <Title>
-                  Custom Rooms
+                  Salas Personalizadas
                   <Tooltip
-                    title="We update the results in realtime, no refresh needed!"
+                    title="Atualizado em tempo real, sem precisar recarregar!"
                     placement="top"
                   >
                     <IconButton>
@@ -174,23 +174,23 @@ export default function RoomSelectionDialog() {
                 color="secondary"
                 onClick={() => setShowCreateRoomForm(true)}
               >
-                Create new room
+                Criar Nova Sala
               </Button>
             </CustomRoomWrapper>
           ) : (
             <>
-              <Title>Welcome to SkyOffice</Title>
+              <Title>Bem-vindo ao Escritório Virtual</Title>
               <Content>
                 <img src={logo} alt="logo" />
                 <Button variant="contained" color="secondary" onClick={handleConnect}>
-                  Connect to public lobby
+                  Entrar no Escritório Principal
                 </Button>
                 <Button
                   variant="outlined"
                   color="secondary"
                   onClick={() => (lobbyJoined ? setShowCustomRoom(true) : setShowSnackbar(true))}
                 >
-                  Create/find custom rooms
+                  Criar / Buscar Salas Privadas
                 </Button>
               </Content>
             </>
@@ -198,7 +198,7 @@ export default function RoomSelectionDialog() {
         </Wrapper>
         {!lobbyJoined && (
           <ProgressBarWrapper>
-            <h3> Connecting to server...</h3>
+            <h3> Conectando ao servidor...</h3>
             <ProgressBar color="secondary" />
           </ProgressBarWrapper>
         )}

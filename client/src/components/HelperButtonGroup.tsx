@@ -28,6 +28,7 @@ const Backdrop = styled.div`
   bottom: 16px;
   right: 16px;
   align-items: flex-end;
+  z-index: 1000;
 
   .wrapper-group {
     display: flex;
@@ -151,30 +152,30 @@ export default function HelperButtonGroup() {
         )}
         {showControlGuide && (
           <Wrapper>
-            <Title>Controls</Title>
+            <Title>Controles do Teclado</Title>
             <IconButton className="close" onClick={() => setShowControlGuide(false)} size="small">
               <CloseIcon />
             </IconButton>
             <ul>
               <li>
-                <strong>W, A, S, D or arrow keys</strong> to move
+                <strong>W, A, S, D ou Setas</strong> para andar
               </li>
               <li>
-                <strong>E</strong> to sit down (when facing a chair)
+                <strong>E</strong> para sentar na cadeira (olhando para ela)
               </li>
               <li>
-                <strong>R</strong> to use computer to screen share (when facing a computer)
+                <strong>R</strong> no computador para compartilhar tela
               </li>
               <li>
-                <strong>Enter</strong> to open chat
+                <strong>Enter</strong> para abrir o bate-papo
               </li>
               <li>
-                <strong>ESC</strong> to close chat
+                <strong>ESC</strong> para fechar o bate-papo
               </li>
             </ul>
             <p className="tip">
               <LightbulbIcon />
-              Video connection will start if you are close to someone else
+              Sua câmera e microfone conectam ao se aproximar de colegas!
             </p>
           </Wrapper>
         )}
@@ -182,7 +183,7 @@ export default function HelperButtonGroup() {
       <ButtonGroup>
         {roomJoined && (
           <>
-            <Tooltip title="Room Info">
+            <Tooltip title="Informações da Sala">
               <StyledFab
                 size="small"
                 onClick={() => {
@@ -193,7 +194,7 @@ export default function HelperButtonGroup() {
                 <ShareIcon />
               </StyledFab>
             </Tooltip>
-            <Tooltip title="Control Guide">
+            <Tooltip title="Guia de Controles">
               <StyledFab
                 size="small"
                 onClick={() => {
@@ -206,21 +207,7 @@ export default function HelperButtonGroup() {
             </Tooltip>
           </>
         )}
-        <Tooltip title="Visit Our GitHub">
-          <StyledFab
-            size="small"
-            href="https://github.com/kevinshen56714/SkyOffice"
-            target="_blank"
-          >
-            <GitHubIcon />
-          </StyledFab>
-        </Tooltip>
-        <Tooltip title="Follow Us on Twitter">
-          <StyledFab size="small" href="https://twitter.com/SkyOfficeApp" target="_blank">
-            <TwitterIcon />
-          </StyledFab>
-        </Tooltip>
-        <Tooltip title="Switch Background Theme">
+        <Tooltip title="Alternar Modo Claro/Escuro">
           <StyledFab size="small" onClick={() => dispatch(toggleBackgroundMode())}>
             {backgroundMode === BackgroundMode.DAY ? <DarkModeIcon /> : <LightModeIcon />}
           </StyledFab>

@@ -29,10 +29,11 @@ export default class OtherPlayer extends Player {
     this.playContainerBody = this.playerContainer.body as Phaser.Physics.Arcade.Body
   }
 
-  makeCall(myPlayer: MyPlayer, webRTC: WebRTC) {
+  makeCall(myPlayer: MyPlayer, webRTC?: WebRTC) {
     this.myPlayer = myPlayer
     const myPlayerId = myPlayer.playerId
     if (
+      webRTC &&
       !this.connected &&
       this.connectionBufferTime >= 750 &&
       myPlayer.readyToConnect &&
@@ -161,7 +162,17 @@ export default class OtherPlayer extends Player {
       this.body.touching.none &&
       this.connectionBufferTime >= 750
     ) {
-      if (this.x < 610 && this.y > 515 && this.myPlayer!.x < 610 && this.myPlayer!.y > 515) return
+      const inMeeting =
+        this.x >= 200 &&
+        this.x <= 610 &&
+        this.y >= 515 &&
+        this.y <= 820 &&
+        this.myPlayer &&
+        this.myPlayer.x >= 200 &&
+        this.myPlayer.x <= 610 &&
+        this.myPlayer.y >= 515 &&
+        this.myPlayer.y <= 820
+      if (inMeeting) return
       phaserEvents.emit(Event.PLAYER_DISCONNECTED, this.playerId)
       this.connectionBufferTime = 0
       this.connected = false

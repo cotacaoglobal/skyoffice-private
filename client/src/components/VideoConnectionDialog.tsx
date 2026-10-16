@@ -9,8 +9,9 @@ import Game from '../scenes/Game'
 
 const Backdrop = styled.div`
   position: fixed;
-  top: 0;
-  left: 0;
+  top: 16px;
+  left: 80px;
+  z-index: 1000;
 `
 
 const Wrapper = styled.div`

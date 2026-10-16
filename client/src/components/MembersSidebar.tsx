@@ -512,11 +512,13 @@ export default function MembersSidebar() {
 
   return (
     <>
-      <Tooltip title={open ? 'Ocultar Membros' : 'Ver Membros no Escritório'} placement="right">
-        <ToggleButton size="medium" onClick={() => setOpen(!open)}>
-          <PeopleAltIcon />
-        </ToggleButton>
-      </Tooltip>
+      {!open && (
+        <Tooltip title="Ver Membros no Escritório" placement="right">
+          <ToggleButton size="medium" onClick={() => setOpen(true)}>
+            <PeopleAltIcon />
+          </ToggleButton>
+        </Tooltip>
+      )}
 
       <SidebarContainer $open={open} $pos={pos}>
         <Header onMouseDown={handleMouseDown}>

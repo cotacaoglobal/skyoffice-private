@@ -181,6 +181,12 @@ export default function LoginDialog() {
       game.myPlayer.setPlayerName(name)
       game.myPlayer.setPlayerTexture(chosenAvatar)
       game.network.readyToConnect()
+
+      // Tenta abrir câmera e microfone automaticamente ao entrar se ainda não estiver conectado
+      if (!videoConnected && game.network.webRTC) {
+        game.network.webRTC.getUserMedia(false)
+      }
+
       dispatch(setLoggedIn(true))
     }
   }

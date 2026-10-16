@@ -13,6 +13,7 @@ export default class Background extends Phaser.Scene {
   create(data: { backgroundMode: BackgroundMode }) {
     const sceneHeight = this.cameras.main.height
     const sceneWidth = this.cameras.main.width
+    this.cameras.main.setRoundPixels(true)
 
     // set texture of images based on the background mode
     if (data.backgroundMode === BackgroundMode.DAY) {

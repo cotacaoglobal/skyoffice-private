@@ -139,6 +139,7 @@ export default class Game extends Phaser.Scene {
     this.otherPlayers = this.physics.add.group({ classType: OtherPlayer })
 
     this.cameras.main.zoom = 1.5
+    this.cameras.main.setRoundPixels(true)
     this.cameras.main.startFollow(this.myPlayer, true)
 
     // Suporte a Zoom (Roda do Mouse)
@@ -272,7 +273,12 @@ export default class Game extends Phaser.Scene {
 
   // function to add new player to the otherPlayer group
   private handlePlayerJoined(newPlayer: IPlayer, id: string) {
-    const otherPlayer = this.add.otherPlayer(newPlayer.x, newPlayer.y, 'adam', id, newPlayer.name)
+    if (this.otherPlayerMap.has(id)) return
+    const initialTexture = newPlayer.anim?.split('_')[0] || 'adam'
+    const otherPlayer = this.add.otherPlayer(newPlayer.x, newPlayer.y, initialTexture, id, newPlayer.name)
+    if (newPlayer.anim) {
+      otherPlayer.updateOtherPlayer('anim', newPlayer.anim)
+    }
     this.otherPlayers.add(otherPlayer)
     this.otherPlayerMap.set(id, otherPlayer)
   }
@@ -330,10 +336,23 @@ export default class Game extends Phaser.Scene {
     otherPlayer?.updateDialogBubble(content)
   }
 
+  private isInMeetingRoom(x: number, y: number): boolean {
+    return x >= 200 && x <= 610 && y >= 515 && y <= 820
+  }
+
   update(t: number, dt: number) {
     if (this.myPlayer && this.network) {
       this.playerSelector.update(this.myPlayer, this.cursors)
       this.myPlayer.update(this.playerSelector, this.cursors, this.keyE, this.keyR, this.network)
+
+      // Checa automaticamente conexões de reunião (sala de conferência / mesa) e proximidade
+      const myInMeeting = this.isInMeetingRoom(this.myPlayer.x, this.myPlayer.y)
+      this.otherPlayerMap.forEach((other) => {
+        const otherInMeeting = this.isInMeetingRoom(other.x, other.y)
+        if (myInMeeting && otherInMeeting) {
+          other.makeCall(this.myPlayer, this.network.webRTC)
+        }
+      })
     }
   }
 }

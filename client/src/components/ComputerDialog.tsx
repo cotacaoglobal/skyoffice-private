@@ -113,7 +113,7 @@ export default function ComputerDialog() {
               }
             }}
           >
-            {shareScreenManager?.myStream ? 'Stop sharing' : 'Share Screen'}
+            {shareScreenManager?.myStream ? 'Parar Compartilhamento' : 'Compartilhar Tela'}
           </Button>
         </div>
 
