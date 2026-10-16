@@ -50,25 +50,20 @@ const ToggleButton = styled(Fab)`
 
 const SidebarContainer = styled.div`
   position: fixed;
-  top: 0;
-  left: 0;
+  top: 16px;
+  left: 16px;
   width: 320px;
-  max-height: calc(100vh - 40px);
+  max-height: calc(100vh - 32px);
   background: #171821;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   z-index: 1001;
   color: #e2e8f0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  will-change: transform;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  contain: layout paint;
-  isolation: isolate;
 `
 
 const Header = styled.div`
@@ -77,12 +72,7 @@ const Header = styled.div`
   justify-content: space-between;
   padding: 16px 20px 12px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  cursor: grab;
   user-select: none;
-
-  &:active {
-    cursor: grabbing;
-  }
 
   h2 {
     margin: 0;
@@ -400,50 +390,6 @@ export default function MembersSidebar() {
   const [searchTerm, setSearchTerm] = useState('')
   const [myStatus, setMyStatus] = useState<'online' | 'busy' | 'away'>('online')
 
-  // Posição no topo esquerdo com margem segura
-  const [pos, setPos] = useState({ x: 16, y: 16 })
-  const isDragging = React.useRef(false)
-  const dragOffset = React.useRef({ x: 0, y: 0 })
-  const rAF = React.useRef<number | null>(null)
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return
-    const target = e.target as HTMLElement
-    if (target.closest('button') || target.closest('svg')) return
-
-    isDragging.current = true
-    dragOffset.current = {
-      x: e.clientX - pos.x,
-      y: e.clientY - pos.y,
-    }
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!isDragging.current) return
-      if (rAF.current !== null) {
-        cancelAnimationFrame(rAF.current)
-      }
-      rAF.current = requestAnimationFrame(() => {
-        setPos({
-          x: Math.max(8, Math.min(window.innerWidth - 340, moveEvent.clientX - dragOffset.current.x)),
-          y: Math.max(8, Math.min(window.innerHeight - 300, moveEvent.clientY - dragOffset.current.y)),
-        })
-      })
-    }
-
-    const handleMouseUp = () => {
-      isDragging.current = false
-      if (rAF.current !== null) {
-        cancelAnimationFrame(rAF.current)
-        rAF.current = null
-      }
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mouseup', handleMouseUp)
-  }
-
   const dispatch = useAppDispatch()
   const playerNameMap = useAppSelector((state) => state.user.playerNameMap)
   const roomName = useAppSelector((state) => state.room.roomName)
@@ -537,11 +483,9 @@ export default function MembersSidebar() {
   }
 
   return (
-    <SidebarContainer
-      style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
-    >
-        <Header onMouseDown={handleMouseDown}>
-          <h2>
+    <SidebarContainer>
+      <Header>
+        <h2>
             <PeopleAltIcon style={{ color: '#00ebc7', fontSize: 18 }} />
             Escritório ({allMembers.length})
           </h2>

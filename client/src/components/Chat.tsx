@@ -20,23 +20,24 @@ import { MessageType, setFocused, setShowChat } from '../stores/ChatStore'
 
 const Backdrop = styled.div`
   position: fixed;
-  top: 0;
-  left: 0;
+  bottom: 24px;
+  left: 355px;
   height: 380px;
   width: 420px;
-  max-height: 80vh;
-  max-width: 90vw;
+  max-height: calc(100vh - 100px);
+  max-width: calc(100vw - 380px);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
-  will-change: transform;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  contain: layout paint;
-  isolation: isolate;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  @media (max-width: 800px) {
+    left: 16px;
+    width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+  }
 `
 
 const Wrapper = styled.div`
@@ -49,8 +50,12 @@ const Wrapper = styled.div`
 const FabWrapper = styled.div`
   position: fixed;
   bottom: 24px;
-  left: 24px;
+  left: 355px;
   z-index: 1000;
+
+  @media (max-width: 800px) {
+    left: 24px;
+  }
 `
 
 const ChatHeader = styled.div`
@@ -60,15 +65,10 @@ const ChatHeader = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-bottom: none;
   border-radius: 12px 12px 0px 0px;
-  cursor: grab;
   user-select: none;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  &:active {
-    cursor: grabbing;
-  }
 
   h3 {
     color: #f8fafc;
@@ -197,54 +197,6 @@ export default function Chat() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [readyToSubmit, setReadyToSubmit] = useState(false)
 
-  // Posição padrão do chat (ao lado do sidebar no canto inferior para não sobrepor)
-  const [pos, setPos] = useState({
-    x: Math.min(345, Math.max(20, window.innerWidth - 440)),
-    y: Math.max(80, window.innerHeight - 440),
-  })
-  const isDragging = useRef(false)
-  const dragOffset = useRef({ x: 0, y: 0 })
-  const rAF = useRef<number | null>(null)
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    // Apenas botão esquerdo e ignorar cliques nos botões de fechar ou ícones
-    if (e.button !== 0) return
-    const target = e.target as HTMLElement
-    if (target.closest('button') || target.closest('svg')) return
-
-    isDragging.current = true
-    dragOffset.current = {
-      x: e.clientX - pos.x,
-      y: e.clientY - pos.y,
-    }
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!isDragging.current) return
-      if (rAF.current !== null) {
-        cancelAnimationFrame(rAF.current)
-      }
-      rAF.current = requestAnimationFrame(() => {
-        setPos({
-          x: Math.max(10, Math.min(window.innerWidth - 440, moveEvent.clientX - dragOffset.current.x)),
-          y: Math.max(10, Math.min(window.innerHeight - 390, moveEvent.clientY - dragOffset.current.y)),
-        })
-      })
-    }
-
-    const handleMouseUp = () => {
-      isDragging.current = false
-      if (rAF.current !== null) {
-        cancelAnimationFrame(rAF.current)
-        rAF.current = null
-      }
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mouseup', handleMouseUp)
-  }
-
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const chatMessages = useAppSelector((state) => state.chat.chatMessages)
@@ -314,10 +266,10 @@ export default function Chat() {
   }
 
   return (
-    <Backdrop style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}>
+    <Backdrop>
       <Wrapper>
-        <ChatHeader onMouseDown={handleMouseDown}>
-          <h3>💬 Chat do Escritório (arraste aqui)</h3>
+        <ChatHeader>
+          <h3>💬 Chat do Escritório</h3>
           <IconButton
             aria-label="close dialog"
             className="close"

@@ -78,14 +78,10 @@ export default class Game extends Phaser.Scene {
     this.map = this.make.tilemap({ key: 'tilemap' })
     const FloorAndGround = this.map.addTilesetImage('FloorAndGround', 'tiles_wall')
 
-    // Base neutra escura sob todo o escritório para impedir que o céu azul vaze por frestas subpixel
-    this.add.rectangle(700, 500, 1400, 1100, 0x1f232b).setDepth(-1)
-
     const groundLayer = this.map.createLayer('Ground', FloorAndGround)
     groundLayer.setCollisionByProperty({ collides: true })
-    // Desativa culling em pedaços (chunks de 256px) para evitar costuras/linhas azuis entre tiles
     groundLayer.skipCull = true
-    groundLayer.setCullPadding(8, 8)
+    groundLayer.setCullPadding(4, 4)
 
     // debugDraw(groundLayer, this)
 
@@ -144,15 +140,15 @@ export default class Game extends Phaser.Scene {
 
     this.otherPlayers = this.physics.add.group({ classType: OtherPlayer })
 
-    this.cameras.main.zoom = 1.5
+    this.cameras.main.zoom = 1.0
     this.cameras.main.setRoundPixels(true)
     this.cameras.main.startFollow(this.myPlayer, true)
 
     // Suporte a Zoom (Roda do Mouse)
     this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any, deltaX: number, deltaY: number) => {
       let newZoom = this.cameras.main.zoom - deltaY * 0.001
-      // Limita o zoom entre 0.7x (visão panorâmica) e 2.5x (zoom de perto)
-      newZoom = Phaser.Math.Clamp(newZoom, 0.7, 2.5)
+      // Limita o zoom entre 0.8x e 2.0x
+      newZoom = Phaser.Math.Clamp(newZoom, 0.8, 2.0)
       this.cameras.main.setZoom(newZoom)
     })
 
@@ -162,10 +158,13 @@ export default class Game extends Phaser.Scene {
     let startPanY = 0
     const canvas = this.game.canvas
 
-    // Mostra cursor de grab ao passar o mouse pelo mapa
     if (canvas) canvas.style.cursor = 'grab'
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      // Ignora se o clique ocorreu sobre algum elemento HTML da interface
+      const target = pointer.event?.target as HTMLElement
+      if (target && target.tagName !== 'CANVAS') return
+
       isPanning = true
       startPanX = pointer.x
       startPanY = pointer.y
@@ -177,8 +176,8 @@ export default class Game extends Phaser.Scene {
       if (isPanning && pointer.isDown) {
         const dx = (startPanX - pointer.x) / this.cameras.main.zoom
         const dy = (startPanY - pointer.y) / this.cameras.main.zoom
-        this.cameras.main.scrollX += dx
-        this.cameras.main.scrollY += dy
+        this.cameras.main.scrollX = Math.round(this.cameras.main.scrollX + dx)
+        this.cameras.main.scrollY = Math.round(this.cameras.main.scrollY + dy)
         startPanX = pointer.x
         startPanY = pointer.y
       }
