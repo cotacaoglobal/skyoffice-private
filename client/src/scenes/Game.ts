@@ -141,7 +141,7 @@ export default class Game extends Phaser.Scene {
 
     this.otherPlayers = this.physics.add.group({ classType: OtherPlayer })
 
-    this.cameras.main.zoom = 1.0
+    this.cameras.main.setZoom(1.0)
     this.cameras.main.setRoundPixels(true)
     this.cameras.main.startFollow(this.myPlayer, true)
 
@@ -360,22 +360,28 @@ export default class Game extends Phaser.Scene {
 
   update(t: number, dt: number) {
     if (this.myPlayer && this.network) {
+      if (!this.cursors) return
+
       this.playerSelector.update(this.myPlayer, this.cursors)
       this.myPlayer.update(this.playerSelector, this.cursors, this.keyE, this.keyR, this.network)
 
       // Retomada automática da câmera seguindo o avatar
       if (!this.isPanning) {
         const isMoving =
-          this.cursors.left?.isDown ||
-          this.cursors.right?.isDown ||
-          this.cursors.up?.isDown ||
-          this.cursors.down?.isDown ||
+          this.cursors?.left?.isDown ||
+          this.cursors?.right?.isDown ||
+          this.cursors?.up?.isDown ||
+          this.cursors?.down?.isDown ||
           !!this.myPlayer.joystickMovement?.isMoving
 
         const isFollowing = !!(this.cameras.main as any)._follow
 
         if (!isFollowing) {
-          if (isMoving || !this.cameras.main.worldView.contains(this.myPlayer.x, this.myPlayer.y)) {
+          if (
+            isMoving ||
+            (this.cameras.main.worldView &&
+              !this.cameras.main.worldView.contains(this.myPlayer.x, this.myPlayer.y))
+          ) {
             // Se o usuário andou ou o avatar saiu do campo de visão, volta a seguir imediatamente
             this.cameras.main.startFollow(this.myPlayer, true, 0.1, 0.1)
           }
