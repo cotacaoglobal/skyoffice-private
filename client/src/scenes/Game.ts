@@ -375,23 +375,9 @@ export default class Game extends Phaser.Scene {
         const isFollowing = !!(this.cameras.main as any)._follow
 
         if (!isFollowing) {
-          if (isMoving) {
-            // Se o usuário andou, a câmera volta a seguir imediatamente com lerp suave
+          if (isMoving || !this.cameras.main.worldView.contains(this.myPlayer.x, this.myPlayer.y)) {
+            // Se o usuário andou ou o avatar saiu do campo de visão, volta a seguir imediatamente
             this.cameras.main.startFollow(this.myPlayer, true, 0.1, 0.1)
-          } else {
-            // Se o avatar estiver prestes a sair da visão visível da tela, centraliza automaticamente
-            const cam = this.cameras.main
-            const screenX = (this.myPlayer.x - cam.scrollX) * cam.zoom
-            const screenY = (this.myPlayer.y - cam.scrollY) * cam.zoom
-            const margin = 90
-            if (
-              screenX < margin ||
-              screenX > cam.width - margin ||
-              screenY < margin ||
-              screenY > cam.height - margin
-            ) {
-              this.cameras.main.startFollow(this.myPlayer, true, 0.08, 0.08)
-            }
           }
         }
       }

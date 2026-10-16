@@ -43,9 +43,6 @@ export default class OtherPlayer extends Player {
       }
     }
     this.on('pointerdown', handleContextMenu)
-
-    this.playerName.setInteractive({ cursor: 'pointer', useHandCursor: true })
-    this.playerName.on('pointerdown', handleContextMenu)
   }
 
   makeCall(myPlayer: MyPlayer, webRTC?: WebRTC) {

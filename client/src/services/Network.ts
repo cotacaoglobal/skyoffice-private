@@ -21,8 +21,6 @@ import {
   pushPrivateMessage,
 } from '../stores/ChatStore'
 import { setWhiteboardUrls } from '../stores/WhiteboardStore'
-import phaserGame from '../PhaserGame'
-import Game from '../scenes/Game'
 
 export default class Network {
   private client: Client
@@ -207,9 +205,12 @@ export default class Network {
           const mySessionId = this.room?.sessionId
 
           if (mySessionId === targetId || mySessionId === clientId) {
-            const game = phaserGame?.scene?.keys?.game as Game
-            const senderPlayer = game?.otherPlayerMap?.get(clientId)
-            const senderName = senderPlayer?.playerName?.text || (dmMatch ? dmMatch[2] : 'Colega')
+            const gameInstance = (window as any).game?.scene?.keys?.game
+            const senderPlayer = gameInstance?.otherPlayerMap?.get(clientId)
+            const senderName =
+              senderPlayer?.playerName?.text ||
+              store.getState().user.playerNameMap.get(clientId) ||
+              (dmMatch ? dmMatch[2] : 'Colega')
 
             store.dispatch(
               pushPrivateMessage({
