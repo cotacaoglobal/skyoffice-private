@@ -48,16 +48,16 @@ const ToggleButton = styled(Fab)`
   }
 `
 
-const SidebarContainer = styled.div`
+const SidebarContainer = styled.div<{ $x: number; $y: number }>`
   position: fixed;
-  top: 16px;
-  left: 16px;
+  top: ${({ $y }) => $y}px;
+  left: ${({ $x }) => $x}px;
   width: 320px;
   max-height: calc(100vh - 32px);
   background: #171821;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -73,6 +73,11 @@ const Header = styled.div`
   padding: 16px 20px 12px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   user-select: none;
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
 
   h2 {
     margin: 0;
@@ -390,6 +395,39 @@ export default function MembersSidebar() {
   const [searchTerm, setSearchTerm] = useState('')
   const [myStatus, setMyStatus] = useState<'online' | 'busy' | 'away'>('online')
 
+  const [pos, setPos] = useState({ x: 16, y: 16 })
+  const isDragging = React.useRef(false)
+  const dragOffset = React.useRef({ x: 0, y: 0 })
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return
+    const target = e.target as HTMLElement
+    if (target.closest('.close-btn') || target.closest('button') || target.closest('input')) return
+
+    isDragging.current = true
+    dragOffset.current = {
+      x: e.clientX - pos.x,
+      y: e.clientY - pos.y,
+    }
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isDragging.current) return
+      setPos({
+        x: Math.max(0, Math.min(window.innerWidth - 320, moveEvent.clientX - dragOffset.current.x)),
+        y: Math.max(0, Math.min(window.innerHeight - 80, moveEvent.clientY - dragOffset.current.y)),
+      })
+    }
+
+    const handleMouseUp = () => {
+      isDragging.current = false
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+  }
+
   const dispatch = useAppDispatch()
   const playerNameMap = useAppSelector((state) => state.user.playerNameMap)
   const roomName = useAppSelector((state) => state.room.roomName)
@@ -483,8 +521,8 @@ export default function MembersSidebar() {
   }
 
   return (
-    <SidebarContainer>
-      <Header>
+    <SidebarContainer $x={pos.x} $y={pos.y}>
+      <Header onMouseDown={handleMouseDown}>
         <h2>
             <PeopleAltIcon style={{ color: '#00ebc7', fontSize: 18 }} />
             Escritório ({allMembers.length})

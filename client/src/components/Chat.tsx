@@ -18,26 +18,21 @@ import { getColorByString } from '../util'
 import { useAppDispatch, useAppSelector } from '../hooks'
 import { MessageType, setFocused, setShowChat } from '../stores/ChatStore'
 
-const Backdrop = styled.div`
+const Backdrop = styled.div<{ $x: number; $y: number }>`
   position: fixed;
-  bottom: 24px;
-  left: 355px;
+  top: ${({ $y }) => $y}px;
+  left: ${({ $x }) => $x}px;
   height: 380px;
   width: 420px;
-  max-height: calc(100vh - 100px);
-  max-width: calc(100vw - 380px);
+  max-height: calc(100vh - 40px);
+  max-width: calc(100vw - 32px);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-
-  @media (max-width: 800px) {
-    left: 16px;
-    width: calc(100vw - 32px);
-    max-width: calc(100vw - 32px);
-  }
+  box-shadow: none;
 `
 
 const Wrapper = styled.div`
@@ -66,9 +61,14 @@ const ChatHeader = styled.div`
   border-bottom: none;
   border-radius: 12px 12px 0px 0px;
   user-select: none;
+  cursor: grab;
   display: flex;
   align-items: center;
   justify-content: center;
+
+  &:active {
+    cursor: grabbing;
+  }
 
   h3 {
     color: #f8fafc;
@@ -130,12 +130,11 @@ const MessageWrapper = styled.div`
 `
 
 const InputWrapper = styled.form`
-  box-shadow: 10px 10px 10px #00000018;
-  border: 1px solid #42eacb;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 0px 0px 10px 10px;
   display: flex;
   flex-direction: row;
-  background: linear-gradient(180deg, #000000c1, #242424c0);
+  background: #14151e;
 `
 
 const InputTextField = styled(InputBase)`
@@ -196,6 +195,42 @@ export default function Chat() {
   const [inputValue, setInputValue] = useState('')
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [readyToSubmit, setReadyToSubmit] = useState(false)
+
+  const [pos, setPos] = useState({
+    x: Math.min(355, Math.max(16, window.innerWidth - 440)),
+    y: Math.max(16, window.innerHeight - 420),
+  })
+  const isDragging = useRef(false)
+  const dragOffset = useRef({ x: 0, y: 0 })
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return
+    const target = e.target as HTMLElement
+    if (target.closest('button') || target.closest('svg') || target.closest('input')) return
+
+    isDragging.current = true
+    dragOffset.current = {
+      x: e.clientX - pos.x,
+      y: e.clientY - pos.y,
+    }
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isDragging.current) return
+      setPos({
+        x: Math.max(0, Math.min(window.innerWidth - 420, moveEvent.clientX - dragOffset.current.x)),
+        y: Math.max(0, Math.min(window.innerHeight - 80, moveEvent.clientY - dragOffset.current.y)),
+      })
+    }
+
+    const handleMouseUp = () => {
+      isDragging.current = false
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+  }
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -266,9 +301,9 @@ export default function Chat() {
   }
 
   return (
-    <Backdrop>
+    <Backdrop $x={pos.x} $y={pos.y}>
       <Wrapper>
-        <ChatHeader>
+        <ChatHeader onMouseDown={handleMouseDown}>
           <h3>💬 Chat do Escritório</h3>
           <IconButton
             aria-label="close dialog"
