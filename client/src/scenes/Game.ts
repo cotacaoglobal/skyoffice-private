@@ -297,6 +297,12 @@ export default class Game extends Phaser.Scene {
     if (newPlayer.anim) {
       otherPlayer.updateOtherPlayer('anim', newPlayer.anim)
     }
+    if (newPlayer.readyToConnect) {
+      otherPlayer.updateOtherPlayer('readyToConnect', newPlayer.readyToConnect)
+    }
+    if (newPlayer.videoConnected) {
+      otherPlayer.updateOtherPlayer('videoConnected', newPlayer.videoConnected)
+    }
     this.otherPlayers.add(otherPlayer)
     this.otherPlayerMap.set(id, otherPlayer)
   }
@@ -393,7 +399,7 @@ export default class Game extends Phaser.Scene {
       this.otherPlayerMap.forEach((other) => {
         const otherInMeeting = this.isInMeetingRoom(other.x, other.y)
         const dist = Phaser.Math.Distance.Between(this.myPlayer.x, this.myPlayer.y, other.x, other.y)
-        const inProximity = dist <= 90
+        const inProximity = dist <= 100
 
         if ((myInMeeting && otherInMeeting) || inProximity) {
           other.makeCall(this.myPlayer, this.network.webRTC)

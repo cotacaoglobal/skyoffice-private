@@ -48,18 +48,21 @@ export default class WebRTC {
 
   initialize() {
     this.myPeer.on('call', (call) => {
+      const streamToSend = this.myStream || this.createAvatarStream()
+      this.myStream = streamToSend
+
       // If we already have an active outgoing call to this peer, break tie cleanly
       if (this.peers.has(call.peer)) {
         if (this.myPeer.id < call.peer) {
           this.deleteVideoStream(call.peer)
         } else {
-          call.answer(this.myStream)
+          call.answer(streamToSend)
           return
         }
       }
 
       if (!this.onCalledPeers.has(call.peer)) {
-        call.answer(this.myStream)
+        call.answer(streamToSend)
         const video = document.createElement('video')
         this.onCalledPeers.set(call.peer, { call, video })
 
@@ -78,6 +81,50 @@ export default class WebRTC {
     })
   }
 
+  private createAvatarStream(audioStream?: MediaStream): MediaStream {
+    const canvas = document.createElement('canvas')
+    canvas.width = 320
+    canvas.height = 240
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.fillStyle = '#171821'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      ctx.fillStyle = '#00ebc7'
+      ctx.beginPath()
+      ctx.arc(160, 95, 42, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = '#171821'
+      ctx.font = 'bold 36px Arial'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('👤', 160, 95)
+
+      ctx.fillStyle = '#f8fafc'
+      ctx.font = 'bold 15px Arial'
+      ctx.textAlign = 'center'
+      ctx.fillText('Ao Vivo', 160, 165)
+
+      ctx.fillStyle = '#22c55e'
+      ctx.font = '12px Arial'
+      ctx.textAlign = 'center'
+      ctx.fillText('● Conectado no escritório', 160, 190)
+    }
+
+    const canvasStream = (canvas as any).captureStream ? (canvas as any).captureStream(15) : null
+    const videoTrack = canvasStream?.getVideoTracks()[0]
+
+    const tracks: MediaStreamTrack[] = []
+    if (audioStream) {
+      const audioTrack = audioStream.getAudioTracks()[0]
+      if (audioTrack) tracks.push(audioTrack)
+    }
+    if (videoTrack) tracks.push(videoTrack)
+
+    return new MediaStream(tracks)
+  }
+
   getUserMedia(alertOnError = true) {
     const askMedia = (constraints: MediaStreamConstraints) => {
       return navigator.mediaDevices?.getUserMedia(constraints)
@@ -93,18 +140,19 @@ export default class WebRTC {
         this.network.videoConnected()
       })
       .catch((err) => {
-        console.warn('Câmera indisponível, conectando apenas áudio/microfone...', err)
+        console.warn('Câmera indisponível ou em uso, conectando com microfone...', err)
         askMedia({ audio: true, video: false })
           .then((audioStream) => {
-            this.myStream = audioStream
-            // Não adiciona card de vídeo local para áudio puro (removido a pedido do usuário)
+            this.myStream = this.createAvatarStream(audioStream)
+            // Não adiciona localmente para não poluir a tela do usuário com card estático,
+            // mas garante stream completo com áudio e vídeo para enviar nas chamadas
             this.setUpButtons()
             store.dispatch(setVideoConnected(true))
             this.network.videoConnected()
           })
           .catch((finalErr) => {
-            console.warn('Permissão de microfone não concedida, criando canal de áudio para recepção...', finalErr)
-            this.myStream = new MediaStream()
+            console.warn('Permissão de microfone não concedida, criando canal virtual para recepção...', finalErr)
+            this.myStream = this.createAvatarStream()
             this.setUpButtons()
             store.dispatch(setVideoConnected(true))
             this.network.videoConnected()
@@ -112,8 +160,8 @@ export default class WebRTC {
             if (alertOnError) {
               const msg =
                 finalErr.name === 'NotAllowedError' || finalErr.name === 'PermissionDeniedError'
-                  ? 'Permissão negada! Clique no ícone de configurações ao lado do endereço e permita Microfone para conversar.'
-                  : `Aviso de áudio: ${finalErr.message || 'Verifique as permissões de microfone.'}`
+                  ? 'Permissão negada! Clique no ícone de configurações ao lado do endereço e permita Câmera e Microfone.'
+                  : `Aviso de mídia: ${finalErr.message || 'Verifique as permissões de microfone.'}`
               window.alert(msg)
             }
           })
@@ -122,18 +170,19 @@ export default class WebRTC {
 
   // method to call a peer
   connectToNewUser(userId: string) {
-    if (this.myStream) {
-      const sanitizedId = this.replaceInvalidId(userId)
-      if (!this.peers.has(sanitizedId) && !this.onCalledPeers.has(sanitizedId)) {
-        console.log('calling', sanitizedId)
-        const call = this.myPeer.call(sanitizedId, this.myStream)
-        const video = document.createElement('video')
-        this.peers.set(sanitizedId, { call, video })
+    const streamToSend = this.myStream || this.createAvatarStream()
+    this.myStream = streamToSend
 
-        call.on('stream', (userVideoStream) => {
-          this.addVideoStream(video, userVideoStream)
-        })
-      }
+    const sanitizedId = this.replaceInvalidId(userId)
+    if (!this.peers.has(sanitizedId) && !this.onCalledPeers.has(sanitizedId)) {
+      console.log('calling', sanitizedId)
+      const call = this.myPeer.call(sanitizedId, streamToSend)
+      const video = document.createElement('video')
+      this.peers.set(sanitizedId, { call, video })
+
+      call.on('stream', (userVideoStream) => {
+        this.addVideoStream(video, userVideoStream)
+      })
     }
   }
 
@@ -141,15 +190,11 @@ export default class WebRTC {
   addVideoStream(video: HTMLVideoElement, stream: MediaStream) {
     video.srcObject = stream
     video.playsInline = true
+    video.autoplay = true
+    video.style.display = 'block'
     video.addEventListener('loadedmetadata', () => {
-      video.play()
+      video.play().catch((err) => console.warn('Erro ao reproduzir stream:', err))
     })
-    const hasVideo = stream.getVideoTracks().length > 0
-    if (!hasVideo) {
-      video.style.display = 'none'
-    } else {
-      video.style.display = 'block'
-    }
     if (this.videoGrid && !video.parentElement) this.videoGrid.append(video)
   }
 
