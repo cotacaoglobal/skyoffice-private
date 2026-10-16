@@ -214,38 +214,45 @@ export default class WebRTC {
     }
   }
 
-  // method to set up mute/unmute and video on/off buttons
+  toggleAudio(): boolean {
+    if (this.myStream) {
+      const track = this.myStream.getAudioTracks()[0]
+      if (track) {
+        track.enabled = !track.enabled
+        return track.enabled
+      }
+    }
+    return false
+  }
+
+  isAudioEnabled(): boolean {
+    if (this.myStream) {
+      const track = this.myStream.getAudioTracks()[0]
+      return track ? track.enabled : false
+    }
+    return false
+  }
+
+  toggleVideo(): boolean {
+    if (this.myStream) {
+      const track = this.myStream.getVideoTracks()[0]
+      if (track) {
+        track.enabled = !track.enabled
+        return track.enabled
+      }
+    }
+    return false
+  }
+
+  isVideoEnabled(): boolean {
+    if (this.myStream) {
+      const track = this.myStream.getVideoTracks()[0]
+      return track ? track.enabled : false
+    }
+    return false
+  }
+
   setUpButtons() {
-    if (this.buttonGrid && this.buttonGrid.children.length > 0) return
-    const audioButton = document.createElement('button')
-    audioButton.innerText = 'Mute'
-    audioButton.addEventListener('click', () => {
-      if (this.myStream) {
-        const audioTrack = this.myStream.getAudioTracks()[0]
-        if (audioTrack.enabled) {
-          audioTrack.enabled = false
-          audioButton.innerText = 'Unmute'
-        } else {
-          audioTrack.enabled = true
-          audioButton.innerText = 'Mute'
-        }
-      }
-    })
-    const videoButton = document.createElement('button')
-    videoButton.innerText = 'Video off'
-    videoButton.addEventListener('click', () => {
-      if (this.myStream) {
-        const audioTrack = this.myStream.getVideoTracks()[0]
-        if (audioTrack.enabled) {
-          audioTrack.enabled = false
-          videoButton.innerText = 'Video on'
-        } else {
-          audioTrack.enabled = true
-          videoButton.innerText = 'Video off'
-        }
-      }
-    })
-    this.buttonGrid?.append(audioButton)
-    this.buttonGrid?.append(videoButton)
+    // Substituído pela barra de tarefas moderna BottomTaskbar
   }
 }

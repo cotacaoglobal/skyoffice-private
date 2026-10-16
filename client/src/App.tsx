@@ -13,6 +13,7 @@ import HelperButtonGroup from './components/HelperButtonGroup'
 import MobileVirtualJoystick from './components/MobileVirtualJoystick'
 import MembersSidebar from './components/MembersSidebar'
 import AuthDialog from './components/AuthDialog'
+import BottomTaskbar from './components/BottomTaskbar'
 
 const Backdrop = styled.div`
   position: absolute;
@@ -68,6 +69,7 @@ function App() {
           <Chat />
           <MembersSidebar />
           <MobileVirtualJoystick />
+          <BottomTaskbar />
         </>
       )
     }

@@ -100,7 +100,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     }, 6000)
   }
 
-  private clearDialogBubble() {
+  clearDialogBubble() {
     clearTimeout(this.timeoutID)
     this.playerDialogBubble.removeAll(true)
   }
