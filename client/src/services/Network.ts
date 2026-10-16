@@ -198,6 +198,7 @@ export default class Network {
     // when a peer disconnects with myPeer
     this.room.onMessage(Message.DISCONNECT_STREAM, (clientId: string) => {
       this.webRTC?.deleteOnCalledVideoStream(clientId)
+      this.webRTC?.deleteVideoStream(clientId)
     })
 
     // when a computer user stops sharing screen
@@ -294,6 +295,7 @@ export default class Network {
   playerStreamDisconnect(id: string) {
     this.room?.send(Message.DISCONNECT_STREAM, { clientId: id })
     this.webRTC?.deleteVideoStream(id)
+    this.webRTC?.deleteOnCalledVideoStream(id)
   }
 
   connectToComputer(id: string) {

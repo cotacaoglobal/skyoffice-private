@@ -37,8 +37,27 @@ export default class WebRTC {
     return userId.replace(/[^0-9a-z]/gi, 'G')
   }
 
+  hasConnectionWith(userId: string): boolean {
+    const sanitizedId = this.replaceInvalidId(userId)
+    return this.peers.has(sanitizedId) || this.onCalledPeers.has(sanitizedId)
+  }
+
+  hasStream(): boolean {
+    return !!this.myStream
+  }
+
   initialize() {
     this.myPeer.on('call', (call) => {
+      // If we already have an active outgoing call to this peer, break tie cleanly
+      if (this.peers.has(call.peer)) {
+        if (this.myPeer.id < call.peer) {
+          this.deleteVideoStream(call.peer)
+        } else {
+          call.answer(this.myStream)
+          return
+        }
+      }
+
       if (!this.onCalledPeers.has(call.peer)) {
         call.answer(this.myStream)
         const video = document.createElement('video')
@@ -48,7 +67,6 @@ export default class WebRTC {
           this.addVideoStream(video, userVideoStream)
         })
       }
-      // on close is triggered manually with deleteOnCalledVideoStream()
     })
   }
 
@@ -58,6 +76,50 @@ export default class WebRTC {
     navigator.permissions?.query({ name: permissionName }).then((result) => {
       if (result.state === 'granted') this.getUserMedia(false)
     })
+  }
+
+  private createAvatarStream(audioStream?: MediaStream): MediaStream {
+    const canvas = document.createElement('canvas')
+    canvas.width = 320
+    canvas.height = 240
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.fillStyle = '#171821'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      ctx.fillStyle = '#00ebc7'
+      ctx.beginPath()
+      ctx.arc(160, 95, 42, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = '#171821'
+      ctx.font = 'bold 36px Arial'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('👤', 160, 95)
+
+      ctx.fillStyle = '#f8fafc'
+      ctx.font = 'bold 15px Arial'
+      ctx.textAlign = 'center'
+      ctx.fillText('Áudio Conectado', 160, 165)
+
+      ctx.fillStyle = '#22c55e'
+      ctx.font = '12px Arial'
+      ctx.textAlign = 'center'
+      ctx.fillText('● Ao vivo no escritório', 160, 190)
+    }
+
+    const canvasStream = (canvas as any).captureStream ? (canvas as any).captureStream(15) : null
+    const videoTrack = canvasStream?.getVideoTracks()[0]
+
+    const tracks: MediaStreamTrack[] = []
+    if (audioStream) {
+      const audioTrack = audioStream.getAudioTracks()[0]
+      if (audioTrack) tracks.push(audioTrack)
+    }
+    if (videoTrack) tracks.push(videoTrack)
+
+    return new MediaStream(tracks)
   }
 
   getUserMedia(alertOnError = true) {
@@ -75,24 +137,28 @@ export default class WebRTC {
         this.network.videoConnected()
       })
       .catch((err) => {
-        console.warn('Erro ao obter áudio e vídeo juntos, tentando apenas microfone...', err)
-        // Se falhou (ex: sem webcam), tenta apenas microfone
+        console.warn('Câmera indisponível ou em uso, tentando microfone + cartão ao vivo...', err)
         askMedia({ audio: true, video: false })
-          .then((stream) => {
-            this.myStream = stream
+          .then((audioStream) => {
+            this.myStream = this.createAvatarStream(audioStream)
+            this.addVideoStream(this.myVideo, this.myStream)
             this.setUpButtons()
             store.dispatch(setVideoConnected(true))
             this.network.videoConnected()
           })
           .catch((finalErr) => {
-            console.error('Falha de permissão de mídia:', finalErr)
+            console.warn('Permissão de microfone não concedida, gerando stream virtual para receber lives...', finalErr)
+            this.myStream = this.createAvatarStream()
+            this.addVideoStream(this.myVideo, this.myStream)
+            this.setUpButtons()
+            store.dispatch(setVideoConnected(true))
+            this.network.videoConnected()
+
             if (alertOnError) {
               const msg =
                 finalErr.name === 'NotAllowedError' || finalErr.name === 'PermissionDeniedError'
-                  ? 'Permissão negada! Clique no ícone de configurações ao lado do endereço (ou no cadeado/ícone de slide) e mude Câmera e Microfone para "Permitir".'
-                  : finalErr.name === 'NotFoundError' || finalErr.name === 'DevicesNotFoundError'
-                  ? 'Nenhum microfone ou webcam detectado no seu computador.'
-                  : `Aviso de mídia: ${finalErr.message || 'Verifique as permissões de microfone do navegador.'}`
+                  ? 'Permissão negada! Clique no ícone de configurações ao lado do endereço e permita Câmera e Microfone.'
+                  : `Aviso de mídia: ${finalErr.message || 'Verifique as permissões de microfone.'}`
               window.alert(msg)
             }
           })
@@ -103,7 +169,7 @@ export default class WebRTC {
   connectToNewUser(userId: string) {
     if (this.myStream) {
       const sanitizedId = this.replaceInvalidId(userId)
-      if (!this.peers.has(sanitizedId)) {
+      if (!this.peers.has(sanitizedId) && !this.onCalledPeers.has(sanitizedId)) {
         console.log('calling', sanitizedId)
         const call = this.myPeer.call(sanitizedId, this.myStream)
         const video = document.createElement('video')
@@ -112,8 +178,6 @@ export default class WebRTC {
         call.on('stream', (userVideoStream) => {
           this.addVideoStream(video, userVideoStream)
         })
-
-        // on close is triggered manually with deleteVideoStream()
       }
     }
   }
@@ -152,6 +216,7 @@ export default class WebRTC {
 
   // method to set up mute/unmute and video on/off buttons
   setUpButtons() {
+    if (this.buttonGrid && this.buttonGrid.children.length > 0) return
     const audioButton = document.createElement('button')
     audioButton.innerText = 'Mute'
     audioButton.addEventListener('click', () => {

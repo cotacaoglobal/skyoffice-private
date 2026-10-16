@@ -346,7 +346,7 @@ export default class Game extends Phaser.Scene {
   }
 
   private isInMeetingRoom(x: number, y: number): boolean {
-    return x >= 200 && x <= 610 && y >= 515 && y <= 820
+    return x >= 180 && x <= 620 && y >= 490 && y <= 830
   }
 
   update(t: number, dt: number) {
@@ -358,7 +358,10 @@ export default class Game extends Phaser.Scene {
       const myInMeeting = this.isInMeetingRoom(this.myPlayer.x, this.myPlayer.y)
       this.otherPlayerMap.forEach((other) => {
         const otherInMeeting = this.isInMeetingRoom(other.x, other.y)
-        if (myInMeeting && otherInMeeting) {
+        const dist = Phaser.Math.Distance.Between(this.myPlayer.x, this.myPlayer.y, other.x, other.y)
+        const inProximity = dist <= 90
+
+        if ((myInMeeting && otherInMeeting) || inProximity) {
           other.makeCall(this.myPlayer, this.network.webRTC)
         }
       })

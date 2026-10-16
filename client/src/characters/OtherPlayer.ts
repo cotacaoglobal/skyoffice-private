@@ -31,16 +31,25 @@ export default class OtherPlayer extends Player {
 
   makeCall(myPlayer: MyPlayer, webRTC?: WebRTC) {
     this.myPlayer = myPlayer
-    const myPlayerId = myPlayer.playerId
+    if (!webRTC) return
+
+    // If WebRTC is already connected with this player (incoming or outgoing), mark as connected
+    if (webRTC.hasConnectionWith(this.playerId)) {
+      this.connected = true
+      return
+    }
+
     if (
-      webRTC &&
       !this.connected &&
       this.connectionBufferTime >= 750 &&
       myPlayer.readyToConnect &&
-      this.readyToConnect &&
-      myPlayer.videoConnected &&
-      myPlayerId > this.playerId
+      this.readyToConnect
     ) {
+      if (!webRTC.hasStream()) {
+        webRTC.getUserMedia(false)
+        return
+      }
+
       webRTC.connectToNewUser(this.playerId)
       this.connected = true
       this.connectionBufferTime = 0
@@ -154,28 +163,31 @@ export default class OtherPlayer extends Player {
     this.playContainerBody.velocity.setLength(speed)
 
     // while currently connected with myPlayer
-    // if myPlayer and the otherPlayer stop overlapping, delete video stream
+    // if myPlayer and the otherPlayer move away and are not in meeting room, delete video stream
     this.connectionBufferTime += dt
-    if (
-      this.connected &&
-      !this.body.embedded &&
-      this.body.touching.none &&
-      this.connectionBufferTime >= 750
-    ) {
+    if (this.connected && this.connectionBufferTime >= 750) {
+      const dist = this.myPlayer
+        ? Phaser.Math.Distance.Between(this.x, this.y, this.myPlayer.x, this.myPlayer.y)
+        : 9999
+
       const inMeeting =
-        this.x >= 200 &&
-        this.x <= 610 &&
-        this.y >= 515 &&
-        this.y <= 820 &&
+        this.x >= 180 &&
+        this.x <= 620 &&
+        this.y >= 490 &&
+        this.y <= 830 &&
         this.myPlayer &&
-        this.myPlayer.x >= 200 &&
-        this.myPlayer.x <= 610 &&
-        this.myPlayer.y >= 515 &&
-        this.myPlayer.y <= 820
-      if (inMeeting) return
-      phaserEvents.emit(Event.PLAYER_DISCONNECTED, this.playerId)
-      this.connectionBufferTime = 0
-      this.connected = false
+        this.myPlayer.x >= 180 &&
+        this.myPlayer.x <= 620 &&
+        this.myPlayer.y >= 490 &&
+        this.myPlayer.y <= 830
+
+      const inProximity = dist <= 110
+
+      if (!inMeeting && !inProximity) {
+        phaserEvents.emit(Event.PLAYER_DISCONNECTED, this.playerId)
+        this.connectionBufferTime = 0
+        this.connected = false
+      }
     }
   }
 }
