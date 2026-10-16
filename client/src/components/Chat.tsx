@@ -36,6 +36,7 @@ const Backdrop = styled.div`
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   contain: layout paint;
+  isolation: isolate;
 `
 
 const Wrapper = styled.div`
@@ -196,10 +197,10 @@ export default function Chat() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [readyToSubmit, setReadyToSubmit] = useState(false)
 
-  // Posição padrão do chat (canto inferior esquerdo com margem de 20px da borda e 80px do fundo)
+  // Posição padrão do chat (ao lado do sidebar no canto inferior para não sobrepor)
   const [pos, setPos] = useState({
-    x: 20,
-    y: Math.max(100, window.innerHeight - 460),
+    x: Math.min(345, Math.max(20, window.innerWidth - 440)),
+    y: Math.max(80, window.innerHeight - 440),
   })
   const isDragging = useRef(false)
   const dragOffset = useRef({ x: 0, y: 0 })

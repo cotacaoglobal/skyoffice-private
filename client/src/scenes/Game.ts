@@ -78,8 +78,14 @@ export default class Game extends Phaser.Scene {
     this.map = this.make.tilemap({ key: 'tilemap' })
     const FloorAndGround = this.map.addTilesetImage('FloorAndGround', 'tiles_wall')
 
+    // Base neutra escura sob todo o escritório para impedir que o céu azul vaze por frestas subpixel
+    this.add.rectangle(700, 500, 1400, 1100, 0x1f232b).setDepth(-1)
+
     const groundLayer = this.map.createLayer('Ground', FloorAndGround)
     groundLayer.setCollisionByProperty({ collides: true })
+    // Desativa culling em pedaços (chunks de 256px) para evitar costuras/linhas azuis entre tiles
+    groundLayer.skipCull = true
+    groundLayer.setCullPadding(8, 8)
 
     // debugDraw(groundLayer, this)
 

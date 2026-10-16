@@ -48,7 +48,7 @@ const ToggleButton = styled(Fab)`
   }
 `
 
-const SidebarContainer = styled.div<{ $open: boolean }>`
+const SidebarContainer = styled.div`
   position: fixed;
   top: 0;
   left: 0;
@@ -62,15 +62,13 @@ const SidebarContainer = styled.div<{ $open: boolean }>`
   flex-direction: column;
   overflow: hidden;
   z-index: 1001;
-  transition: opacity 0.25s ease;
-  opacity: ${({ $open }) => ($open ? 1 : 0)};
-  pointer-events: ${({ $open }) => ($open ? 'all' : 'none')};
   color: #e2e8f0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   will-change: transform;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   contain: layout paint;
+  isolation: isolate;
 `
 
 const Header = styled.div`
@@ -528,20 +526,20 @@ export default function MembersSidebar() {
     String(m.name || '').toLowerCase().includes(search)
   )
 
-  return (
-    <>
-      {!open && (
-        <Tooltip title="Ver Membros no Escritório" placement="right">
-          <ToggleButton size="medium" onClick={() => setOpen(true)}>
-            <PeopleAltIcon />
-          </ToggleButton>
-        </Tooltip>
-      )}
+  if (!open) {
+    return (
+      <Tooltip title="Ver Membros no Escritório" placement="right">
+        <ToggleButton size="medium" onClick={() => setOpen(true)}>
+          <PeopleAltIcon />
+        </ToggleButton>
+      </Tooltip>
+    )
+  }
 
-      <SidebarContainer
-        $open={open}
-        style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
-      >
+  return (
+    <SidebarContainer
+      style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
+    >
         <Header onMouseDown={handleMouseDown}>
           <h2>
             <PeopleAltIcon style={{ color: '#00ebc7', fontSize: 18 }} />
@@ -650,6 +648,5 @@ export default function MembersSidebar() {
           </LeaveButton>
         </FooterContainer>
       </SidebarContainer>
-    </>
   )
 }

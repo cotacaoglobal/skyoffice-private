@@ -9,6 +9,11 @@ const config: Phaser.Types.Core.GameConfig = {
   backgroundColor: '#93cbee',
   pixelArt: true, // Prevent pixel art from becoming blurred when scaled.
   roundPixels: true,
+  render: {
+    antialias: false,
+    pixelArt: true,
+    roundPixels: true,
+  },
   scale: {
     mode: Phaser.Scale.ScaleModes.RESIZE,
     width: window.innerWidth,
