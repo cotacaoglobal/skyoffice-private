@@ -31,6 +31,7 @@ import Game from '../scenes/Game'
 import { phaserEvents } from '../events/EventCenter'
 import { useAppSelector, useAppDispatch } from '../hooks'
 import { setShowJoystick } from '../stores/UserStore'
+import { PlayerBehavior } from '../../../types/PlayerBehavior'
 
 import Adam from '../images/login/Adam_login.png'
 import Ash from '../images/login/Ash_login.png'
@@ -355,13 +356,20 @@ export default function BottomTaskbar() {
   const [showBroadcastDialog, setShowBroadcastDialog] = useState(false)
   const [broadcastText, setBroadcastText] = useState('')
 
-  // Mesa de trabalho vinculada
+  // Mesa de trabalho vinculada e estado de sentar
   const [myDeskChair, setMyDeskChair] = useState<any>(null)
+  const [isSitting, setIsSitting] = useState(false)
 
   useEffect(() => {
-    const checkMyDesk = () => {
+    const checkDeskAndSitting = () => {
       const game = phaserGame?.scene?.keys?.game as any
-      if (!game || !game.chairMap) return
+      if (!game) return
+
+      if (game.myPlayer) {
+        setIsSitting(game.myPlayer.playerBehavior === PlayerBehavior.SITTING)
+      }
+
+      if (!game.chairMap) return
       let found: any = null
       game.chairMap.forEach((chair: any) => {
         if (chair.isClaimedByMe(game.network?.mySessionId, game.myPlayer?.playerName?.text)) {
@@ -371,7 +379,7 @@ export default function BottomTaskbar() {
       setMyDeskChair(found)
     }
 
-    const interval = setInterval(checkMyDesk, 1000)
+    const interval = setInterval(checkDeskAndSitting, 400)
     return () => clearInterval(interval)
   }, [])
 
@@ -643,17 +651,27 @@ export default function BottomTaskbar() {
           </ChevronBtn>
         </ControlGroup>
 
-        {/* Botão de Atalho para Minha Mesa */}
-        {myDeskChair && (
-          <Tooltip title="Caminhar até minha mesa de trabalho">
+        {/* Botão de Atalho para Minha Mesa / Levantar da Cadeira */}
+        {(myDeskChair || isSitting) && (
+          <Tooltip title={isSitting ? 'Levantar da cadeira' : 'Caminhar até minha mesa de trabalho'}>
             <ActionBtn
-              onClick={() => phaserEvents.emit('NAVIGATE_TO_MY_DESK', myDeskChair)}
-              style={{
-                background: 'rgba(0, 235, 199, 0.15)',
-                border: '1px solid rgba(0, 235, 199, 0.5)',
-                color: '#00ebc7',
+              onClick={() => {
+                const game = phaserGame?.scene?.keys?.game as any
+                if (!game) return
+                if (game.myPlayer?.playerBehavior === PlayerBehavior.SITTING) {
+                  game.myPlayer.standUp(game.network)
+                  setIsSitting(false)
+                } else if (myDeskChair) {
+                  phaserEvents.emit('NAVIGATE_TO_MY_DESK', myDeskChair)
+                }
               }}
-              aria-label="Minha Mesa"
+              style={{
+                background: isSitting ? '#00ebc7' : 'rgba(0, 235, 199, 0.15)',
+                border: isSitting ? '2px solid #00ebc7' : '1px solid rgba(0, 235, 199, 0.5)',
+                color: isSitting ? '#0f172a' : '#00ebc7',
+                boxShadow: isSitting ? '0 0 12px rgba(0, 235, 199, 0.7)' : 'none',
+              }}
+              aria-label={isSitting ? 'Levantar da cadeira' : 'Minha Mesa'}
             >
               <span style={{ fontSize: '18px' }}>🪑</span>
             </ActionBtn>

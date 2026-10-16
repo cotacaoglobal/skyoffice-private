@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { ItemType } from '../../../types/Items'
 import Item from './Item'
 import { phaserEvents } from '../events/EventCenter'
+import { PlayerBehavior } from '../../../types/PlayerBehavior'
 
 export interface IChairClaimData {
   sessionId: string
@@ -21,12 +22,17 @@ export default class Chair extends Item {
     this.itemType = ItemType.CHAIR
     this.badgeContainer = this.scene.add.container(this.x, this.y - 48).setDepth(10000)
 
-    // Permite clicar na cadeira com o mouse
+    // Permite clicar na cadeira com o mouse ou toque
     this.setInteractive({ cursor: 'pointer' })
     this.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (pointer.button === 2 || pointer.rightButtonDown()) return
       pointer.event?.stopPropagation()
-      phaserEvents.emit('CHAIR_CLICKED', this)
+      const game = this.scene as any
+      if (game?.myPlayer?.playerBehavior === PlayerBehavior.SITTING) {
+        game.myPlayer.standUp(game.network)
+      } else {
+        phaserEvents.emit('CHAIR_CLICKED', this)
+      }
     })
   }
 
@@ -77,10 +83,15 @@ export default class Chair extends Item {
       hitCircle.setInteractive({ cursor: 'pointer' })
       hitCircle.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
         pointer.event?.stopPropagation()
-        phaserEvents.emit('NAVIGATE_TO_MY_DESK', this)
+        const game = this.scene as any
+        if (game?.myPlayer?.playerBehavior === PlayerBehavior.SITTING) {
+          game.myPlayer.standUp(game.network)
+        } else {
+          phaserEvents.emit('NAVIGATE_TO_MY_DESK', this)
+        }
       })
 
-      // Botão 'X' no canto superior direito para desvincular
+      // Botão 'X' no canto superior direito: se estiver sentado levanta; se em pé desvincula
       const closeBtnBg = this.scene.add.graphics()
       closeBtnBg.fillStyle(0x6366f1, 1) // Roxo elegante (estilo SoWork)
       closeBtnBg.fillCircle(11, -38, 7.5)
@@ -99,7 +110,12 @@ export default class Chair extends Item {
       hitClose.setInteractive({ cursor: 'pointer' })
       hitClose.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
         pointer.event?.stopPropagation()
-        phaserEvents.emit('UNCLAIM_DESK', this.id)
+        const game = this.scene as any
+        if (game?.myPlayer?.playerBehavior === PlayerBehavior.SITTING) {
+          game.myPlayer.standUp(game.network)
+        } else {
+          phaserEvents.emit('UNCLAIM_DESK', this.id)
+        }
       })
 
       this.badgeContainer.add([actionBtn, chairIcon, hitCircle, closeBtnBg, closeText, hitClose])
@@ -146,12 +162,17 @@ export default class Chair extends Item {
     textObj.setX(pillX + 22)
 
     if (isMine) {
-      // Clicar na pílula também faz caminhar até a mesa e sentar
+      // Clicar na pílula: se sentado levanta, se em pé caminha e senta
       const hitPill = this.scene.add.zone(0, 0, pillWidth, pillHeight).setOrigin(0.5)
       hitPill.setInteractive({ cursor: 'pointer' })
       hitPill.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
         pointer.event?.stopPropagation()
-        phaserEvents.emit('NAVIGATE_TO_MY_DESK', this)
+        const game = this.scene as any
+        if (game?.myPlayer?.playerBehavior === PlayerBehavior.SITTING) {
+          game.myPlayer.standUp(game.network)
+        } else {
+          phaserEvents.emit('NAVIGATE_TO_MY_DESK', this)
+        }
       })
       this.badgeContainer.add([pillBg, avatarCircle, avatarIcon, textObj, hitPill])
     } else {

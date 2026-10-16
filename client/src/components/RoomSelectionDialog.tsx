@@ -27,9 +27,11 @@ const Backdrop = styled.div`
   gap: 60px;
   align-items: center;
 
-  @media (max-width: 600px) {
-    gap: 20px;
-    width: 95vw;
+  @media (max-width: 768px) {
+    gap: 16px;
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    box-sizing: border-box;
   }
 `
 
@@ -39,11 +41,12 @@ const Wrapper = styled.div`
   padding: 36px 60px;
   box-shadow: 0px 0px 5px #0000006f;
 
-  @media (max-width: 600px) {
-    padding: 20px 14px;
-    width: 92vw;
-    max-width: 420px;
-    max-height: 85vh;
+  @media (max-width: 768px) {
+    padding: 24px 14px;
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    box-sizing: border-box;
+    max-height: 88vh;
     overflow-y: auto;
   }
 `
@@ -55,6 +58,8 @@ const CustomRoomWrapper = styled.div`
   gap: 20px;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
 
   .tip {
     font-size: 18px;
@@ -84,6 +89,11 @@ const Title = styled.h1`
   font-size: 24px;
   color: #eee;
   text-align: center;
+  margin: 0;
+
+  @media (max-width: 768px) {
+    font-size: 20px;
+  }
 `
 
 const Content = styled.div`
@@ -93,10 +103,23 @@ const Content = styled.div`
   margin: 20px 0;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
 
   img {
     border-radius: 8px;
     height: 120px;
+
+    @media (max-width: 768px) {
+      height: 95px;
+    }
+  }
+
+  button {
+    @media (max-width: 768px) {
+      width: 100%;
+      box-sizing: border-box;
+    }
   }
 `
 
@@ -104,14 +127,21 @@ const ProgressBarWrapper = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
 
   h3 {
     color: #33ac96;
+    font-size: 14px;
   }
 `
 
 const ProgressBar = styled(LinearProgress)`
   width: 360px;
+
+  @media (max-width: 768px) {
+    width: calc(100vw - 40px) !important;
+    max-width: 360px;
+  }
 `
 
 export default function RoomSelectionDialog() {

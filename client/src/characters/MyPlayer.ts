@@ -120,6 +120,20 @@ export default class MyPlayer extends Player {
     this.playerBehavior = PlayerBehavior.SITTING
   }
 
+  standUp(network: Network, playerSelector?: PlayerSelector) {
+    if (this.playerBehavior !== PlayerBehavior.SITTING) return
+    const parts = this.anims.currentAnim.key.split('_')
+    parts[1] = 'idle'
+    this.play(parts.join('_'), true)
+    this.playerBehavior = PlayerBehavior.IDLE
+    this.chairOnSit?.clearDialogBox()
+    this.chairOnSit = undefined
+    if (playerSelector) {
+      playerSelector.setPosition(this.x, this.y)
+    }
+    network.updatePlayer(this.x, this.y, this.anims.currentAnim.key)
+  }
+
   update(
     playerSelector: PlayerSelector,
     cursors: NavKeys,
@@ -312,16 +326,24 @@ export default class MyPlayer extends Player {
         break
 
       case PlayerBehavior.SITTING:
-        // back to idle if player press E while sitting
-        if (Phaser.Input.Keyboard.JustDown(keyE)) {
-          const parts = this.anims.currentAnim.key.split('_')
-          parts[1] = 'idle'
-          this.play(parts.join('_'), true)
-          this.playerBehavior = PlayerBehavior.IDLE
-          this.chairOnSit?.clearDialogBox()
-          playerSelector.setPosition(this.x, this.y)
-          playerSelector.update(this, cursors)
-          network.updatePlayer(this.x, this.y, this.anims.currentAnim.key)
+        // Levanta se o usuário pressionar E ou mover joystick / teclado
+        const movedWhileSitting =
+          Phaser.Input.Keyboard.JustDown(keyE) ||
+          this.joystickMovement?.isMoving ||
+          cursors.left?.isDown ||
+          cursors.right?.isDown ||
+          cursors.up?.isDown ||
+          cursors.down?.isDown ||
+          cursors.A?.isDown ||
+          cursors.D?.isDown ||
+          cursors.W?.isDown ||
+          cursors.S?.isDown
+
+        if (movedWhileSitting) {
+          this.standUp(network, playerSelector)
+          if (playerSelector && cursors) {
+            playerSelector.update(this, cursors)
+          }
         }
         break
     }

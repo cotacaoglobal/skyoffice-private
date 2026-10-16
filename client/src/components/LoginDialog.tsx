@@ -33,11 +33,12 @@ const Wrapper = styled.form`
   padding: 36px 60px;
   box-shadow: 0px 0px 5px #0000006f;
 
-  @media (max-width: 600px) {
-    padding: 24px 16px;
-    width: 92vw;
-    max-width: 380px;
-    max-height: 90vh;
+  @media (max-width: 768px) {
+    padding: 20px 14px;
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    box-sizing: border-box;
+    max-height: 92vh;
     overflow-y: auto;
   }
 `
@@ -47,6 +48,11 @@ const Title = styled.p`
   font-size: 20px;
   color: #c2c2c2;
   text-align: center;
+
+  @media (max-width: 768px) {
+    font-size: 15px;
+    margin: 2px 0 6px 0;
+  }
 `
 
 const RoomName = styled.div`
@@ -62,6 +68,14 @@ const RoomName = styled.div`
   h3 {
     font-size: 24px;
     color: #eee;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+    h3 {
+      font-size: 18px;
+    }
   }
 `
 
@@ -74,32 +88,53 @@ const RoomDescription = styled.div`
   color: #c2c2c2;
   display: flex;
   justify-content: center;
+  text-align: center;
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+    font-size: 13px;
+    margin-top: 4px;
+  }
 `
 
 const SubTitle = styled.h3`
-  width: 160px;
+  width: 100%;
   font-size: 16px;
   color: #eee;
   text-align: center;
+  margin: 0 0 8px 0;
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
 `
 
 const Content = styled.div`
   display: flex;
   margin: 36px 0;
+  align-items: center;
+  justify-content: center;
 
-  @media (max-width: 600px) {
-    flex-direction: column;
+  @media (max-width: 768px) {
+    flex-direction: column !important;
     align-items: center;
-    margin: 16px 0;
-    gap: 16px;
+    margin: 14px 0;
+    gap: 14px;
+    width: 100%;
+    box-sizing: border-box;
   }
 `
 
 const Left = styled.div`
   margin-right: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
-  @media (max-width: 600px) {
+  @media (max-width: 768px) {
     margin-right: 0;
+    width: 100%;
   }
 
   --swiper-navigation-size: 24px;
@@ -110,9 +145,9 @@ const Left = styled.div`
     border-radius: 8px;
     overflow: hidden;
 
-    @media (max-width: 600px) {
-      width: 140px;
-      height: 180px;
+    @media (max-width: 768px) {
+      width: 130px;
+      height: 155px;
     }
   }
 
@@ -124,9 +159,9 @@ const Left = styled.div`
     justify-content: center;
     align-items: center;
 
-    @media (max-width: 600px) {
-      width: 140px;
-      height: 180px;
+    @media (max-width: 768px) {
+      width: 130px;
+      height: 155px;
     }
   }
 
@@ -136,19 +171,22 @@ const Left = styled.div`
     height: 136px;
     object-fit: contain;
 
-    @media (max-width: 600px) {
-      width: 80px;
-      height: 115px;
+    @media (max-width: 768px) {
+      width: 70px;
+      height: 100px;
     }
   }
 `
 
 const Right = styled.div`
   width: 300px;
+  display: flex;
+  flex-direction: column;
 
-  @media (max-width: 600px) {
+  @media (max-width: 768px) {
     width: 100%;
-    max-width: 280px;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 `
 
@@ -156,6 +194,16 @@ const Bottom = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+
+  button {
+    @media (max-width: 768px) {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px;
+      font-size: 14px;
+    }
+  }
 `
 
 const Warning = styled.div`
@@ -163,7 +211,17 @@ const Warning = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 8px;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    margin-top: 10px;
+    font-size: 12px;
+
+    .MuiAlert-message {
+      font-size: 12px;
+    }
+  }
 `
 
 const avatars = [

@@ -12,7 +12,7 @@ import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'
 import LogoutIcon from '@mui/icons-material/Logout'
 
 import { useAppSelector, useAppDispatch } from '../hooks'
-import { setLoggedIn } from '../stores/UserStore'
+import { setLoggedIn, setSidebarOpen } from '../stores/UserStore'
 import { setRoomJoined } from '../stores/RoomStore'
 import { openPrivateChat } from '../stores/ChatStore'
 import phaserGame from '../PhaserGame'
@@ -57,7 +57,7 @@ const ToggleButton = styled(Fab)`
   }
 `
 
-const SidebarContainer = styled.div<{ $x: number; $y: number }>`
+const SidebarContainer = styled.div<{ $x: number; $y: number; $showChat?: boolean }>`
   position: fixed;
   top: ${({ $y }) => $y}px;
   left: ${({ $x }) => $x}px;
@@ -76,11 +76,13 @@ const SidebarContainer = styled.div<{ $x: number; $y: number }>`
 
   @media (max-width: 650px) {
     top: 10px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: 92vw !important;
-    max-width: 360px !important;
-    max-height: 80vh !important;
+    left: 10px !important;
+    right: 10px !important;
+    transform: none !important;
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    max-height: ${({ $showChat }) => ($showChat ? '42vh' : 'calc(100vh - 85px)')} !important;
+    box-sizing: border-box;
   }
 `
 
@@ -409,7 +411,9 @@ const LeaveButton = styled.button`
 `
 
 export default function MembersSidebar() {
-  const [open, setOpen] = useState(true)
+  const dispatch = useAppDispatch()
+  const sidebarOpen = useAppSelector((state) => state.user.sidebarOpen)
+  const showChat = useAppSelector((state) => state.chat.showChat)
   const [searchTerm, setSearchTerm] = useState('')
   const [myStatus, setMyStatus] = useState<'online' | 'busy' | 'away'>('online')
 
@@ -446,7 +450,6 @@ export default function MembersSidebar() {
     window.addEventListener('mouseup', handleMouseUp)
   }
 
-  const dispatch = useAppDispatch()
   const playerNameMap = useAppSelector((state) => state.user.playerNameMap)
   const roomName = useAppSelector((state) => state.room.roomName)
 
@@ -528,10 +531,10 @@ export default function MembersSidebar() {
     String(m.name || '').toLowerCase().includes(search)
   )
 
-  if (!open) {
+  if (!sidebarOpen) {
     return (
       <Tooltip title="Ver Membros no Escritório" placement="right">
-        <ToggleButton size="medium" onClick={() => setOpen(true)}>
+        <ToggleButton size="medium" onClick={() => dispatch(setSidebarOpen(true))}>
           <PeopleAltIcon />
         </ToggleButton>
       </Tooltip>
@@ -539,16 +542,16 @@ export default function MembersSidebar() {
   }
 
   return (
-    <SidebarContainer $x={pos.x} $y={pos.y}>
+    <SidebarContainer $x={pos.x} $y={pos.y} $showChat={showChat}>
       <Header onMouseDown={handleMouseDown}>
         <h2>
-            <PeopleAltIcon style={{ color: '#00ebc7', fontSize: 18 }} />
-            Escritório ({allMembers.length})
-          </h2>
-          <button className="close-btn" onClick={() => setOpen(false)}>
-            <CloseIcon style={{ fontSize: 18 }} />
-          </button>
-        </Header>
+          <PeopleAltIcon style={{ color: '#00ebc7', fontSize: 18 }} />
+          Escritório ({allMembers.length})
+        </h2>
+        <button className="close-btn" onClick={() => dispatch(setSidebarOpen(false))}>
+          <CloseIcon style={{ fontSize: 18 }} />
+        </button>
+      </Header>
 
         <SearchBarWrapper>
           <SearchIcon className="search-icon" />

@@ -277,10 +277,17 @@ export default class Game extends Phaser.Scene {
     })
 
     phaserEvents.on('NAVIGATE_TO_MY_DESK', (chair: Chair) => {
-      this.myPlayer.autoWalkToAndSit(chair, this.network)
+      if (this.myPlayer.playerBehavior === PlayerBehavior.SITTING) {
+        this.myPlayer.standUp(this.network, this.playerSelector)
+      } else {
+        this.myPlayer.autoWalkToAndSit(chair, this.network)
+      }
     })
 
     phaserEvents.on('UNCLAIM_DESK', (chairId: string) => {
+      if (this.myPlayer.playerBehavior === PlayerBehavior.SITTING) {
+        this.myPlayer.standUp(this.network, this.playerSelector)
+      }
       this.network.unclaimChair(chairId)
     })
 

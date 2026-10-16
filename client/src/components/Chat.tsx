@@ -28,7 +28,7 @@ import {
   pushPrivateMessage,
 } from '../stores/ChatStore'
 
-const Backdrop = styled.div<{ $x: number; $y: number }>`
+const Backdrop = styled.div<{ $x: number; $y: number; $sidebarOpen?: boolean }>`
   position: fixed;
   top: ${({ $y }) => $y}px;
   left: ${({ $x }) => $x}px;
@@ -45,14 +45,17 @@ const Backdrop = styled.div<{ $x: number; $y: number }>`
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65);
 
   @media (max-width: 650px) {
-    top: 10px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: 95vw !important;
-    max-width: 95vw !important;
-    height: 60vh !important;
-    max-height: 70vh !important;
+    top: auto !important;
+    bottom: 72px !important;
+    left: 10px !important;
+    right: 10px !important;
+    transform: none !important;
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    height: ${({ $sidebarOpen }) => ($sidebarOpen ? '42vh' : '65vh')} !important;
+    max-height: ${({ $sidebarOpen }) => ($sidebarOpen ? '42vh' : '75vh')} !important;
     border-radius: 16px;
+    box-sizing: border-box;
   }
 `
 
@@ -346,6 +349,7 @@ export default function Chat() {
   const showChat = useAppSelector((state) => state.chat.showChat)
   const activeTab = useAppSelector((state) => state.chat.activeTab)
   const privateChats = useAppSelector((state) => state.chat.privateChats)
+  const sidebarOpen = useAppSelector((state) => state.user.sidebarOpen)
   const dispatch = useAppDispatch()
   const game = phaserGame.scene.keys.game as Game
 
@@ -436,7 +440,7 @@ export default function Chat() {
   }
 
   return (
-    <Backdrop $x={pos.x} $y={pos.y}>
+    <Backdrop $x={pos.x} $y={pos.y} $sidebarOpen={sidebarOpen}>
       <Wrapper>
         <ChatHeader onMouseDown={handleMouseDown}>
           <TabsContainer>
