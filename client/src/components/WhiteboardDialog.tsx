@@ -14,8 +14,10 @@ const Backdrop = styled.div`
   height: 100vh;
   overflow: hidden;
   padding: 16px 180px 16px 16px;
-  width: 100%;
-  height: 100%;
+
+  @media (max-width: 650px) {
+    padding: 10px;
+  }
 `
 const Wrapper = styled.div`
   width: 100%;
@@ -27,7 +29,11 @@ const Wrapper = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
-  min-width: max-content;
+
+  @media (max-width: 650px) {
+    min-width: 0;
+    padding: 12px;
+  }
 
   .close {
     position: absolute;
@@ -41,6 +47,11 @@ const WhiteboardWrapper = styled.div`
   border-radius: 25px;
   overflow: hidden;
   margin-right: 25px;
+
+  @media (max-width: 650px) {
+    margin-right: 0;
+    border-radius: 12px;
+  }
 
   iframe {
     width: 100%;

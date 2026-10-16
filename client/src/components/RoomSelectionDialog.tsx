@@ -26,6 +26,11 @@ const Backdrop = styled.div`
   flex-direction: column;
   gap: 60px;
   align-items: center;
+
+  @media (max-width: 600px) {
+    gap: 20px;
+    width: 95vw;
+  }
 `
 
 const Wrapper = styled.div`
@@ -33,6 +38,14 @@ const Wrapper = styled.div`
   border-radius: 16px;
   padding: 36px 60px;
   box-shadow: 0px 0px 5px #0000006f;
+
+  @media (max-width: 600px) {
+    padding: 20px 14px;
+    width: 92vw;
+    max-width: 420px;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
 `
 
 const CustomRoomWrapper = styled.div`

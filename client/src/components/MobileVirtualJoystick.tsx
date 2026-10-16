@@ -10,16 +10,23 @@ import { JoystickMovement } from './Joystick'
 
 const Backdrop = styled.div`
   position: fixed;
-  bottom: 100px;
-  right: 32px;
+  bottom: 80px;
+  right: 16px;
   max-height: 50%;
   max-width: 100%;
+  z-index: 9998;
+  pointer-events: auto;
+
+  @media (max-width: 650px) {
+    bottom: 64px;
+    right: 10px;
+  }
 `
 
 const Wrapper = styled.div`
   position: relative;
   height: 100%;
-  padding: 16px;
+  padding: 0;
   display: flex;
   flex-direction: column;
 `

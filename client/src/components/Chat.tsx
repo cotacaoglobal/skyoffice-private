@@ -43,6 +43,17 @@ const Backdrop = styled.div<{ $x: number; $y: number }>`
   border: 1px solid rgba(255, 255, 255, 0.12);
   overflow: hidden;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65);
+
+  @media (max-width: 650px) {
+    top: 10px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 95vw !important;
+    max-width: 95vw !important;
+    height: 60vh !important;
+    max-height: 70vh !important;
+    border-radius: 16px;
+  }
 `
 
 const Wrapper = styled.div`
@@ -67,6 +78,14 @@ const ChatToggleButton = styled(Fab)`
     border: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 10000;
     pointer-events: auto;
+
+    @media (max-width: 650px) {
+      bottom: 12px;
+      left: 10px;
+      width: 38px;
+      height: 38px;
+      min-height: 38px;
+    }
 
     &:hover {
       background: #282a3c;

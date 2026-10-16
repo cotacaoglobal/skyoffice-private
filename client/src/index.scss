@@ -58,6 +58,15 @@ body {
   overflow-y: auto;
   z-index: 999;
   pointer-events: auto;
+
+  @media (max-width: 650px) {
+    top: 55px;
+    right: 8px;
+    grid-template-columns: repeat(auto-fill, 90px);
+    grid-auto-rows: 68px;
+    grid-gap: 4px;
+    max-width: 55vw;
+  }
 }
 
 .video-grid video {

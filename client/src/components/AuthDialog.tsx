@@ -27,6 +27,12 @@ const Wrapper = styled.div`
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: #f8fafc;
   z-index: 1000;
+
+  @media (max-width: 480px) {
+    padding: 24px 18px;
+    width: 92vw;
+    gap: 12px;
+  }
 `
 
 const Header = styled.div`

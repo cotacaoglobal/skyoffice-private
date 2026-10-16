@@ -43,6 +43,14 @@ const ToggleButton = styled(Fab)`
     z-index: 10000;
     pointer-events: auto;
 
+    @media (max-width: 650px) {
+      top: 12px;
+      left: 12px;
+      width: 38px;
+      height: 38px;
+      min-height: 38px;
+    }
+
     &:hover {
       background: #282a3c;
     }
@@ -65,6 +73,15 @@ const SidebarContainer = styled.div<{ $x: number; $y: number }>`
   z-index: 1001;
   color: #e2e8f0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+
+  @media (max-width: 650px) {
+    top: 10px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 92vw !important;
+    max-width: 360px !important;
+    max-height: 80vh !important;
+  }
 `
 
 const Header = styled.div`

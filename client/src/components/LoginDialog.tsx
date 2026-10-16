@@ -32,6 +32,14 @@ const Wrapper = styled.form`
   border-radius: 16px;
   padding: 36px 60px;
   box-shadow: 0px 0px 5px #0000006f;
+
+  @media (max-width: 600px) {
+    padding: 24px 16px;
+    width: 92vw;
+    max-width: 380px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
 `
 
 const Title = styled.p`
@@ -78,10 +86,21 @@ const SubTitle = styled.h3`
 const Content = styled.div`
   display: flex;
   margin: 36px 0;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    align-items: center;
+    margin: 16px 0;
+    gap: 16px;
+  }
 `
 
 const Left = styled.div`
   margin-right: 48px;
+
+  @media (max-width: 600px) {
+    margin-right: 0;
+  }
 
   --swiper-navigation-size: 24px;
 
@@ -90,6 +109,11 @@ const Left = styled.div`
     height: 220px;
     border-radius: 8px;
     overflow: hidden;
+
+    @media (max-width: 600px) {
+      width: 140px;
+      height: 180px;
+    }
   }
 
   .swiper-slide {
@@ -99,6 +123,11 @@ const Left = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
+
+    @media (max-width: 600px) {
+      width: 140px;
+      height: 180px;
+    }
   }
 
   .swiper-slide img {
@@ -106,11 +135,21 @@ const Left = styled.div`
     width: 95px;
     height: 136px;
     object-fit: contain;
+
+    @media (max-width: 600px) {
+      width: 80px;
+      height: 115px;
+    }
   }
 `
 
 const Right = styled.div`
   width: 300px;
+
+  @media (max-width: 600px) {
+    width: 100%;
+    max-width: 280px;
+  }
 `
 
 const Bottom = styled.div`

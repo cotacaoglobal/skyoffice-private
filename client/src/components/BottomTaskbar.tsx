@@ -62,6 +62,13 @@ const TaskbarWrapper = styled.div`
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(0, 0, 0, 0.08);
   user-select: none;
+
+  @media (max-width: 650px) {
+    bottom: 12px;
+    padding: 4px 6px;
+    gap: 4px;
+    max-width: calc(100vw - 72px);
+  }
 `
 
 const ControlGroup = styled.div`
@@ -86,6 +93,16 @@ const ActionBtn = styled.button<{ $active?: boolean; $danger?: boolean }>`
   justify-content: center;
   transition: all 0.15s ease;
 
+  @media (max-width: 650px) {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+
+    svg {
+      font-size: 18px !important;
+    }
+  }
+
   &:hover {
     background: ${({ $danger }) => ($danger ? '#fecaca' : '#f1f5f9')};
     color: ${({ $danger }) => ($danger ? '#dc2626' : '#0f172a')};
@@ -108,6 +125,10 @@ const ChevronBtn = styled.button`
   border-radius: 4px;
   margin-left: -4px;
 
+  @media (max-width: 650px) {
+    display: none;
+  }
+
   &:hover {
     color: #0f172a;
     background: rgba(0, 0, 0, 0.05);
@@ -126,6 +147,17 @@ const UserThumbnail = styled.div`
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.15);
   margin-left: 6px;
+
+  @media (max-width: 650px) {
+    width: 34px;
+    height: 30px;
+    min-width: 34px;
+    margin-left: 2px;
+
+    img {
+      height: 24px !important;
+    }
+  }
 
   img {
     height: 30px;
@@ -160,6 +192,14 @@ const PopupMenu = styled.div`
   z-index: 10001;
   color: #f1f5f9;
   animation: fadeIn 0.15s ease-out;
+
+  @media (max-width: 650px) {
+    bottom: 50px;
+    right: 50%;
+    transform: translateX(50%);
+    min-width: 220px;
+    max-width: 88vw;
+  }
 
   @keyframes fadeIn {
     from {
@@ -222,6 +262,19 @@ const ReactionsBar = styled.div`
   gap: 6px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
   z-index: 10001;
+
+  @media (max-width: 650px) {
+    bottom: 50px;
+    padding: 4px 8px;
+    gap: 4px;
+    max-width: 90vw;
+
+    button {
+      width: 28px !important;
+      height: 28px !important;
+      font-size: 16px !important;
+    }
+  }
 
   button {
     background: transparent;

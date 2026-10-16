@@ -30,10 +30,27 @@ const Backdrop = styled.div`
   align-items: flex-end;
   z-index: 1000;
 
+  @media (max-width: 650px) {
+    top: 12px;
+    right: 12px;
+    bottom: auto;
+    gap: 6px;
+
+    .MuiFab-root {
+      width: 38px !important;
+      height: 38px !important;
+      min-height: 38px !important;
+    }
+  }
+
   .wrapper-group {
     display: flex;
     flex-direction: column;
     gap: 10px;
+
+    @media (max-width: 650px) {
+      gap: 6px;
+    }
   }
 `
 
@@ -48,6 +65,12 @@ const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+
+  @media (max-width: 650px) {
+    max-width: 90vw;
+    font-size: 13px;
+    padding: 12px 24px 12px 12px;
+  }
 
   .close {
     position: absolute;
