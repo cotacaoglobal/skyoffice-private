@@ -149,23 +149,25 @@ export default class Game extends Phaser.Scene {
       this.cameras.main.setZoom(newZoom)
     })
 
-    // Suporte a Arrastar o Mapa com o Mouse (Pan)
+    // Suporte a Arrastar o Mapa com o Mouse (Pan) com cursor de mãozinha
     let isPanning = false
     let startPanX = 0
     let startPanY = 0
+    const canvas = this.game.canvas
+
+    // Mostra cursor de grab ao passar o mouse pelo mapa
+    if (canvas) canvas.style.cursor = 'grab'
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      // Arrastar com o botão direito (ou segurando botão esquerdo se desejar)
-      if (pointer.rightButtonDown() || pointer.middleButtonDown()) {
-        isPanning = true
-        startPanX = pointer.x
-        startPanY = pointer.y
-        this.cameras.main.stopFollow()
-      }
+      isPanning = true
+      startPanX = pointer.x
+      startPanY = pointer.y
+      this.cameras.main.stopFollow()
+      if (canvas) canvas.style.cursor = 'grabbing'
     })
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (isPanning) {
+      if (isPanning && pointer.isDown) {
         const dx = (startPanX - pointer.x) / this.cameras.main.zoom
         const dy = (startPanY - pointer.y) / this.cameras.main.zoom
         this.cameras.main.scrollX += dx
@@ -178,15 +180,14 @@ export default class Game extends Phaser.Scene {
     const stopPan = () => {
       if (isPanning) {
         isPanning = false
-        // Retoma o foco suave no seu personagem ao soltar o mouse
-        this.cameras.main.startFollow(this.myPlayer, true, 0.08, 0.08)
+        if (canvas) canvas.style.cursor = 'grab'
       }
     }
 
     this.input.on('pointerup', stopPan)
     this.input.on('gameout', stopPan)
 
-    // Previne menu de contexto do navegador ao usar o botão direito para arrastar o mapa
+    // Previne menu de contexto do navegador
     this.input.mouse.disableContextMenu()
 
     this.physics.add.collider([this.myPlayer, this.myPlayer.playerContainer], groundLayer)

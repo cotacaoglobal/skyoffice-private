@@ -34,6 +34,13 @@ body {
 
   canvas {
     display: block;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+
+    &:active {
+      cursor: grabbing;
+    }
   }
 }
 

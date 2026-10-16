@@ -11,11 +11,18 @@ import VideoConnectionDialog from './components/VideoConnectionDialog'
 import Chat from './components/Chat'
 import HelperButtonGroup from './components/HelperButtonGroup'
 import MobileVirtualJoystick from './components/MobileVirtualJoystick'
+import MembersSidebar from './components/MembersSidebar'
+import AuthDialog from './components/AuthDialog'
 
 const Backdrop = styled.div`
   position: absolute;
   height: 100%;
   width: 100%;
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
 `
 
 function App() {
@@ -25,8 +32,29 @@ function App() {
   const videoConnected = useAppSelector((state) => state.user.videoConnected)
   const roomJoined = useAppSelector((state) => state.room.roomJoined)
 
+  const [authUser, setAuthUser] = React.useState<any>(null)
+  const [authChecked, setAuthChecked] = React.useState<boolean>(false)
+
+  React.useEffect(() => {
+    // Verifica sessão existente do Supabase
+    import('./supabaseClient').then(({ supabase }) => {
+      supabase.auth.getSession().then(({ data }) => {
+        if (data?.session?.user) {
+          setAuthUser(data.session.user)
+        }
+        setAuthChecked(true)
+      }).catch(() => {
+        setAuthChecked(true)
+      })
+    })
+  }, [])
+
   let ui: JSX.Element
-  if (loggedIn) {
+  if (!authChecked) {
+    ui = <></>
+  } else if (!authUser) {
+    ui = <AuthDialog onAuthSuccess={(user) => setAuthUser(user)} />
+  } else if (loggedIn) {
     if (computerDialogOpen) {
       /* Render ComputerDialog if user is using a computer. */
       ui = <ComputerDialog />
@@ -38,8 +66,7 @@ function App() {
         /* Render Chat or VideoConnectionDialog if no dialogs are opened. */
         <>
           <Chat />
-          {/* Render VideoConnectionDialog if user is not connected to a webcam. */}
-          {!videoConnected && <VideoConnectionDialog />}
+          <MembersSidebar />
           <MobileVirtualJoystick />
         </>
       )
