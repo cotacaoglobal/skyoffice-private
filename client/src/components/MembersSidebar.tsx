@@ -14,6 +14,7 @@ import LogoutIcon from '@mui/icons-material/Logout'
 import { useAppSelector, useAppDispatch } from '../hooks'
 import { setLoggedIn } from '../stores/UserStore'
 import { setRoomJoined } from '../stores/RoomStore'
+import { openPrivateChat } from '../stores/ChatStore'
 import phaserGame from '../PhaserGame'
 import Game from '../scenes/Game'
 
@@ -564,7 +565,17 @@ export default function MembersSidebar() {
             </SectionHeader>
 
             {filteredMembers.map((member) => (
-              <MemberItem key={member.id} $isSelf={member.isSelf}>
+              <MemberItem
+                key={member.id}
+                $isSelf={member.isSelf}
+                style={{ cursor: member.isSelf ? 'default' : 'pointer' }}
+                onClick={() => {
+                  if (!member.isSelf) {
+                    dispatch(openPrivateChat({ playerId: member.id, playerName: member.name }))
+                  }
+                }}
+                title={member.isSelf ? 'Você' : `Clique para conversar no privado com ${member.name}`}
+              >
                 <div className="avatar-box">
                   <img
                     src={avatarMap[member.avatar] || Adam}

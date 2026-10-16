@@ -31,9 +31,10 @@ export default class Game extends Phaser.Scene {
   myPlayer!: MyPlayer
   private playerSelector!: Phaser.GameObjects.Zone
   private otherPlayers!: Phaser.Physics.Arcade.Group
-  private otherPlayerMap = new Map<string, OtherPlayer>()
+  otherPlayerMap = new Map<string, OtherPlayer>()
   computerMap = new Map<string, Computer>()
   private whiteboardMap = new Map<string, Whiteboard>()
+  private isPanning = false
 
   constructor() {
     super('game')
@@ -153,7 +154,6 @@ export default class Game extends Phaser.Scene {
     })
 
     // Suporte a Arrastar o Mapa com o Mouse (Pan) com cursor de mãozinha
-    let isPanning = false
     let startPanX = 0
     let startPanY = 0
     const canvas = this.game.canvas
@@ -165,7 +165,16 @@ export default class Game extends Phaser.Scene {
       const target = pointer.event?.target as HTMLElement
       if (target && target.tagName !== 'CANVAS') return
 
-      isPanning = true
+      // Duplo-clique no chão centraliza imediatamente no avatar
+      if (pointer.event?.detail === 2) {
+        this.cameras.main.startFollow(this.myPlayer, true, 0.15, 0.15)
+        return
+      }
+
+      // Permite arrastar apenas com o botão esquerdo (botão direito reservado para menus)
+      if (pointer.button !== 0 && !pointer.leftButtonDown()) return
+
+      this.isPanning = true
       startPanX = pointer.x
       startPanY = pointer.y
       this.cameras.main.stopFollow()
@@ -173,7 +182,7 @@ export default class Game extends Phaser.Scene {
     })
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (isPanning && pointer.isDown) {
+      if (this.isPanning && pointer.isDown) {
         const dx = (startPanX - pointer.x) / this.cameras.main.zoom
         const dy = (startPanY - pointer.y) / this.cameras.main.zoom
         this.cameras.main.scrollX = Math.round(this.cameras.main.scrollX + dx)
@@ -184,8 +193,8 @@ export default class Game extends Phaser.Scene {
     })
 
     const stopPan = () => {
-      if (isPanning) {
-        isPanning = false
+      if (this.isPanning) {
+        this.isPanning = false
         if (canvas) canvas.style.cursor = 'grab'
       }
     }
@@ -353,6 +362,39 @@ export default class Game extends Phaser.Scene {
     if (this.myPlayer && this.network) {
       this.playerSelector.update(this.myPlayer, this.cursors)
       this.myPlayer.update(this.playerSelector, this.cursors, this.keyE, this.keyR, this.network)
+
+      // Retomada automática da câmera seguindo o avatar
+      if (!this.isPanning) {
+        const isMoving =
+          this.cursors.left?.isDown ||
+          this.cursors.right?.isDown ||
+          this.cursors.up?.isDown ||
+          this.cursors.down?.isDown ||
+          !!this.myPlayer.joystickMovement?.isMoving
+
+        const isFollowing = !!(this.cameras.main as any)._follow
+
+        if (!isFollowing) {
+          if (isMoving) {
+            // Se o usuário andou, a câmera volta a seguir imediatamente com lerp suave
+            this.cameras.main.startFollow(this.myPlayer, true, 0.1, 0.1)
+          } else {
+            // Se o avatar estiver prestes a sair da visão visível da tela, centraliza automaticamente
+            const cam = this.cameras.main
+            const screenX = (this.myPlayer.x - cam.scrollX) * cam.zoom
+            const screenY = (this.myPlayer.y - cam.scrollY) * cam.zoom
+            const margin = 90
+            if (
+              screenX < margin ||
+              screenX > cam.width - margin ||
+              screenY < margin ||
+              screenY > cam.height - margin
+            ) {
+              this.cameras.main.startFollow(this.myPlayer, true, 0.08, 0.08)
+            }
+          }
+        }
+      }
 
       // Checa automaticamente conexões de reunião (sala de conferência / mesa) e proximidade
       const myInMeeting = this.isInMeetingRoom(this.myPlayer.x, this.myPlayer.y)

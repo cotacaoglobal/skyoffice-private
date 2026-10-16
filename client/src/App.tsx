@@ -14,6 +14,7 @@ import MobileVirtualJoystick from './components/MobileVirtualJoystick'
 import MembersSidebar from './components/MembersSidebar'
 import AuthDialog from './components/AuthDialog'
 import BottomTaskbar from './components/BottomTaskbar'
+import PlayerContextMenu from './components/PlayerContextMenu'
 
 const Backdrop = styled.div`
   position: absolute;
@@ -70,6 +71,7 @@ function App() {
           <MembersSidebar />
           <MobileVirtualJoystick />
           <BottomTaskbar />
+          <PlayerContextMenu />
         </>
       )
     }

@@ -27,6 +27,25 @@ export default class OtherPlayer extends Player {
 
     this.playerName.setText(name)
     this.playContainerBody = this.playerContainer.body as Phaser.Physics.Arcade.Body
+
+    // Interatividade com o mouse para chat privado via clique direito
+    this.setInteractive({ cursor: 'pointer', useHandCursor: true })
+    const handleContextMenu = (pointer: Phaser.Input.Pointer) => {
+      if (pointer.rightButtonDown() || pointer.button === 2) {
+        const clientX = (pointer.event as any)?.clientX ?? pointer.x
+        const clientY = (pointer.event as any)?.clientY ?? pointer.y
+        phaserEvents.emit('PLAYER_CONTEXT_MENU', {
+          playerId: this.playerId,
+          playerName: this.playerName.text || 'Colega',
+          clientX,
+          clientY,
+        })
+      }
+    }
+    this.on('pointerdown', handleContextMenu)
+
+    this.playerName.setInteractive({ cursor: 'pointer', useHandCursor: true })
+    this.playerName.on('pointerdown', handleContextMenu)
   }
 
   makeCall(myPlayer: MyPlayer, webRTC?: WebRTC) {

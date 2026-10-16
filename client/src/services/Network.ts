@@ -18,8 +18,11 @@ import {
   pushChatMessage,
   pushPlayerJoinedMessage,
   pushPlayerLeftMessage,
+  pushPrivateMessage,
 } from '../stores/ChatStore'
 import { setWhiteboardUrls } from '../stores/WhiteboardStore'
+import phaserGame from '../PhaserGame'
+import Game from '../scenes/Game'
 
 export default class Network {
   private client: Client
@@ -182,6 +185,8 @@ export default class Network {
 
     // new instance added to the chatMessages ArraySchema
     this.room.state.chatMessages.onAdd = (item, index) => {
+      // Ignora mensagens privadas no chat público do escritório
+      if (item.content?.startsWith('[DM::')) return
       store.dispatch(pushChatMessage(item))
     }
 
@@ -191,9 +196,38 @@ export default class Network {
     })
 
     // when a user sends a message
-    this.room.onMessage(Message.ADD_CHAT_MESSAGE, ({ clientId, content }) => {
-      phaserEvents.emit(Event.UPDATE_DIALOG_BUBBLE, clientId, content)
-    })
+    this.room.onMessage(
+      Message.ADD_CHAT_MESSAGE,
+      ({ clientId, content, targetClientId }: { clientId: string; content: string; targetClientId?: string }) => {
+        // Verifica se é mensagem privada (DM)
+        const dmMatch = content?.match(/^\[DM::([^:]+)::([^\]]*)\]\s*(.*)$/)
+        if (dmMatch || targetClientId) {
+          const targetId = targetClientId || dmMatch?.[1]
+          const actualContent = dmMatch ? dmMatch[3] : content
+          const mySessionId = this.room?.sessionId
+
+          if (mySessionId === targetId || mySessionId === clientId) {
+            const game = phaserGame?.scene?.keys?.game as Game
+            const senderPlayer = game?.otherPlayerMap?.get(clientId)
+            const senderName = senderPlayer?.playerName?.text || (dmMatch ? dmMatch[2] : 'Colega')
+
+            store.dispatch(
+              pushPrivateMessage({
+                partnerId: clientId,
+                partnerName: senderName,
+                author: senderName,
+                content: actualContent,
+                createdAt: Date.now(),
+                isSelf: false,
+              })
+            )
+          }
+          return
+        }
+
+        phaserEvents.emit(Event.UPDATE_DIALOG_BUBBLE, clientId, content)
+      }
+    )
 
     // when a peer disconnects with myPeer
     this.room.onMessage(Message.DISCONNECT_STREAM, (clientId: string) => {
@@ -318,7 +352,14 @@ export default class Network {
     this.room?.send(Message.STOP_SCREEN_SHARE, { computerId: id })
   }
 
-  addChatMessage(content: string) {
-    this.room?.send(Message.ADD_CHAT_MESSAGE, { content: content })
+  addChatMessage(content: string, targetClientId?: string, targetName?: string) {
+    if (targetClientId) {
+      this.room?.send(Message.ADD_CHAT_MESSAGE, {
+        content: `[DM::${targetClientId}::${targetName || ''}] ${content}`,
+        targetClientId: targetClientId,
+      })
+    } else {
+      this.room?.send(Message.ADD_CHAT_MESSAGE, { content: content })
+    }
   }
 }

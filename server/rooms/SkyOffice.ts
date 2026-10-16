@@ -139,20 +139,40 @@ export class SkyOffice extends Room<OfficeState> {
     })
 
     // when a player send a chat message, update the message array and broadcast to all connected clients except the sender
-    this.onMessage(Message.ADD_CHAT_MESSAGE, (client, message: { content: string }) => {
-      // update the message array (so that players join later can also see the message)
-      this.dispatcher.dispatch(new ChatMessageUpdateCommand(), {
-        client,
-        content: message.content,
-      })
+    this.onMessage(
+      Message.ADD_CHAT_MESSAGE,
+      (client, message: { content: string; targetClientId?: string; targetName?: string }) => {
+        const dmMatch = message.content?.match(/^\[DM::([^:]+)::([^\]]*)\]/)
+        const targetId = message.targetClientId || dmMatch?.[1]
 
-      // broadcast to all currently connected clients except the sender (to render in-game dialog on top of the character)
-      this.broadcast(
-        Message.ADD_CHAT_MESSAGE,
-        { clientId: client.sessionId, content: message.content },
-        { except: client }
-      )
-    })
+        if (targetId) {
+          // Mensagem privada: envia exclusivamente para o destinatário especificado
+          this.clients.forEach((cli) => {
+            if (cli.sessionId === targetId) {
+              cli.send(Message.ADD_CHAT_MESSAGE, {
+                clientId: client.sessionId,
+                content: message.content,
+                targetClientId: targetId,
+              })
+            }
+          })
+          return
+        }
+
+        // Atualiza o histórico global de mensagens
+        this.dispatcher.dispatch(new ChatMessageUpdateCommand(), {
+          client,
+          content: message.content,
+        })
+
+        // Transmite para todos no escritório, exceto o remetente
+        this.broadcast(
+          Message.ADD_CHAT_MESSAGE,
+          { clientId: client.sessionId, content: message.content },
+          { except: client }
+        )
+      }
+    )
   }
 
   async onAuth(client: Client, options: { password: string | null }) {
