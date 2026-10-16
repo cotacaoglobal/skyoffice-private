@@ -30,3 +30,10 @@ export interface IOfficeState extends Schema {
   whiteboards: MapSchema<IWhiteboard>
   chatMessages: ArraySchema<IChatMessage>
 }
+
+export interface IClaimedChair {
+  chairId: string
+  ownerSessionId: string
+  ownerName: string
+  ownerAvatar: string
+}

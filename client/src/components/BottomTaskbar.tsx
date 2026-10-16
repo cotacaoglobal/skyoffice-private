@@ -28,6 +28,7 @@ import StopIcon from '@mui/icons-material/Stop'
 
 import phaserGame from '../PhaserGame'
 import Game from '../scenes/Game'
+import { phaserEvents } from '../events/EventCenter'
 import { useAppSelector, useAppDispatch } from '../hooks'
 import { setShowJoystick } from '../stores/UserStore'
 
@@ -301,6 +302,26 @@ export default function BottomTaskbar() {
   const [showBroadcastDialog, setShowBroadcastDialog] = useState(false)
   const [broadcastText, setBroadcastText] = useState('')
 
+  // Mesa de trabalho vinculada
+  const [myDeskChair, setMyDeskChair] = useState<any>(null)
+
+  useEffect(() => {
+    const checkMyDesk = () => {
+      const game = phaserGame?.scene?.keys?.game as any
+      if (!game || !game.chairMap) return
+      let found: any = null
+      game.chairMap.forEach((chair: any) => {
+        if (chair.isClaimedByMe(game.network?.mySessionId, game.myPlayer?.playerName?.text)) {
+          found = chair
+        }
+      })
+      setMyDeskChair(found)
+    }
+
+    const interval = setInterval(checkMyDesk, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
   // Sincroniza estado de mídia com WebRTC
   useEffect(() => {
     const interval = setInterval(() => {
@@ -569,6 +590,23 @@ export default function BottomTaskbar() {
           </ChevronBtn>
         </ControlGroup>
 
+        {/* Botão de Atalho para Minha Mesa */}
+        {myDeskChair && (
+          <Tooltip title="Caminhar até minha mesa de trabalho">
+            <ActionBtn
+              onClick={() => phaserEvents.emit('NAVIGATE_TO_MY_DESK', myDeskChair)}
+              style={{
+                background: 'rgba(0, 235, 199, 0.15)',
+                border: '1px solid rgba(0, 235, 199, 0.5)',
+                color: '#00ebc7',
+              }}
+              aria-label="Minha Mesa"
+            >
+              <span style={{ fontSize: '18px' }}>🪑</span>
+            </ActionBtn>
+          </Tooltip>
+        )}
+
         {/* 3. Reações Rápidas (Emoji) */}
         <Tooltip title="Reações Rápidas">
           <ActionBtn
@@ -686,6 +724,32 @@ export default function BottomTaskbar() {
                 <span>{isScreenSharing ? 'Parar Compartilhamento' : 'Compartilhar Tela'}</span>
               </div>
               <span className="shortcut">SHIFT + S</span>
+            </MenuItem>
+
+            <MenuItem
+              onClick={() => {
+                setShowMoreMenu(false)
+                const game = phaserGame?.scene?.keys?.game as any
+                if (!game) return
+                let myChair: any = null
+                game.chairMap?.forEach((chair: any) => {
+                  if (chair.isClaimedByMe(game.network?.mySessionId, game.myPlayer?.playerName?.text)) {
+                    myChair = chair
+                  }
+                })
+                if (myChair) {
+                  phaserEvents.emit('NAVIGATE_TO_MY_DESK', myChair)
+                } else {
+                  alert(
+                    'Você ainda não vinculou nenhuma mesa de trabalho. Aproxime-se de uma mesa vazia e pressione C para vinculá-la!'
+                  )
+                }
+              }}
+            >
+              <div className="left">
+                <span style={{ fontSize: '18px' }}>🪑</span>
+                <span>Ir para minha mesa</span>
+              </div>
             </MenuItem>
 
             <MenuItem

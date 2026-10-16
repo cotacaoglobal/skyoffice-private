@@ -48,11 +48,78 @@ export default class MyPlayer extends Player {
     this.joystickMovement = movement
   }
 
+  public autoWalkTarget?: { x: number; y: number; chair: Chair } | null
+  private autoWalkStartTime = 0
+
+  autoWalkToAndSit(chair: Chair, network: Network) {
+    if (this.playerBehavior === PlayerBehavior.SITTING) {
+      const parts = this.anims.currentAnim.key.split('_')
+      parts[1] = 'idle'
+      this.play(parts.join('_'), true)
+      this.playerBehavior = PlayerBehavior.IDLE
+      this.chairOnSit?.clearDialogBox()
+      network.updatePlayer(this.x, this.y, this.anims.currentAnim.key)
+    }
+
+    const dist = Phaser.Math.Distance.Between(this.x, this.y, chair.x, chair.y)
+    if (dist <= 25) {
+      this.sitOnChair(chair, network)
+      return
+    }
+
+    this.autoWalkTarget = { x: chair.x, y: chair.y, chair }
+    this.autoWalkStartTime = Date.now()
+    this.scene.cameras.main.startFollow(this, true, 0.1, 0.1)
+  }
+
+  sitOnChair(chairItem: Chair, network: Network, playerSelector?: PlayerSelector) {
+    this.autoWalkTarget = null
+    this.setVelocity(0, 0)
+    this.playContainerBody.setVelocity(0, 0)
+
+    this.scene.time.addEvent({
+      delay: 10,
+      callback: () => {
+        this.setVelocity(0, 0)
+        if (chairItem.itemDirection) {
+          this.setPosition(
+            chairItem.x + sittingShiftData[chairItem.itemDirection][0],
+            chairItem.y + sittingShiftData[chairItem.itemDirection][1]
+          ).setDepth(chairItem.depth + sittingShiftData[chairItem.itemDirection][2])
+
+          this.playContainerBody.setVelocity(0, 0)
+          this.playerContainer.setPosition(
+            chairItem.x + sittingShiftData[chairItem.itemDirection][0],
+            chairItem.y + sittingShiftData[chairItem.itemDirection][1] - 30
+          )
+        }
+
+        this.play(`${this.playerTexture}_sit_${chairItem.itemDirection}`, true)
+        if (playerSelector) {
+          playerSelector.selectedItem = undefined
+          if (chairItem.itemDirection === 'up') {
+            playerSelector.setPosition(this.x, this.y - this.height)
+          } else {
+            playerSelector.setPosition(0, 0)
+          }
+        }
+        network.updatePlayer(this.x, this.y, this.anims.currentAnim.key)
+      },
+      loop: false,
+    })
+
+    chairItem.clearDialogBox()
+    chairItem.setDialogBox('Pressione E para levantar')
+    this.chairOnSit = chairItem
+    this.playerBehavior = PlayerBehavior.SITTING
+  }
+
   update(
     playerSelector: PlayerSelector,
     cursors: NavKeys,
     keyE: Phaser.Input.Keyboard.Key,
     keyR: Phaser.Input.Keyboard.Key,
+    keyC: Phaser.Input.Keyboard.Key,
     network: Network
   ) {
     if (!cursors) return
@@ -77,53 +144,97 @@ export default class MyPlayer extends Player {
       }
     }
 
+    // Tecla C: Vincular mesa
+    if (Phaser.Input.Keyboard.JustDown(keyC) && item?.itemType === ItemType.CHAIR) {
+      const chairItem = item as Chair
+      if (chairItem.isClaimedByOther(network.mySessionId, this.playerName.text)) {
+        this.updateDialogBubble(`Esta mesa já pertence a ${chairItem.claimedBy?.name}!`)
+      } else {
+        network.claimChair(chairItem.id, this.playerName.text, this.playerTexture)
+        this.updateDialogBubble('Mesa vinculada!')
+      }
+      return
+    }
+
     switch (this.playerBehavior) {
       case PlayerBehavior.IDLE:
         // if press E in front of selected chair
         if (Phaser.Input.Keyboard.JustDown(keyE) && item?.itemType === ItemType.CHAIR) {
           const chairItem = item as Chair
-          /**
-           * move player to the chair and play sit animation
-           * a delay is called to wait for player movement (from previous velocity) to end
-           * as the player tends to move one more frame before sitting down causing player
-           * not sitting at the center of the chair
-           */
-          this.scene.time.addEvent({
-            delay: 10,
-            callback: () => {
-              // update character velocity and position
-              this.setVelocity(0, 0)
-              if (chairItem.itemDirection) {
-                this.setPosition(
-                  chairItem.x + sittingShiftData[chairItem.itemDirection][0],
-                  chairItem.y + sittingShiftData[chairItem.itemDirection][1]
-                ).setDepth(chairItem.depth + sittingShiftData[chairItem.itemDirection][2])
-                // also update playerNameContainer velocity and position
-                this.playContainerBody.setVelocity(0, 0)
-                this.playerContainer.setPosition(
-                  chairItem.x + sittingShiftData[chairItem.itemDirection][0],
-                  chairItem.y + sittingShiftData[chairItem.itemDirection][1] - 30
-                )
-              }
 
-              this.play(`${this.playerTexture}_sit_${chairItem.itemDirection}`, true)
-              playerSelector.selectedItem = undefined
-              if (chairItem.itemDirection === 'up') {
-                playerSelector.setPosition(this.x, this.y - this.height)
-              } else {
-                playerSelector.setPosition(0, 0)
-              }
-              // send new location and anim to server
-              network.updatePlayer(this.x, this.y, this.anims.currentAnim.key)
-            },
-            loop: false,
-          })
-          // set up new dialog as player sits down
-          chairItem.clearDialogBox()
-          chairItem.setDialogBox('Press E to leave')
-          this.chairOnSit = chairItem
-          this.playerBehavior = PlayerBehavior.SITTING
+          // Se a mesa estiver vinculada a outro membro, não tem permissão para sentar!
+          if (chairItem.isClaimedByOther(network.mySessionId, this.playerName.text)) {
+            this.updateDialogBubble(`🔒 Esta mesa é de ${chairItem.claimedBy?.name}!`)
+            return
+          }
+
+          this.sitOnChair(chairItem, network, playerSelector)
           return
+        }
+
+        // Se estiver em caminhada automática até a mesa de trabalho:
+        if (this.autoWalkTarget) {
+          const manualInput =
+            cursors.left?.isDown ||
+            cursors.right?.isDown ||
+            cursors.up?.isDown ||
+            cursors.down?.isDown ||
+            cursors.A?.isDown ||
+            cursors.D?.isDown ||
+            cursors.W?.isDown ||
+            cursors.S?.isDown ||
+            this.joystickMovement?.isMoving
+
+          // Se o jogador pressionar qualquer tecla de movimento, cancela o auto-walk
+          if (manualInput || Date.now() - this.autoWalkStartTime > 15000) {
+            this.autoWalkTarget = null
+          } else {
+            const dist = Phaser.Math.Distance.Between(
+              this.x,
+              this.y,
+              this.autoWalkTarget.x,
+              this.autoWalkTarget.y
+            )
+
+            if (dist <= 22) {
+              const targetChair = this.autoWalkTarget.chair
+              this.sitOnChair(targetChair, network, playerSelector)
+              return
+            }
+
+            const angle = Phaser.Math.Angle.Between(
+              this.x,
+              this.y,
+              this.autoWalkTarget.x,
+              this.autoWalkTarget.y
+            )
+            const speed = 200
+            const autoVx = Math.cos(angle) * speed
+            const autoVy = Math.sin(angle) * speed
+
+            this.setVelocity(autoVx, autoVy)
+            this.body.velocity.setLength(speed)
+            this.playContainerBody.setVelocity(autoVx, autoVy)
+            this.playContainerBody.velocity.setLength(speed)
+            this.setDepth(this.y)
+
+            if (Math.abs(autoVx) > Math.abs(autoVy)) {
+              if (autoVx > 0) {
+                this.play(`${this.playerTexture}_run_right`, true)
+              } else {
+                this.play(`${this.playerTexture}_run_left`, true)
+              }
+            } else {
+              if (autoVy > 0) {
+                this.play(`${this.playerTexture}_run_down`, true)
+              } else {
+                this.play(`${this.playerTexture}_run_up`, true)
+              }
+            }
+
+            network.updatePlayer(this.x, this.y, this.anims.currentAnim.key)
+            return
+          }
         }
 
         const speed = 200

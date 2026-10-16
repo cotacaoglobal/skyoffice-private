@@ -17,11 +17,14 @@ import {
 } from './commands/WhiteboardUpdateArrayCommand'
 import ChatMessageUpdateCommand from './commands/ChatMessageUpdateCommand'
 
+import { IClaimedChair } from '../../types/IOfficeState'
+
 export class SkyOffice extends Room<OfficeState> {
   private dispatcher = new Dispatcher(this)
   private name: string
   private description: string
   private password: string | null = null
+  private claimedChairs = new Map<string, IClaimedChair>()
 
   async onCreate(options: IRoomData) {
     const { name, description, password, autoDispose } = options
@@ -115,6 +118,12 @@ export class SkyOffice extends Room<OfficeState> {
         client,
         name: message.name,
       })
+      for (const [cId, claim] of this.claimedChairs.entries()) {
+        if (claim.ownerName === message.name) {
+          claim.ownerSessionId = client.sessionId
+          this.broadcast(Message.CLAIM_CHAIR, claim)
+        }
+      }
     })
 
     // when a player is ready to connect, call the PlayerReadyToConnectCommand
@@ -173,6 +182,47 @@ export class SkyOffice extends Room<OfficeState> {
         )
       }
     )
+    // Reivindicar / Vincular mesa de trabalho
+    this.onMessage(
+      Message.CLAIM_CHAIR,
+      (client, message: { chairId: string; name: string; avatar: string }) => {
+        const existing = this.claimedChairs.get(message.chairId)
+        if (existing && existing.ownerSessionId !== client.sessionId && existing.ownerName !== message.name) {
+          return // Já vinculada a outro membro
+        }
+
+        // Se o membro já possuía outra mesa, desvincula a anterior
+        for (const [cId, claim] of this.claimedChairs.entries()) {
+          if (claim.ownerSessionId === client.sessionId || claim.ownerName === message.name) {
+            this.claimedChairs.delete(cId)
+            this.broadcast(Message.UNCLAIM_CHAIR, { chairId: cId })
+          }
+        }
+
+        const claimData: IClaimedChair = {
+          chairId: message.chairId,
+          ownerSessionId: client.sessionId,
+          ownerName: message.name,
+          ownerAvatar: message.avatar || 'adam',
+        }
+        this.claimedChairs.set(message.chairId, claimData)
+        this.broadcast(Message.CLAIM_CHAIR, claimData)
+      }
+    )
+
+    // Desvincular / Liberar mesa de trabalho
+    this.onMessage(Message.UNCLAIM_CHAIR, (client, message: { chairId: string }) => {
+      const existing = this.claimedChairs.get(message.chairId)
+      const player = this.state.players.get(client.sessionId)
+      if (
+        existing &&
+        (existing.ownerSessionId === client.sessionId ||
+          (player && existing.ownerName === player.name))
+      ) {
+        this.claimedChairs.delete(message.chairId)
+        this.broadcast(Message.UNCLAIM_CHAIR, { chairId: message.chairId })
+      }
+    })
   }
 
   async onAuth(client: Client, options: { password: string | null }) {
@@ -192,6 +242,11 @@ export class SkyOffice extends Room<OfficeState> {
       name: this.name,
       description: this.description,
     })
+
+    // Sincroniza todas as mesas atualmente vinculadas para o novo cliente
+    if (this.claimedChairs.size > 0) {
+      client.send(Message.SYNC_CHAIRS, Array.from(this.claimedChairs.values()))
+    }
   }
 
   onLeave(client: Client, consented: boolean) {

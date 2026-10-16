@@ -14,9 +14,10 @@ import MyPlayer from '../characters/MyPlayer'
 import OtherPlayer from '../characters/OtherPlayer'
 import PlayerSelector from '../characters/PlayerSelector'
 import Network from '../services/Network'
-import { IPlayer } from '../../../types/IOfficeState'
+import { IPlayer, IClaimedChair } from '../../../types/IOfficeState'
 import { PlayerBehavior } from '../../../types/PlayerBehavior'
 import { ItemType } from '../../../types/Items'
+import { phaserEvents, Event } from '../events/EventCenter'
 
 import store from '../stores'
 import { setFocused, setShowChat } from '../stores/ChatStore'
@@ -27,12 +28,14 @@ export default class Game extends Phaser.Scene {
   private cursors!: NavKeys
   private keyE!: Phaser.Input.Keyboard.Key
   private keyR!: Phaser.Input.Keyboard.Key
+  private keyC!: Phaser.Input.Keyboard.Key
   private map!: Phaser.Tilemaps.Tilemap
   myPlayer!: MyPlayer
   private playerSelector!: Phaser.GameObjects.Zone
   private otherPlayers!: Phaser.Physics.Arcade.Group
   otherPlayerMap = new Map<string, OtherPlayer>()
   computerMap = new Map<string, Computer>()
+  chairMap = new Map<string, Chair>()
   private whiteboardMap = new Map<string, Whiteboard>()
   private isPanning = false
 
@@ -49,6 +52,7 @@ export default class Game extends Phaser.Scene {
     // maybe we can have a dedicated method for adding keys if more keys are needed in the future
     this.keyE = this.input.keyboard.addKey('E')
     this.keyR = this.input.keyboard.addKey('R')
+    this.keyC = this.input.keyboard.addKey('C')
     this.input.keyboard.disableGlobalCapture()
     this.input.keyboard.on('keydown-ENTER', (event) => {
       store.dispatch(setShowChat(true))
@@ -92,10 +96,13 @@ export default class Game extends Phaser.Scene {
     // import chair objects from Tiled map to Phaser
     const chairs = this.physics.add.staticGroup({ classType: Chair })
     const chairLayer = this.map.getObjectLayer('Chair')
-    chairLayer.objects.forEach((chairObj) => {
+    chairLayer.objects.forEach((chairObj, i) => {
       const item = this.addObjectFromTiled(chairs, chairObj, 'chairs', 'chair') as Chair
       // custom properties[0] is the object direction specified in Tiled
       item.itemDirection = chairObj.properties[0].value
+      const id = chairObj.id ? `${chairObj.id}` : `chair_${i}`
+      item.id = id
+      this.chairMap.set(id, item)
     })
 
     // import computers objects from Tiled map to Phaser
@@ -233,6 +240,61 @@ export default class Game extends Phaser.Scene {
     this.network.onItemUserAdded(this.handleItemUserAdded, this)
     this.network.onItemUserRemoved(this.handleItemUserRemoved, this)
     this.network.onChatMessageAdded(this.handleChatMessageAdded, this)
+    // Eventos de vinculação e navegação até a mesa de trabalho
+    phaserEvents.on('CHAIR_CLAIMED', (data: IClaimedChair) => {
+      const chair = this.chairMap.get(data.chairId)
+      if (chair) {
+        chair.setClaim(
+          { sessionId: data.ownerSessionId, name: data.ownerName, avatar: data.ownerAvatar },
+          this.network.mySessionId,
+          this.myPlayer.playerName.text
+        )
+      }
+    })
+
+    phaserEvents.on('CHAIR_UNCLAIMED', ({ chairId }: { chairId: string }) => {
+      const chair = this.chairMap.get(chairId)
+      if (chair) {
+        chair.clearClaim()
+      }
+    })
+
+    phaserEvents.on('CHAIRS_SYNCED', (data: IClaimedChair[]) => {
+      data.forEach((claim) => {
+        const chair = this.chairMap.get(claim.chairId)
+        if (chair) {
+          chair.setClaim(
+            { sessionId: claim.ownerSessionId, name: claim.ownerName, avatar: claim.ownerAvatar },
+            this.network.mySessionId,
+            this.myPlayer.playerName.text
+          )
+        }
+      })
+    })
+
+    phaserEvents.on('NAVIGATE_TO_MY_DESK', (chair: Chair) => {
+      this.myPlayer.autoWalkToAndSit(chair, this.network)
+    })
+
+    phaserEvents.on('UNCLAIM_DESK', (chairId: string) => {
+      this.network.unclaimChair(chairId)
+    })
+
+    phaserEvents.on('CHAIR_CLICKED', (chair: Chair) => {
+      if (chair.isClaimedByMe(this.network.mySessionId, this.myPlayer.playerName.text)) {
+        this.myPlayer.autoWalkToAndSit(chair, this.network)
+      } else if (chair.isClaimedByOther(this.network.mySessionId, this.myPlayer.playerName.text)) {
+        this.myPlayer.updateDialogBubble(`🔒 Esta mesa é de ${chair.claimedBy?.name}!`)
+      } else {
+        // Cadeira livre: vincular e caminhar até ela para sentar!
+        this.network.claimChair(chair.id, this.myPlayer.playerName.text, this.myPlayer.playerTexture)
+        this.myPlayer.autoWalkToAndSit(chair, this.network)
+      }
+    })
+
+    phaserEvents.on(Event.MY_PLAYER_NAME_CHANGE, (name: string) => {
+      this.chairMap.forEach((c) => c.updateBadge(this.network.mySessionId, name))
+    })
 
     // Flush any PLAYER_JOINED events that fired before the Game scene was ready.
     // This handles existing players in the room when we join or after a page refresh.
@@ -369,7 +431,7 @@ export default class Game extends Phaser.Scene {
       if (!this.cursors) return
 
       this.playerSelector.update(this.myPlayer, this.cursors)
-      this.myPlayer.update(this.playerSelector, this.cursors, this.keyE, this.keyR, this.network)
+      this.myPlayer.update(this.playerSelector, this.cursors, this.keyE, this.keyR, this.keyC, this.network)
 
       // Retomada automática da câmera seguindo o avatar
       if (!this.isPanning) {

@@ -1,5 +1,5 @@
 import { Client, Room } from 'colyseus.js'
-import { IComputer, IOfficeState, IPlayer, IWhiteboard } from '../../../types/IOfficeState'
+import { IComputer, IOfficeState, IPlayer, IWhiteboard, IClaimedChair } from '../../../types/IOfficeState'
 import { Message } from '../../../types/Messages'
 import { IRoomData, RoomType } from '../../../types/Rooms'
 import { ItemType } from '../../../types/Items'
@@ -241,6 +241,19 @@ export default class Network {
       const computerState = store.getState().computer
       computerState.shareScreenManager?.onUserLeft(clientId)
     })
+
+    // Sincronização de mesas de trabalho reivindicadas
+    this.room.onMessage(Message.CLAIM_CHAIR, (data: IClaimedChair) => {
+      phaserEvents.emit('CHAIR_CLAIMED', data)
+    })
+
+    this.room.onMessage(Message.UNCLAIM_CHAIR, (data: { chairId: string }) => {
+      phaserEvents.emit('CHAIR_UNCLAIMED', data)
+    })
+
+    this.room.onMessage(Message.SYNC_CHAIRS, (data: IClaimedChair[]) => {
+      phaserEvents.emit('CHAIRS_SYNCED', data)
+    })
   }
 
   /**
@@ -362,5 +375,13 @@ export default class Network {
     } else {
       this.room?.send(Message.ADD_CHAT_MESSAGE, { content: content })
     }
+  }
+
+  claimChair(chairId: string, name: string, avatar: string) {
+    this.room?.send(Message.CLAIM_CHAIR, { chairId, name, avatar })
+  }
+
+  unclaimChair(chairId: string) {
+    this.room?.send(Message.UNCLAIM_CHAIR, { chairId })
   }
 }
