@@ -2,283 +2,338 @@ import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/Close'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SearchIcon from '@mui/icons-material/Search'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DownloadIcon from '@mui/icons-material/Download'
-import PlayCircleIcon from '@mui/icons-material/PlayCircle'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import SmartToyIcon from '@mui/icons-material/SmartToy'
-import VideoLibraryIcon from '@mui/icons-material/VideoLibrary'
-import DescriptionIcon from '@mui/icons-material/Description'
-import SettingsIcon from '@mui/icons-material/Settings'
-import PersonIcon from '@mui/icons-material/Person'
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
-import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined'
+import VideoLibraryOutlinedIcon from '@mui/icons-material/VideoLibraryOutlined'
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline'
+import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
+import MeetingRoomOutlinedIcon from '@mui/icons-material/MeetingRoomOutlined'
+import CheckIcon from '@mui/icons-material/Check'
 import Alert from '@mui/material/Alert'
 
 import { MeetingRecord, MeetingStorage } from '../services/MeetingStorage'
 
-const PixelCorner = styled.div<{ $position: 'tl' | 'tr' | 'bl' | 'br' }>`
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  background: #00f5d4;
-  border: 2px solid #020b17;
-  box-shadow: 
-    0 0 8px #00f5d4,
-    inset -2px -2px 0 #0f766e,
-    inset 2px 2px 0 #ffffff;
-  z-index: 10;
-
-  ${({ $position }) =>
-    $position === 'tl' &&
-    `
-    top: -4px;
-    left: -4px;
-    border-radius: 3px 0 0 0;
-  `}
-
-  ${({ $position }) =>
-    $position === 'tr' &&
-    `
-    top: -4px;
-    right: -4px;
-    border-radius: 0 3px 0 0;
-  `}
-
-  ${({ $position }) =>
-    $position === 'bl' &&
-    `
-    bottom: -4px;
-    left: -4px;
-    border-radius: 0 0 0 3px;
-  `}
-
-  ${({ $position }) =>
-    $position === 'br' &&
-    `
-    bottom: -4px;
-    right: -4px;
-    border-radius: 0 0 3px 0;
-  `}
-`
-
-const Overlay = styled.div`
+// Tela Inteira (Full Page) com visual limpo, moderno e claro
+const FullPageContainer = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(4, 9, 20, 0.75);
-  backdrop-filter: blur(6px);
+  background: #f8fafc;
   z-index: 10005;
   display: flex;
-  align-items: center;
-  justify-content: center;
-`
-
-const DialogWrapper = styled.div`
-  position: relative;
-  background: #091326;
-  border: 4px solid #083344;
-  border-radius: 20px;
-  width: 950px;
-  max-width: calc(100vw - 24px);
-  height: 650px;
-  max-height: 92vh;
-  box-shadow: 
-    0 0 0 2px #020b17,
-    0 20px 50px rgba(0, 0, 0, 0.85),
-    0 0 30px rgba(0, 235, 199, 0.22),
-    inset 0 0 0 2px #0d4a5e;
-  display: flex;
   flex-direction: column;
-  color: #f8fafc;
-  box-sizing: border-box;
+  color: #1e293b;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   overflow: hidden;
-
-  @media (max-width: 768px) {
-    height: 94vh;
-    max-height: 94vh;
-  }
 `
 
-const Header = styled.div`
+const TopHeader = styled.header`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
-  background: #061e2f;
-  border-bottom: 2px solid #083344;
+  padding: 16px 28px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
-  .title-box {
+  .brand-area {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
 
-    h2 {
+    .icon-wrapper {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #eff6ff;
+      color: #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    h1 {
       margin: 0;
-      font-family: 'Silkscreen', monospace, sans-serif;
-      font-size: 17px;
-      color: #ffffff;
-      text-shadow: 0 2px 0 #000;
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.02em;
     }
 
     p {
       margin: 2px 0 0 0;
-      font-size: 11px;
-      color: #94a3b8;
+      font-size: 13px;
+      color: #64748b;
     }
   }
 
-  .close-btn {
-    color: #64748b;
-    transition: color 0.15s;
-    &:hover {
-      color: #00f5d4;
-    }
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 `
 
-const TabsBar = styled.div`
+const BackButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+
+  &:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`
+
+const NavigationBar = styled.nav`
   display: flex;
   gap: 8px;
-  padding: 10px 24px;
-  background: #0a1730;
-  border-bottom: 1px solid #162a4d;
-  overflow-x: auto;
+  padding: 8px 28px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
 `
 
-const TabBtn = styled.button<{ $active: boolean }>`
-  background: ${({ $active }) => ($active ? '#063542' : 'transparent')};
-  border: 2px solid ${({ $active }) => ($active ? '#00f5d4' : 'transparent')};
-  color: ${({ $active }) => ($active ? '#00f5d4' : '#94a3b8')};
-  font-family: 'Silkscreen', monospace, sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 8px 14px;
-  border-radius: 10px;
+const NavTab = styled.button<{ $active: boolean }>`
+  background: ${({ $active }) => ($active ? '#eff6ff' : 'transparent')};
+  border: 1px solid ${({ $active }) => ($active ? '#bfdbfe' : 'transparent')};
+  color: ${({ $active }) => ($active ? '#1d4ed8' : '#64748b')};
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.15s;
-  outline: none;
+  transition: all 0.15s ease;
 
   &:hover {
-    color: #00f5d4;
-    background: #0d2838;
+    background: #f1f5f9;
+    color: #0f172a;
   }
 `
 
-const Body = styled.div`
+const MainLayout = styled.main`
   flex: 1;
   display: flex;
   overflow: hidden;
+  background: #f8fafc;
 
-  @media (max-width: 768px) {
+  @media (max-width: 860px) {
     flex-direction: column;
   }
 `
 
-const ListPanel = styled.div`
-  width: 320px;
-  background: #061124;
-  border-right: 2px solid #0d2440;
+const SideSidebar = styled.aside`
+  width: 340px;
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
 
-  @media (max-width: 768px) {
+  @media (max-width: 860px) {
     width: 100%;
-    max-height: 180px;
+    max-height: 220px;
     border-right: none;
-    border-bottom: 2px solid #0d2440;
+    border-bottom: 1px solid #e2e8f0;
   }
 `
 
-const SearchWrapper = styled.div`
-  padding: 12px;
-  border-bottom: 1px solid #12223d;
+const SearchBarWrapper = styled.div`
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
   position: relative;
   display: flex;
   align-items: center;
 
   .search-icon {
     position: absolute;
-    left: 22px;
-    color: #00f5d4;
-    font-size: 18px;
+    left: 28px;
+    color: #94a3b8;
+    font-size: 20px;
   }
 
   input {
     width: 100%;
-    background: #0a1936;
-    border: 1px solid #0284c7;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
     border-radius: 8px;
-    padding: 8px 10px 8px 34px;
-    color: #ffffff;
-    font-size: 12px;
+    padding: 10px 12px 10px 38px;
+    color: #0f172a;
+    font-size: 13px;
     outline: none;
+    transition: all 0.2s;
+
+    &::placeholder {
+      color: #94a3b8;
+    }
 
     &:focus {
-      border-color: #00f5d4;
-      box-shadow: 0 0 8px rgba(0, 245, 212, 0.4);
+      background: #ffffff;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
   }
 `
 
-const MeetingCard = styled.div<{ $selected: boolean }>`
-  padding: 12px 14px;
-  border-bottom: 1px solid #0b1a33;
-  background: ${({ $selected }) => ($selected ? '#0a273b' : 'transparent')};
-  border-left: 3px solid ${({ $selected }) => ($selected ? '#00f5d4' : 'transparent')};
+const MeetingListItem = styled.div<{ $selected: boolean }>`
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  background: ${({ $selected }) => ($selected ? '#f0f7ff' : '#ffffff')};
+  border-left: 4px solid ${({ $selected }) => ($selected ? '#2563eb' : 'transparent')};
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.15s ease;
 
   &:hover {
-    background: #0a2033;
+    background: ${({ $selected }) => ($selected ? '#f0f7ff' : '#f8fafc')};
   }
 
   h4 {
-    margin: 0 0 4px 0;
-    font-size: 13px;
+    margin: 0 0 6px 0;
+    font-size: 14px;
     font-weight: 600;
-    color: ${({ $selected }) => ($selected ? '#00f5d4' : '#e2e8f0')};
+    color: ${({ $selected }) => ($selected ? '#1d4ed8' : '#1e293b')};
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .meta {
+  .meta-info {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 11px;
+    gap: 8px;
+    font-size: 12px;
     color: #64748b;
   }
 `
 
-const DetailPanel = styled.div`
+const ContentArea = styled.section`
   flex: 1;
-  padding: 20px 24px;
+  padding: 28px 36px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 22px;
+  background: #f8fafc;
 `
 
-const SectionBox = styled.div`
-  background: #07152b;
-  border: 1px solid #0d2c4d;
+const DetailHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 20px;
+
+  .title-group {
+    h2 {
+      margin: 0 0 10px 0;
+      font-size: 22px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+
+    .meta-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+      color: #64748b;
+
+      span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #ffffff;
+        padding: 5px 12px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+      }
+    }
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 10px;
+  }
+`
+
+const CleanButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
+
+  ${({ $variant }) =>
+    $variant === 'secondary'
+      ? `
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+    &:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+  `
+      : `
+    background: #2563eb;
+    border: 1px solid #1d4ed8;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+
+    &:hover {
+      background: #1d4ed8;
+    }
+  `}
+`
+
+const CleanCard = styled.div`
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 14px 18px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 
   h3 {
-    margin: 0 0 10px 0;
-    font-family: 'Silkscreen', monospace, sans-serif;
-    font-size: 13px;
-    color: #00f5d4;
+    margin: 0 0 14px 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -288,93 +343,55 @@ const SectionBox = styled.div`
     margin: 0;
     padding-left: 20px;
     li {
-      margin-bottom: 6px;
-      font-size: 13px;
-      line-height: 1.5;
-      color: #cbd5e1;
+      margin-bottom: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #334155;
     }
   }
 `
 
-const ActionItemCard = styled.div`
-  background: #092038;
-  border-left: 3px solid #38ef7d;
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin-bottom: 8px;
+const TaskCard = styled.div`
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #10b981;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
 
-  .task {
-    font-size: 12px;
-    color: #f1f5f9;
+  .task-text {
+    font-size: 14px;
     font-weight: 500;
+    color: #1e293b;
   }
 
-  .tags {
+  .task-badges {
     display: flex;
     gap: 8px;
     align-items: center;
 
-    .assignee {
-      background: #063542;
-      border: 1px solid #00f5d4;
-      color: #00f5d4;
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: 'Silkscreen', monospace, sans-serif;
+    .assignee-badge {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
     }
 
-    .deadline {
-      background: #1e293b;
-      color: #94a3b8;
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 4px;
+    .deadline-badge {
+      background: #f1f5f9;
+      color: #64748b;
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 6px;
     }
   }
-`
-
-const PixelButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-family: 'Silkscreen', monospace, sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.15s;
-  outline: none;
-
-  ${({ $variant }) =>
-    $variant === 'secondary'
-      ? `
-    background: #091f36;
-    border: 1px solid #0284c7;
-    color: #38bdf8;
-    &:hover {
-      background: #0d2b4a;
-      border-color: #00f5d4;
-      color: #00f5d4;
-    }
-  `
-      : `
-    background: linear-gradient(180deg, #00f5d4 0%, #00c9ab 100%);
-    border: 1px solid #002b24;
-    border-top: 1px solid #a7f3d0;
-    border-bottom: 3px solid #036b5c;
-    color: #01221b;
-    &:hover {
-      background: linear-gradient(180deg, #38ef7d 0%, #00f5d4 100%);
-    }
-    &:active {
-      transform: translateY(2px);
-    }
-  `}
 `
 
 interface Props {
@@ -414,24 +431,24 @@ export default function MeetingHistoryDialog({ open, onClose }: Props) {
   const handleCopyMinutes = () => {
     if (!selectedMeeting) return
     const text = `# 📋 Ata de Reunião: ${selectedMeeting.title}
-**Data:** ${new Date(selectedMeeting.createdAt).toLocaleDateString('pt-BR')} | **Duração:** ${selectedMeeting.durationFormatted}
-**Sala:** ${selectedMeeting.roomName}
-**Participantes:** ${selectedMeeting.participants.join(', ')}
+Data: ${new Date(selectedMeeting.createdAt).toLocaleDateString('pt-BR')} | Duração: ${selectedMeeting.durationFormatted}
+Sala: ${selectedMeeting.roomName}
+Participantes: ${selectedMeeting.participants.join(', ')}
 
 ---
 
 ### 📌 Resumo dos Principais Pontos
-${selectedMeeting.summary.map((s) => `* ${s}`).join('\n')}
+${selectedMeeting.summary.map((s) => `• ${s}`).join('\n')}
 
 ---
 
 ### ⚖️ Decisões Tomadas
-${selectedMeeting.decisions.map((d) => `* ${d}`).join('\n')}
+${selectedMeeting.decisions.map((d) => `• ${d}`).join('\n')}
 
 ---
 
 ### ✅ Itens de Ação (Tarefas e Responsáveis)
-${selectedMeeting.actionItems.map((a) => `* [ ] **${a.task}** (Responsável: ${a.assignee} ${a.deadline ? `| Prazo: ${a.deadline}` : ''})`).join('\n')}
+${selectedMeeting.actionItems.map((a) => `• [ ] ${a.task} (Responsável: ${a.assignee} ${a.deadline ? `| Prazo: ${a.deadline}` : ''})`).join('\n')}
 `
     navigator.clipboard.writeText(text)
     setCopySuccess(true)
@@ -445,308 +462,320 @@ ${selectedMeeting.actionItems.map((a) => `* [ ] **${a.task}** (Responsável: ${a
   }
 
   return (
-    <Overlay onClick={onClose}>
-      <DialogWrapper onClick={(e) => e.stopPropagation()}>
-        <PixelCorner $position="tl" />
-        <PixelCorner $position="tr" />
-        <PixelCorner $position="bl" />
-        <PixelCorner $position="br" />
-
-        <Header>
-          <div className="title-box">
-            <SmartToyIcon style={{ color: '#00f5d4', fontSize: 26 }} />
-            <div>
-              <h2>Central de Reuniões & Atas IA</h2>
-              <p>Histórico inteligente com Inteligência Artificial</p>
-            </div>
+    <FullPageContainer>
+      {/* Top Header com Botão de Voltar ao Escritório */}
+      <TopHeader>
+        <div className="brand-area">
+          <div className="icon-wrapper">
+            <SmartToyOutlinedIcon style={{ fontSize: 26 }} />
           </div>
-          <IconButton className="close-btn" onClick={onClose} size="small">
+          <div>
+            <h1>Central de Reuniões & Atas IA</h1>
+            <p>Histórico inteligente e resumos executivos gerados por Inteligência Artificial</p>
+          </div>
+        </div>
+
+        <div className="nav-actions">
+          <BackButton onClick={onClose}>
+            <ArrowBackIcon style={{ fontSize: 18 }} />
+            Voltar para o Escritório
+          </BackButton>
+          <IconButton onClick={onClose} size="medium" style={{ color: '#64748b' }} title="Fechar">
             <CloseIcon />
           </IconButton>
-        </Header>
+        </div>
+      </TopHeader>
 
-        <TabsBar>
-          <TabBtn $active={activeTab === 'minutes'} onClick={() => setActiveTab('minutes')}>
-            <DescriptionIcon style={{ fontSize: 16 }} />
-            Atas & Resumos IA
-          </TabBtn>
-          <TabBtn $active={activeTab === 'videos'} onClick={() => setActiveTab('videos')}>
-            <VideoLibraryIcon style={{ fontSize: 16 }} />
-            Vídeos Gravados
-          </TabBtn>
-          <TabBtn $active={activeTab === 'settings'} onClick={() => setActiveTab('settings')}>
-            <SettingsIcon style={{ fontSize: 16 }} />
-            Configuração de IA
-          </TabBtn>
-        </TabsBar>
+      {/* Barra de Abas */}
+      <NavigationBar>
+        <NavTab $active={activeTab === 'minutes'} onClick={() => setActiveTab('minutes')}>
+          <DescriptionOutlinedIcon style={{ fontSize: 18 }} />
+          Atas & Resumos IA
+        </NavTab>
+        <NavTab $active={activeTab === 'videos'} onClick={() => setActiveTab('videos')}>
+          <VideoLibraryOutlinedIcon style={{ fontSize: 18 }} />
+          Vídeos Gravados
+        </NavTab>
+        <NavTab $active={activeTab === 'settings'} onClick={() => setActiveTab('settings')}>
+          <SettingsOutlinedIcon style={{ fontSize: 18 }} />
+          Configuração de IA
+        </NavTab>
+      </NavigationBar>
 
-        <Body>
-          {activeTab === 'minutes' && (
-            <>
-              <ListPanel>
-                <SearchWrapper>
-                  <SearchIcon className="search-icon" />
-                  <input
-                    type="text"
-                    placeholder="Buscar atas anteriores..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </SearchWrapper>
-                {filteredMeetings.map((m) => (
-                  <MeetingCard
-                    key={m.id}
-                    $selected={selectedMeeting?.id === m.id}
-                    onClick={() => setSelectedMeetingId(m.id)}
-                  >
-                    <h4>{m.title}</h4>
-                    <div className="meta">
-                      <span>{new Date(m.createdAt).toLocaleDateString('pt-BR')}</span>
-                      <span>•</span>
-                      <span>{m.durationFormatted}</span>
-                    </div>
-                  </MeetingCard>
-                ))}
-                {filteredMeetings.length === 0 && (
-                  <div style={{ padding: 20, textAlign: 'center', color: '#64748b', fontSize: 12 }}>
-                    Nenhuma reunião encontrada.
+      {/* Conteúdo Principal */}
+      <MainLayout>
+        {activeTab === 'minutes' && (
+          <>
+            {/* Barra lateral de reuniões */}
+            <SideSidebar>
+              <SearchBarWrapper>
+                <SearchIcon className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Buscar atas anteriores..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </SearchBarWrapper>
+
+              {filteredMeetings.map((m) => (
+                <MeetingListItem
+                  key={m.id}
+                  $selected={selectedMeeting?.id === m.id}
+                  onClick={() => setSelectedMeetingId(m.id)}
+                >
+                  <h4>{m.title}</h4>
+                  <div className="meta-info">
+                    <span>{new Date(m.createdAt).toLocaleDateString('pt-BR')}</span>
+                    <span>•</span>
+                    <span>{m.durationFormatted}</span>
+                    <span>•</span>
+                    <span>{m.roomName}</span>
                   </div>
-                )}
-              </ListPanel>
+                </MeetingListItem>
+              ))}
 
-              {selectedMeeting ? (
-                <DetailPanel>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      borderBottom: '1px solid #162a4d',
-                      paddingBottom: 12,
-                    }}
-                  >
-                    <div>
-                      <h2 style={{ margin: '0 0 6px 0', fontSize: 18, color: '#f8fafc' }}>
-                        {selectedMeeting.title}
-                      </h2>
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: 14,
-                          fontSize: 12,
-                          color: '#94a3b8',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <CalendarTodayIcon style={{ fontSize: 14, color: '#00f5d4' }} />
-                          {new Date(selectedMeeting.createdAt).toLocaleDateString('pt-BR')}
-                        </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <AccessTimeIcon style={{ fontSize: 14, color: '#00f5d4' }} />
-                          {selectedMeeting.durationFormatted}
-                        </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <PersonIcon style={{ fontSize: 14, color: '#00f5d4' }} />
-                          {selectedMeeting.participants.join(', ')}
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <PixelButton $variant="secondary" onClick={handleCopyMinutes}>
-                        <ContentCopyIcon style={{ fontSize: 14 }} />
-                        {copySuccess ? 'Copiado!' : 'Copiar Ata'}
-                      </PixelButton>
-                    </div>
-                  </div>
-
-                  {/* Resumo */}
-                  <SectionBox>
-                    <h3>📌 Resumo dos Principais Pontos</h3>
-                    <ul>
-                      {selectedMeeting.summary.map((pt, idx) => (
-                        <li key={idx}>{pt}</li>
-                      ))}
-                    </ul>
-                  </SectionBox>
-
-                  {/* Decisões */}
-                  <SectionBox>
-                    <h3>⚖️ Decisões Tomadas pela Equipe</h3>
-                    <ul>
-                      {selectedMeeting.decisions.map((dec, idx) => (
-                        <li key={idx}>{dec}</li>
-                      ))}
-                    </ul>
-                  </SectionBox>
-
-                  {/* Ações */}
-                  <SectionBox>
-                    <h3>✅ Itens de Ação (Tarefas e Responsáveis)</h3>
-                    {selectedMeeting.actionItems.map((act, idx) => (
-                      <ActionItemCard key={idx}>
-                        <span className="task">● {act.task}</span>
-                        <div className="tags">
-                          <span className="assignee">👤 {act.assignee}</span>
-                          {act.deadline && <span className="deadline">⏰ {act.deadline}</span>}
-                        </div>
-                      </ActionItemCard>
-                    ))}
-                  </SectionBox>
-
-                  {/* Transcrição */}
-                  {selectedMeeting.transcript && (
-                    <SectionBox>
-                      <h3>📝 Transcrição / Detalhes da Conversa</h3>
-                      <pre
-                        style={{
-                          margin: 0,
-                          fontSize: 12,
-                          color: '#94a3b8',
-                          whiteSpace: 'pre-wrap',
-                          fontFamily: 'monospace',
-                        }}
-                      >
-                        {selectedMeeting.transcript}
-                      </pre>
-                    </SectionBox>
-                  )}
-                </DetailPanel>
-              ) : (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <p style={{ color: '#64748b' }}>Selecione uma reunião para ver a ata.</p>
+              {filteredMeetings.length === 0 && (
+                <div style={{ padding: '36px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                  Nenhuma reunião encontrada.
                 </div>
               )}
-            </>
-          )}
+            </SideSidebar>
 
-          {activeTab === 'videos' && (
-            <DetailPanel>
-              <h3 style={{ margin: 0, color: '#00f5d4', fontFamily: 'Silkscreen' }}>
-                🎥 Galeria de Gravações de Reunião
-              </h3>
-              <p style={{ margin: 0, fontSize: 13, color: '#94a3b8' }}>
-                Assista às reuniões gravadas diretamente no navegador ou baixe o arquivo em alta definição.
-              </p>
+            {/* Painel de Leitura da Ata */}
+            {selectedMeeting ? (
+              <ContentArea>
+                <DetailHeader>
+                  <div className="title-group">
+                    <h2>{selectedMeeting.title}</h2>
+                    <div className="meta-badges">
+                      <span>
+                        <CalendarTodayOutlinedIcon style={{ fontSize: 15, color: '#2563eb' }} />
+                        {new Date(selectedMeeting.createdAt).toLocaleDateString('pt-BR')}
+                      </span>
+                      <span>
+                        <AccessTimeOutlinedIcon style={{ fontSize: 15, color: '#2563eb' }} />
+                        {selectedMeeting.durationFormatted}
+                      </span>
+                      <span>
+                        <MeetingRoomOutlinedIcon style={{ fontSize: 15, color: '#2563eb' }} />
+                        {selectedMeeting.roomName}
+                      </span>
+                      <span>
+                        <PersonOutlineIcon style={{ fontSize: 16, color: '#2563eb' }} />
+                        {selectedMeeting.participants.join(', ')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="action-buttons">
+                    <CleanButton $variant="secondary" onClick={handleCopyMinutes}>
+                      {copySuccess ? (
+                        <>
+                          <CheckIcon style={{ fontSize: 16, color: '#10b981' }} />
+                          Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <ContentCopyIcon style={{ fontSize: 16 }} />
+                          Copiar Ata
+                        </>
+                      )}
+                    </CleanButton>
+                  </div>
+                </DetailHeader>
+
+                {/* 📌 Resumo dos Principais Pontos */}
+                <CleanCard>
+                  <h3>📌 Resumo dos Principais Pontos</h3>
+                  <ul>
+                    {selectedMeeting.summary.map((pt, idx) => (
+                      <li key={idx}>{pt}</li>
+                    ))}
+                  </ul>
+                </CleanCard>
+
+                {/* ⚖️ Decisões Tomadas pela Equipe */}
+                <CleanCard>
+                  <h3>⚖️ Decisões Tomadas pela Equipe</h3>
+                  <ul>
+                    {selectedMeeting.decisions.map((dec, idx) => (
+                      <li key={idx}>{dec}</li>
+                    ))}
+                  </ul>
+                </CleanCard>
+
+                {/* ✅ Itens de Ação (Tarefas e Responsáveis) */}
+                <CleanCard>
+                  <h3>✅ Itens de Ação (Tarefas e Responsáveis)</h3>
+                  {selectedMeeting.actionItems.map((act, idx) => (
+                    <TaskCard key={idx}>
+                      <span className="task-text">✓ {act.task}</span>
+                      <div className="task-badges">
+                        <span className="assignee-badge">👤 {act.assignee}</span>
+                        {act.deadline && <span className="deadline-badge">⏰ {act.deadline}</span>}
+                      </div>
+                    </TaskCard>
+                  ))}
+                </CleanCard>
+
+                {/* 📝 Transcrição / Detalhes */}
+                {selectedMeeting.transcript && (
+                  <CleanCard>
+                    <h3>📝 Transcrição / Detalhes da Conversa</h3>
+                    <div
+                      style={{
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 8,
+                        padding: 16,
+                        fontSize: 13,
+                        lineHeight: 1.6,
+                        color: '#475569',
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
+                      {selectedMeeting.transcript}
+                    </div>
+                  </CleanCard>
+                )}
+              </ContentArea>
+            ) : (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ color: '#94a3b8', fontSize: 14 }}>Selecione uma reunião para ver a ata.</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Aba de Vídeos Gravados */}
+        {activeTab === 'videos' && (
+          <ContentArea>
+            <div style={{ maxWidth: 860, margin: '0 auto', width: '100%' }}>
+              <div style={{ marginBottom: 20 }}>
+                <h2 style={{ margin: '0 0 6px 0', fontSize: 20, fontWeight: 700, color: '#0f172a' }}>
+                  🎥 Galeria de Gravações de Reunião
+                </h2>
+                <p style={{ margin: 0, fontSize: 14, color: '#64748b' }}>
+                  Assista às reuniões gravadas diretamente no navegador ou baixe o arquivo em alta definição.
+                </p>
+              </div>
 
               {selectedMeeting?.videoBlobUrl ? (
-                <div style={{ marginTop: 10 }}>
+                <CleanCard>
                   <video
                     src={selectedMeeting.videoBlobUrl}
                     controls
                     style={{
                       width: '100%',
-                      maxHeight: '340px',
-                      background: '#000',
-                      borderRadius: 12,
-                      border: '2px solid #00f5d4',
+                      maxHeight: '440px',
+                      background: '#000000',
+                      borderRadius: 8,
+                      outline: 'none',
                     }}
                   />
-                  <div style={{ marginTop: 12, display: 'flex', gap: 10 }}>
+                  <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h4 style={{ margin: '0 0 4px 0', fontSize: 15, fontWeight: 600, color: '#0f172a' }}>
+                        {selectedMeeting.title}
+                      </h4>
+                      <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                        {new Date(selectedMeeting.createdAt).toLocaleDateString('pt-BR')} • {selectedMeeting.durationFormatted}
+                      </p>
+                    </div>
                     <a
                       href={selectedMeeting.videoBlobUrl}
                       download={selectedMeeting.videoFileName || 'reuniao-skyoffice.webm'}
                       style={{ textDecoration: 'none' }}
                     >
-                      <PixelButton $variant="primary">
-                        <DownloadIcon style={{ fontSize: 15 }} />
+                      <CleanButton $variant="primary">
+                        <DownloadIcon style={{ fontSize: 16 }} />
                         Baixar Vídeo (.webm)
-                      </PixelButton>
+                      </CleanButton>
                     </a>
                   </div>
-                </div>
+                </CleanCard>
               ) : (
-                <div
-                  style={{
-                    background: '#07152b',
-                    border: '2px dashed #0d2c4d',
-                    borderRadius: 12,
-                    padding: 40,
-                    textAlign: 'center',
-                    marginTop: 10,
-                  }}
-                >
-                  <VideoLibraryIcon style={{ fontSize: 48, color: '#00f5d4', marginBottom: 12 }} />
-                  <h4 style={{ margin: '0 0 6px 0', fontSize: 15 }}>
-                    As gravações realizadas no escritório são salvas no seu computador
-                  </h4>
-                  <p style={{ margin: 0, fontSize: 12, color: '#64748b', maxWidth: 450, marginInline: 'auto' }}>
-                    Ao clicar em <strong>"Gravar Reunião"</strong> na barra inferior, o vídeo e áudio dos participantes
-                    são gravados e o download é disparado automaticamente para sua pasta Downloads.
+                <CleanCard style={{ textAlign: 'center', padding: '60px 24px' }}>
+                  <VideoLibraryOutlinedIcon style={{ fontSize: 56, color: '#3b82f6', marginBottom: 12 }} />
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: 16, color: '#0f172a', justifyContent: 'center' }}>
+                    As gravações de reuniões são salvas diretamente no seu computador
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 14, color: '#64748b', maxWidth: 480, marginInline: 'auto', lineHeight: 1.5 }}>
+                    Ao clicar em <strong>"Gravar Reunião"</strong> na barra inferior do escritório, o áudio e vídeo
+                    dos participantes são capturados e o download do arquivo de vídeo (.webm) é disparado automaticamente.
                   </p>
-                </div>
+                </CleanCard>
               )}
-            </DetailPanel>
-          )}
+            </div>
+          </ContentArea>
+        )}
 
-          {activeTab === 'settings' && (
-            <DetailPanel>
-              <h3 style={{ margin: 0, color: '#00f5d4', fontFamily: 'Silkscreen' }}>
-                ⚙️ Configurações da Inteligência Artificial
-              </h3>
-              <p style={{ margin: 0, fontSize: 13, color: '#94a3b8' }}>
-                Conecte sua chave da API do Google Gemini para transcrever e gerar atas automáticas com IA.
-              </p>
+        {/* Aba de Configurações da IA */}
+        {activeTab === 'settings' && (
+          <ContentArea>
+            <div style={{ maxWidth: 720, margin: '0 auto', width: '100%' }}>
+              <div style={{ marginBottom: 20 }}>
+                <h2 style={{ margin: '0 0 6px 0', fontSize: 20, fontWeight: 700, color: '#0f172a' }}>
+                  ⚙️ Configurações da Inteligência Artificial
+                </h2>
+                <p style={{ margin: 0, fontSize: 14, color: '#64748b' }}>
+                  Conecte sua chave da API do Google Gemini para habilitar transcrições automáticas e geração inteligente de atas.
+                </p>
+              </div>
 
               {saveSuccess && (
-                <Alert severity="success" style={{ fontSize: 12, borderRadius: 8 }}>
-                  Chave de API salva com sucesso no navegador!
+                <Alert severity="success" style={{ marginBottom: 16, borderRadius: 8 }}>
+                  Chave da API do Google Gemini salva com sucesso no navegador!
                 </Alert>
               )}
 
-              <div
-                style={{
-                  background: '#07152b',
-                  border: '1px solid #0d2c4d',
-                  borderRadius: 12,
-                  padding: 18,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                }}
-              >
-                <label style={{ fontSize: 12, color: '#00f5d4', fontFamily: 'Silkscreen' }}>
-                  Google Gemini API Key:
-                </label>
-                <input
-                  type="password"
-                  placeholder="Cole sua chave aqui (AIzaSy...)"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  style={{
-                    background: '#0a1936',
-                    border: '1px solid #0284c7',
-                    borderRadius: 8,
-                    padding: '10px 14px',
-                    color: '#ffffff',
-                    fontSize: 13,
-                    outline: 'none',
-                  }}
-                />
-                <p style={{ margin: 0, fontSize: 11, color: '#64748b' }}>
-                  A chave do Gemini pode ser obtida gratuitamente em{' '}
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ color: '#00f5d4' }}
-                  >
-                    Google AI Studio
-                  </a>{' '}
-                  com limite gratuito muito generoso para atas corporativas.
-                </p>
+              <CleanCard>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <label style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>
+                    Google Gemini API Key:
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Cole sua chave aqui (ex: AIzaSy...)"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 8,
+                      padding: '12px 14px',
+                      color: '#0f172a',
+                      fontSize: 14,
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                    }}
+                  />
+                  <p style={{ margin: 0, fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
+                    Você pode obter sua chave de API gratuitamente no{' '}
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}
+                    >
+                      Google AI Studio ↗
+                    </a>
+                    . O limite gratuito do Gemini é amplo e ideal para atas e transcrições de reuniões corporativas.
+                  </p>
 
-                <div style={{ marginTop: 6 }}>
-                  <PixelButton $variant="primary" onClick={handleSaveApiKey}>
-                    <CheckCircleIcon style={{ fontSize: 14 }} />
-                    Salvar Configuração
-                  </PixelButton>
+                  <div style={{ marginTop: 10 }}>
+                    <CleanButton $variant="primary" onClick={handleSaveApiKey}>
+                      <CheckCircleIcon style={{ fontSize: 16 }} />
+                      Salvar Chave de API
+                    </CleanButton>
+                  </div>
                 </div>
-              </div>
-            </DetailPanel>
-          )}
-        </Body>
-      </DialogWrapper>
-    </Overlay>
+              </CleanCard>
+            </div>
+          </ContentArea>
+        )}
+      </MainLayout>
+    </FullPageContainer>
   )
 }
