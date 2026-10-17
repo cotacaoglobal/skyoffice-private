@@ -39,9 +39,6 @@ export default class Game extends Phaser.Scene {
   chairMap = new Map<string, Chair>()
   private whiteboardMap = new Map<string, Whiteboard>()
   private isPanning = false
-  private currentZoneId: string | null = null
-  private zoneNoticeText?: Phaser.GameObjects.Text
-  private zoneNoticeBg?: Phaser.GameObjects.Rectangle
 
   constructor() {
     super('game')
@@ -172,30 +169,6 @@ export default class Game extends Phaser.Scene {
     this.addGroupFromTiled('GenericObjects', 'generic', 'Generic', false)
     this.addGroupFromTiled('GenericObjectsOnCollide', 'generic', 'Generic', true)
     this.addGroupFromTiled('Basement', 'basement', 'Basement', true)
-
-    // Marcadores visuais discretos no chão dos setores/compartimentos do escritório
-    this.officeSectors.forEach((sec) => {
-      // Placa centralizada no topo de cada setor
-      const badgeX = (sec.bounds.minX + sec.bounds.maxX) / 2
-      const badgeY = sec.bounds.minY + 22
-
-      // Fundo em pílula sutil no piso
-      const bg = this.add
-        .rectangle(badgeX, badgeY, sec.name.length * 8.2 + 24, 24, 0x0f172a, 0.75)
-        .setDepth(1)
-        .setStrokeStyle(1.5, Phaser.Display.Color.HexStringToColor(sec.color).color, 0.8)
-
-      // Texto de identificação do setor
-      this.add
-        .text(badgeX, badgeY, sec.name, {
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '11px',
-          fontStyle: 'bold',
-          color: '#ffffff',
-        })
-        .setOrigin(0.5)
-        .setDepth(2)
-    })
 
     // Inicializa a malha de navegação para cálculo de rotas com desvio de obstáculos (A*)
     Pathfinding.init(this.map)
@@ -500,105 +473,6 @@ export default class Game extends Phaser.Scene {
     return x >= 180 && x <= 620 && y >= 490 && y <= 830
   }
 
-  // Setores e Compartimentos do Escritório Virtual
-  private officeSectors = [
-    {
-      id: 'ti_infra',
-      name: '💻 Setor de TI, Devs & Infraestrutura',
-      color: '#0284c7',
-      bounds: { minX: 890, maxX: 1250, minY: 420, maxY: 920 },
-      description: 'Estações de trabalho, servidores e computadores de alta performance',
-    },
-    {
-      id: 'board_meeting',
-      name: '👔 Sala de Conferência & Diretoria',
-      color: '#7c3aed',
-      bounds: { minX: 180, maxX: 620, minY: 490, maxY: 830 },
-      description: 'Mesa de conferência executiva com cerca de áudio privativa',
-    },
-    {
-      id: 'lounge_coffee',
-      name: '☕ Espaço Lounge & Café',
-      color: '#d97706',
-      bounds: { minX: 200, maxX: 600, minY: 150, maxY: 380 },
-      description: 'Área de convivência, descompressão e máquinas de café',
-    },
-    {
-      id: 'design_brainstorm',
-      name: '🎨 Estúdio de Design & Brainstorming',
-      color: '#059669',
-      bounds: { minX: 750, maxX: 1200, minY: 60, maxY: 380 },
-      description: 'Espaço colaborativo com quadros brancos e mesas de ideação',
-    },
-    {
-      id: 'lobby_central',
-      name: '🏢 Hall de Entrada & Recepção',
-      color: '#475569',
-      bounds: { minX: 620, maxX: 880, minY: 390, maxY: 650 },
-      description: 'Ponto de encontro central do escritório',
-    },
-  ]
-
-  private getSectorAt(x: number, y: number) {
-    return this.officeSectors.find(
-      (s) => x >= s.bounds.minX && x <= s.bounds.maxX && y >= s.bounds.minY && y <= s.bounds.maxY
-    )
-  }
-
-  private showSectorNotice(sector: (typeof this.officeSectors)[0]) {
-    if (this.zoneNoticeBg) this.zoneNoticeBg.destroy()
-    if (this.zoneNoticeText) this.zoneNoticeText.destroy()
-
-    const screenCenterX = this.cameras.main.width / 2
-    const screenY = 64
-
-    // Fundo translúcido moderno
-    this.zoneNoticeBg = this.add
-      .rectangle(screenCenterX, screenY, 400, 42, 0x0f172a, 0.88)
-      .setScrollFactor(0)
-      .setDepth(10000)
-      .setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(sector.color).color, 0.9)
-
-    // Texto com nome do setor
-    this.zoneNoticeText = this.add
-      .text(screenCenterX, screenY, sector.name, {
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        fontSize: '14px',
-        fontStyle: 'bold',
-        color: '#ffffff',
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(10001)
-
-    // Animação de entrada e saída suave (fade in -> wait -> fade out)
-    this.zoneNoticeBg.setAlpha(0)
-    this.zoneNoticeText.setAlpha(0)
-
-    this.tweens.add({
-      targets: [this.zoneNoticeBg, this.zoneNoticeText],
-      alpha: 1,
-      y: screenY + 6,
-      duration: 250,
-      ease: 'Power2',
-      onComplete: () => {
-        this.time.delayedCall(2400, () => {
-          this.tweens.add({
-            targets: [this.zoneNoticeBg, this.zoneNoticeText],
-            alpha: 0,
-            y: screenY,
-            duration: 350,
-            ease: 'Power2',
-            onComplete: () => {
-              this.zoneNoticeBg?.destroy()
-              this.zoneNoticeText?.destroy()
-            },
-          })
-        })
-      },
-    })
-  }
-
   update(t: number, dt: number) {
     if (this.myPlayer && this.network) {
       if (!this.cursors) return
@@ -626,17 +500,6 @@ export default class Game extends Phaser.Scene {
             // Se o usuário andou ou o avatar saiu do campo de visão, volta a seguir imediatamente
             this.cameras.main.startFollow(this.myPlayer, true, 0.1, 0.1)
           }
-        }
-      }
-
-      // Detecção de mudança de setor/compartimento no escritório
-      const currentSector = this.getSectorAt(this.myPlayer.x, this.myPlayer.y)
-      const sectorId = currentSector?.id || null
-      if (sectorId !== this.currentZoneId) {
-        this.currentZoneId = sectorId
-        if (currentSector) {
-          this.showSectorNotice(currentSector)
-          phaserEvents.emit(Event.ZONE_ENTERED, currentSector)
         }
       }
 
