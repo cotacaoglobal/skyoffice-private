@@ -27,6 +27,9 @@ export default class WebRTC {
     // mute your own video stream (you don't want to hear yourself)
     this.myVideo.muted = true
 
+    // Torna a área da câmera arrastável tanto no mobile quanto no desktop
+    this.initVideoGridDrag()
+
     // config peerJS
     this.initialize()
   }
@@ -191,7 +194,19 @@ export default class WebRTC {
     video.srcObject = stream
     video.playsInline = true
     video.autoplay = true
-    video.style.display = 'block'
+    const videoTrack = stream.getVideoTracks()[0]
+    const isEnabled = videoTrack ? videoTrack.enabled : false
+    video.style.display = isEnabled ? 'block' : 'none'
+
+    if (videoTrack) {
+      videoTrack.onmute = () => {
+        video.style.display = 'none'
+      }
+      videoTrack.onunmute = () => {
+        if (videoTrack.enabled) video.style.display = 'block'
+      }
+    }
+
     video.addEventListener('loadedmetadata', () => {
       video.play().catch((err) => console.warn('Erro ao reproduzir stream:', err))
     })
@@ -244,9 +259,11 @@ export default class WebRTC {
       const track = this.myStream.getVideoTracks()[0]
       if (track) {
         track.enabled = !track.enabled
+        this.myVideo.style.display = track.enabled ? 'block' : 'none'
         return track.enabled
       }
     }
+    this.myVideo.style.display = 'none'
     return false
   }
 
@@ -256,6 +273,92 @@ export default class WebRTC {
       return track ? track.enabled : false
     }
     return false
+  }
+
+  private initVideoGridDrag() {
+    if (!this.videoGrid) return
+    const grid = this.videoGrid as HTMLElement
+    grid.style.cursor = 'grab'
+    grid.style.touchAction = 'none'
+
+    let isDragging = false
+    let startX = 0
+    let startY = 0
+    let initialLeft = 0
+    let initialTop = 0
+
+    const onStart = (clientX: number, clientY: number) => {
+      isDragging = true
+      grid.style.cursor = 'grabbing'
+      const rect = grid.getBoundingClientRect()
+      startX = clientX
+      startY = clientY
+      initialLeft = rect.left
+      initialTop = rect.top
+
+      grid.style.position = 'fixed'
+      grid.style.left = `${initialLeft}px`
+      grid.style.top = `${initialTop}px`
+      grid.style.right = 'auto'
+      grid.style.bottom = 'auto'
+    }
+
+    const onMove = (clientX: number, clientY: number) => {
+      if (!isDragging) return
+      const dx = clientX - startX
+      const dy = clientY - startY
+
+      const rect = grid.getBoundingClientRect()
+      const newLeft = Math.max(0, Math.min(window.innerWidth - rect.width, initialLeft + dx))
+      const newTop = Math.max(0, Math.min(window.innerHeight - rect.height, initialTop + dy))
+
+      grid.style.left = `${newLeft}px`
+      grid.style.top = `${newTop}px`
+    }
+
+    const onEnd = () => {
+      if (!isDragging) return
+      isDragging = false
+      grid.style.cursor = 'grab'
+    }
+
+    grid.addEventListener('mousedown', (e: MouseEvent) => {
+      if (e.button !== 0) return
+      onStart(e.clientX, e.clientY)
+
+      const handleMouseMove = (moveEv: MouseEvent) => onMove(moveEv.clientX, moveEv.clientY)
+      const handleMouseUp = () => {
+        onEnd()
+        window.removeEventListener('mousemove', handleMouseMove)
+        window.removeEventListener('mouseup', handleMouseUp)
+      }
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
+    })
+
+    grid.addEventListener(
+      'touchstart',
+      (e: TouchEvent) => {
+        if (e.touches.length !== 1) return
+        const touch = e.touches[0]
+        onStart(touch.clientX, touch.clientY)
+      },
+      { passive: true }
+    )
+
+    grid.addEventListener(
+      'touchmove',
+      (e: TouchEvent) => {
+        if (!isDragging || e.touches.length !== 1) return
+        e.preventDefault()
+        const touch = e.touches[0]
+        onMove(touch.clientX, touch.clientY)
+      },
+      { passive: false }
+    )
+
+    grid.addEventListener('touchend', onEnd)
+    grid.addEventListener('touchcancel', onEnd)
   }
 
   setUpButtons() {

@@ -15,6 +15,7 @@ import GitHubIcon from '@mui/icons-material/GitHub'
 import TwitterIcon from '@mui/icons-material/Twitter'
 import VideogameAssetIcon from '@mui/icons-material/VideogameAsset'
 import VideogameAssetOffIcon from '@mui/icons-material/VideogameAssetOff'
+import TuneIcon from '@mui/icons-material/Tune'
 
 import { BackgroundMode } from '../../../types/BackgroundMode'
 import { setShowJoystick, toggleBackgroundMode } from '../stores/UserStore'
@@ -86,6 +87,57 @@ const Wrapper = styled.div`
 const ButtonGroup = styled.div`
   display: flex;
   gap: 10px;
+  align-items: center;
+
+  @media (max-width: 650px) {
+    gap: 6px;
+  }
+`
+
+const CollapsibleButtons = styled.div<{ $collapsed: boolean }>`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  @media (max-width: 650px) {
+    gap: 6px;
+  }
+
+  ${({ $collapsed }) =>
+    $collapsed
+      ? `
+    opacity: 0;
+    pointer-events: none;
+    max-width: 0;
+    overflow: hidden;
+    transform: scale(0.85);
+  `
+      : `
+    opacity: 1;
+    pointer-events: auto;
+    max-width: 320px;
+    transform: scale(1);
+  `}
+`
+
+const StyledFab = styled(Fab)<{ target?: string }>`
+  &:hover {
+    color: #1ea2df;
+  }
+`
+
+const ToggleCollapseFab = styled(StyledFab)<{ $collapsed: boolean }>`
+  && {
+    background: ${({ $collapsed }) => ($collapsed ? '#1e1f2b' : '#27293d')};
+    color: ${({ $collapsed }) => ($collapsed ? '#00ebc7' : '#f8fafc')};
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+
+    &:hover {
+      background: #33364d;
+    }
+  }
 `
 
 const Title = styled.h3`
@@ -123,13 +175,8 @@ const RoomDescription = styled.div`
   justify-content: center;
 `
 
-const StyledFab = styled(Fab)<{ target?: string }>`
-  &:hover {
-    color: #1ea2df;
-  }
-`
-
 export default function HelperButtonGroup() {
+  const [collapsed, setCollapsed] = useState(window.innerWidth <= 650)
   const [showControlGuide, setShowControlGuide] = useState(false)
   const [showRoomInfo, setShowRoomInfo] = useState(false)
   const showJoystick = useAppSelector((state) => state.user.showJoystick)
@@ -143,13 +190,6 @@ export default function HelperButtonGroup() {
   return (
     <Backdrop>
       <div className="wrapper-group">
-        {roomJoined && (
-          <Tooltip title={showJoystick ? 'Disable virtual joystick' : 'Enable virtual joystick'}>
-            <StyledFab size="small" onClick={() => dispatch(setShowJoystick(!showJoystick))}>
-              {showJoystick ? <VideogameAssetOffIcon /> : <VideogameAssetIcon />}
-            </StyledFab>
-          </Tooltip>
-        )}
         {showRoomInfo && (
           <Wrapper>
             <IconButton className="close" onClick={() => setShowRoomInfo(false)} size="small">
@@ -204,36 +244,63 @@ export default function HelperButtonGroup() {
         )}
       </div>
       <ButtonGroup>
-        {roomJoined && (
-          <>
-            <Tooltip title="Informações da Sala">
-              <StyledFab
-                size="small"
-                onClick={() => {
-                  setShowRoomInfo(!showRoomInfo)
-                  setShowControlGuide(false)
-                }}
-              >
-                <ShareIcon />
+        <CollapsibleButtons $collapsed={collapsed}>
+          {roomJoined && (
+            <Tooltip title={showJoystick ? 'Ocultar joystick virtual' : 'Ativar joystick virtual'}>
+              <StyledFab size="small" onClick={() => dispatch(setShowJoystick(!showJoystick))}>
+                {showJoystick ? <VideogameAssetOffIcon /> : <VideogameAssetIcon />}
               </StyledFab>
             </Tooltip>
-            <Tooltip title="Guia de Controles">
-              <StyledFab
-                size="small"
-                onClick={() => {
-                  setShowControlGuide(!showControlGuide)
-                  setShowRoomInfo(false)
-                }}
-              >
-                <HelpOutlineIcon />
-              </StyledFab>
-            </Tooltip>
-          </>
-        )}
-        <Tooltip title="Alternar Modo Claro/Escuro">
-          <StyledFab size="small" onClick={() => dispatch(toggleBackgroundMode())}>
-            {backgroundMode === BackgroundMode.DAY ? <DarkModeIcon /> : <LightModeIcon />}
-          </StyledFab>
+          )}
+          {roomJoined && (
+            <>
+              <Tooltip title="Informações da Sala">
+                <StyledFab
+                  size="small"
+                  onClick={() => {
+                    setShowRoomInfo(!showRoomInfo)
+                    setShowControlGuide(false)
+                  }}
+                >
+                  <ShareIcon />
+                </StyledFab>
+              </Tooltip>
+              <Tooltip title="Guia de Controles">
+                <StyledFab
+                  size="small"
+                  onClick={() => {
+                    setShowControlGuide(!showControlGuide)
+                    setShowRoomInfo(false)
+                  }}
+                >
+                  <HelpOutlineIcon />
+                </StyledFab>
+              </Tooltip>
+            </>
+          )}
+          <Tooltip title="Alternar Modo Claro/Escuro">
+            <StyledFab size="small" onClick={() => dispatch(toggleBackgroundMode())}>
+              {backgroundMode === BackgroundMode.DAY ? <DarkModeIcon /> : <LightModeIcon />}
+            </StyledFab>
+          </Tooltip>
+        </CollapsibleButtons>
+
+        {/* Botão de Recolher / Expandir Menu do Topo */}
+        <Tooltip title={collapsed ? 'Mostrar ferramentas' : 'Recolher ferramentas'}>
+          <ToggleCollapseFab
+            size="small"
+            $collapsed={collapsed}
+            onClick={() => {
+              if (!collapsed) {
+                setShowRoomInfo(false)
+                setShowControlGuide(false)
+              }
+              setCollapsed(!collapsed)
+            }}
+            aria-label="Toggle Header Buttons"
+          >
+            {collapsed ? <TuneIcon /> : <CloseIcon fontSize="small" />}
+          </ToggleCollapseFab>
         </Tooltip>
       </ButtonGroup>
     </Backdrop>
