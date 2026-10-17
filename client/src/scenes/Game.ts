@@ -84,6 +84,20 @@ export default class Game extends Phaser.Scene {
     this.map = this.make.tilemap({ key: 'tilemap' })
     const FloorAndGround = this.map.addTilesetImage('FloorAndGround', 'tiles_wall')
 
+    // Placa sólida de base sob as salas do escritório (depth: -1) para evitar que o fundo estrelado
+    // apareça nas frestas/costuras dos ladrilhos (tile bleeding) causadas por sub-pixels ao mover a tela
+    const floorBackdrop = this.add.graphics()
+    floorBackdrop.fillStyle(0xb2b8bc, 1) // Tom de cinza médio harmonioso com os pisos do escritório
+    // Sala superior (descanso / café)
+    floorBackdrop.fillRect(544, 0, 480, 240)
+    // Sala esquerda superior (jogos / reuniões)
+    floorBackdrop.fillRect(16, 96, 528, 672)
+    // Corredor central e entrada
+    floorBackdrop.fillRect(544, 240, 160, 720)
+    // Salão principal da direita (estações de trabalho / mesas)
+    floorBackdrop.fillRect(704, 240, 560, 720)
+    floorBackdrop.setDepth(-1)
+
     const groundLayer = this.map.createLayer('Ground', FloorAndGround)
     groundLayer.setCollisionByProperty({ collides: true })
     groundLayer.skipCull = true
