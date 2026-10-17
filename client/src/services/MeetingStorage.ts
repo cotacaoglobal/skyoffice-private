@@ -4,6 +4,21 @@ export interface ActionItem {
   deadline?: string
 }
 
+export interface Commitment {
+  description: string
+  responsiblePerson: string
+  deadline?: string
+  detectedAt: string // timestamp no áudio, ex: "02:34"
+  status: 'pending' | 'done'
+}
+
+export interface TimestampedSegment {
+  timestamp: string // ex: "01:23"
+  speaker?: string
+  content: string
+  type: 'summary' | 'decision' | 'commitment' | 'general'
+}
+
 export interface MeetingRecord {
   id: string
   title: string
@@ -16,6 +31,8 @@ export interface MeetingRecord {
   summary: string[]
   decisions: string[]
   actionItems: ActionItem[]
+  commitments: Commitment[]
+  timestampedSegments: TimestampedSegment[]
   transcript?: string
 }
 
@@ -97,6 +114,55 @@ export class MeetingStorage {
             task: 'Criar o checklist de boas-vindas para novos membros no escritório',
             assignee: 'Ana Paula',
             deadline: 'Segunda-feira',
+          },
+        ],
+        commitments: [
+          {
+            description: 'Felipe vai entregar a integração com Gemini até sexta-feira',
+            responsiblePerson: 'Felipe Rocha',
+            deadline: 'Sexta-feira',
+            detectedAt: '02:30',
+            status: 'pending',
+          },
+          {
+            description: 'Carlos vai revisar os limites de banda WebRTC amanhã',
+            responsiblePerson: 'Carlos Mendes',
+            deadline: 'Amanhã',
+            detectedAt: '01:05',
+            status: 'pending',
+          },
+          {
+            description: 'Ana vai criar o checklist de boas-vindas até segunda-feira',
+            responsiblePerson: 'Ana Paula',
+            deadline: 'Segunda-feira',
+            detectedAt: '02:45',
+            status: 'done',
+          },
+        ],
+        timestampedSegments: [
+          {
+            timestamp: '00:01',
+            speaker: 'Felipe Rocha',
+            content: 'Abertura do alinhamento semanal',
+            type: 'general',
+          },
+          {
+            timestamp: '00:15',
+            speaker: 'Ana Paula',
+            content: 'Apresentação dos resultados da sprint anterior com 94% de entrega das metas',
+            type: 'summary',
+          },
+          {
+            timestamp: '01:05',
+            speaker: 'Carlos Mendes',
+            content: 'WebRTC na VPS está estável — compromisso de revisar limites de banda amanhã',
+            type: 'commitment',
+          },
+          {
+            timestamp: '02:30',
+            speaker: 'Felipe Rocha',
+            content: 'Decisão de priorizar o gravador e IA de atas como próximo foco da equipe',
+            type: 'decision',
           },
         ],
         transcript:

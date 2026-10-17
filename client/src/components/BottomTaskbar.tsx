@@ -34,8 +34,11 @@ import { useAppSelector, useAppDispatch } from '../hooks'
 import { setShowJoystick } from '../stores/UserStore'
 import { PlayerBehavior } from '../../../types/PlayerBehavior'
 import MeetingHistoryDialog from './MeetingHistoryDialog'
+import PostMeetingDigest from './PostMeetingDigest'
+import StandupNotification from './StandupNotification'
 import { GeminiMeetingService } from '../services/GeminiMeetingService'
-import { MeetingStorage } from '../services/MeetingStorage'
+import { MeetingStorage, MeetingRecord } from '../services/MeetingStorage'
+import { DailyStandupService, DailyStandupDigest } from '../services/DailyStandupService'
 import store from '../stores'
 
 import Adam from '../images/login/Adam_login.png'
@@ -352,8 +355,33 @@ export default function BottomTaskbar() {
   const [recordingSeconds, setRecordingSeconds] = useState(0)
   const [isGeneratingAta, setIsGeneratingAta] = useState(false)
   const [showMeetingHistory, setShowMeetingHistory] = useState(false)
+  const [digestMeeting, setDigestMeeting] = useState<MeetingRecord | null>(null)
+  const [showDigestModal, setShowDigestModal] = useState(false)
+  const [hasNewAtaBadge, setHasNewAtaBadge] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordedChunksRef = useRef<Blob[]>([])
+  // Standup Diário Automático
+  const [showStandupModal, setShowStandupModal] = useState(false)
+  const [standupData, setStandupData] = useState<DailyStandupDigest | null>(null)
+
+  useEffect(() => {
+    // Checa se já dispensou o standup hoje
+    if (!DailyStandupService.isStandupDismissedToday()) {
+      const allMeetings = MeetingStorage.getMeetings()
+      if (allMeetings.length > 0) {
+        const digest = DailyStandupService.generateDailyStandup(allMeetings)
+        // Só exibe se houver reuniões gravadas
+        if (digest.totalMeetings > 0) {
+          setStandupData(digest)
+          // Pequeno delay de 1.5s para entrada suave no escritório
+          const timer = setTimeout(() => {
+            setShowStandupModal(true)
+          }, 1500)
+          return () => clearTimeout(timer)
+        }
+      }
+    }
+  }, [])
 
   // Cronômetro pessoal (Pomodoro 25min)
   const [timerActive, setTimerActive] = useState(false)
@@ -558,7 +586,10 @@ export default function BottomTaskbar() {
             meeting.videoFileName = fileName
             MeetingStorage.saveMeeting(meeting)
 
-            setShowMeetingHistory(true)
+            // Ativa o Digest pós-reunião e o badge visual
+            setDigestMeeting(meeting)
+            setShowDigestModal(true)
+            setHasNewAtaBadge(true)
           } catch (err) {
             console.error('Erro ao gerar ata com IA', err)
           } finally {
@@ -740,18 +771,39 @@ export default function BottomTaskbar() {
 
         {/* 4.5 Central de Atas & Gravações IA */}
         <Tooltip title={isGeneratingAta ? 'Gerando Ata com IA...' : 'Central de Atas & Gravações IA'}>
-          <ActionBtn
-            onClick={() => setShowMeetingHistory(true)}
-            style={{
-              background: isGeneratingAta ? '#063542' : '#091c36',
-              border: '1.5px solid #00f5d4',
-              color: '#00f5d4',
-              animation: isGeneratingAta ? 'pulse 1.2s infinite' : 'none',
-            }}
-            aria-label="Meeting Notes & AI"
-          >
-            <DescriptionIcon style={{ fontSize: 20 }} />
-          </ActionBtn>
+          <div style={{ position: 'relative' }}>
+            <ActionBtn
+              onClick={() => {
+                setShowMeetingHistory(true)
+                setHasNewAtaBadge(false)
+              }}
+              style={{
+                background: isGeneratingAta ? '#063542' : '#091c36',
+                border: '1.5px solid #00f5d4',
+                color: '#00f5d4',
+                animation: isGeneratingAta ? 'pulse 1.2s infinite' : 'none',
+              }}
+              aria-label="Meeting Notes & AI"
+            >
+              <DescriptionIcon style={{ fontSize: 20 }} />
+            </ActionBtn>
+            {hasNewAtaBadge && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 2,
+                  right: 2,
+                  width: 10,
+                  height: 10,
+                  background: '#ef4444',
+                  borderRadius: '50%',
+                  border: '2px solid #ffffff',
+                  boxShadow: '0 0 6px rgba(239, 68, 68, 0.8)',
+                  pointerEvents: 'none',
+                }}
+              />
+            )}
+          </div>
         </Tooltip>
 
         {/* 5. Miniatura / Avatar do Usuário */}
@@ -950,6 +1002,28 @@ export default function BottomTaskbar() {
       <MeetingHistoryDialog
         open={showMeetingHistory}
         onClose={() => setShowMeetingHistory(false)}
+      />
+
+      <PostMeetingDigest
+        open={showDigestModal}
+        meeting={digestMeeting}
+        onClose={() => setShowDigestModal(false)}
+        onOpenFullMeeting={() => {
+          setShowDigestModal(false)
+          setShowMeetingHistory(true)
+          setHasNewAtaBadge(false)
+        }}
+      />
+
+      <StandupNotification
+        open={showStandupModal}
+        standup={standupData}
+        onClose={() => setShowStandupModal(false)}
+        onOpenMinutes={() => {
+          setShowStandupModal(false)
+          setShowMeetingHistory(true)
+          setHasNewAtaBadge(false)
+        }}
       />
     </>
   )

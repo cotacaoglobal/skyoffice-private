@@ -1,4 +1,4 @@
-import { MeetingRecord, MeetingStorage, ActionItem } from './MeetingStorage'
+import { MeetingRecord, MeetingStorage, ActionItem, Commitment, TimestampedSegment } from './MeetingStorage'
 
 export class GeminiMeetingService {
   /**
@@ -55,6 +55,8 @@ export class GeminiMeetingService {
             summary: result.summary,
             decisions: result.decisions,
             actionItems: result.actionItems,
+            commitments: result.commitments,
+            timestampedSegments: result.timestampedSegments,
             transcript: result.transcript || params.rawTranscript || '',
           }
           MeetingStorage.saveMeeting(meeting)
@@ -89,6 +91,8 @@ export class GeminiMeetingService {
           deadline: 'Opcional',
         },
       ],
+      commitments: [],
+      timestampedSegments: [],
       transcript: params.rawTranscript || `[Gravação de ${durationFormatted} finalizada com sucesso.]`,
     }
 
@@ -106,6 +110,8 @@ export class GeminiMeetingService {
     summary: string[]
     decisions: string[]
     actionItems: ActionItem[]
+    commitments: Commitment[]
+    timestampedSegments: TimestampedSegment[]
     transcript: string
   } | null> {
     const prompt = `Você é um assistente executivo sênior de atas e reuniões corporativas no escritório virtual "${params.roomName}".
@@ -128,8 +134,30 @@ Analise o conteúdo da reunião e responda EXCLUSIVAMENTE em formato JSON com o 
       "deadline": "Prazo estimado ou Em breve"
     }
   ],
+  "commitments": [
+    {
+      "description": "Descrição do compromisso ou promessa feita",
+      "responsiblePerson": "Nome da pessoa que se comprometeu",
+      "deadline": "Prazo mencionado ou Em breve",
+      "detectedAt": "MM:SS",
+      "status": "pending"
+    }
+  ],
+  "timestampedSegments": [
+    {
+      "timestamp": "MM:SS",
+      "speaker": "Nome de quem falou",
+      "content": "Resumo do que foi dito nesse momento",
+      "type": "summary | decision | commitment | general"
+    }
+  ],
   "transcript": "Transcrição aproximada ou tópicos detalhados da conversa"
-}`
+}
+
+IMPORTANTE:
+- Em "commitments", identifique todas as PROMESSAS, COMPROMISSOS e PRAZOS mencionados durante a reunião. Inclua quem se comprometeu, o que prometeu fazer e o timestamp aproximado de quando falou isso.
+- Em "timestampedSegments", vincule cada trecho importante da conversa ao timestamp aproximado no áudio. Classifique cada segmento como: summary (ponto discutido), decision (decisão tomada), commitment (promessa/compromisso) ou general (outros).
+- Os timestamps devem estar no formato MM:SS.`
 
     const parts: any[] = []
 
@@ -187,6 +215,25 @@ Analise o conteúdo da reunião e responda EXCLUSIVAMENTE em formato JSON com o 
         summary: Array.isArray(parsed.summary) ? parsed.summary : [parsed.summary || ''],
         decisions: Array.isArray(parsed.decisions) ? parsed.decisions : [parsed.decisions || ''],
         actionItems: Array.isArray(parsed.actionItems) ? parsed.actionItems : [],
+        commitments: Array.isArray(parsed.commitments)
+          ? parsed.commitments.map((c: any) => ({
+              description: c.description || '',
+              responsiblePerson: c.responsiblePerson || '',
+              deadline: c.deadline || '',
+              detectedAt: c.detectedAt || '00:00',
+              status: c.status === 'done' ? 'done' : 'pending',
+            }))
+          : [],
+        timestampedSegments: Array.isArray(parsed.timestampedSegments)
+          ? parsed.timestampedSegments.map((s: any) => ({
+              timestamp: s.timestamp || '00:00',
+              speaker: s.speaker || '',
+              content: s.content || '',
+              type: ['summary', 'decision', 'commitment', 'general'].includes(s.type)
+                ? s.type
+                : 'general',
+            }))
+          : [],
         transcript: parsed.transcript || '',
       }
     } catch (e) {
