@@ -82,20 +82,29 @@ export default class Game extends Phaser.Scene {
     createCharacterAnims(this.anims)
 
     this.map = this.make.tilemap({ key: 'tilemap' })
-    const FloorAndGround = this.map.addTilesetImage('FloorAndGround', 'tiles_wall')
+    // Utiliza o tileset extrudado (tileWidth: 32, tileHeight: 32, margin: 1, spacing: 2)
+    // Esse é o padrão ouro na indústria/Phaser para eliminar 100% o sub-pixel texture bleeding (linhas/frestas entre tiles)
+    const FloorAndGround = this.map.addTilesetImage(
+      'FloorAndGround',
+      'tiles_wall_extruded',
+      32,
+      32,
+      1,
+      2
+    )
 
-    // Placa sólida de base sob as salas do escritório (depth: -1) para evitar que o fundo estrelado
-    // apareça nas frestas/costuras dos ladrilhos (tile bleeding) causadas por sub-pixels ao mover a tela
+    // Placa sólida de base recortada rigorosamente nas delimitações perimétricas do escritório
+    // Baseada exatamente no grid de tiles reais da construção (sem transbordar nas margens externas)
     const floorBackdrop = this.add.graphics()
-    floorBackdrop.fillStyle(0xb2b8bc, 1) // Tom de cinza médio harmonioso com os pisos do escritório
-    // Sala superior (descanso / café)
-    floorBackdrop.fillRect(544, 0, 480, 240)
-    // Sala esquerda superior (jogos / reuniões)
-    floorBackdrop.fillRect(16, 96, 528, 672)
-    // Corredor central e entrada
-    floorBackdrop.fillRect(544, 240, 160, 720)
-    // Salão principal da direita (estações de trabalho / mesas)
-    floorBackdrop.fillRect(704, 240, 560, 720)
+    floorBackdrop.fillStyle(0xb2b8bc, 1)
+    // 1. Sala superior (café / descanso): x=608 (tile 19), y=32 (tile 1), w=480, h=96
+    floorBackdrop.fillRect(608, 32, 480, 96)
+    // 2. Transição superior: x=160 (tile 5), y=128 (tile 4), w=928, h=128
+    floorBackdrop.fillRect(160, 128, 928, 128)
+    // 3. Bloco principal amplo (salas da esquerda + corredor + salão da direita): x=160 (tile 5), y=256 (tile 8), w=1120, h=544
+    floorBackdrop.fillRect(160, 256, 1120, 544)
+    // 4. Ala inferior e entrada: x=608 (tile 19), y=800 (tile 25), w=672, h=160
+    floorBackdrop.fillRect(608, 800, 672, 160)
     floorBackdrop.setDepth(-1)
 
     const groundLayer = this.map.createLayer('Ground', FloorAndGround)
