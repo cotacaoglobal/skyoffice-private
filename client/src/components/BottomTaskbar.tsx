@@ -36,9 +36,12 @@ import { PlayerBehavior } from '../../../types/PlayerBehavior'
 import MeetingHistoryDialog from './MeetingHistoryDialog'
 import PostMeetingDigest from './PostMeetingDigest'
 import StandupNotification from './StandupNotification'
+import DepartmentManagerDialog from './DepartmentManagerDialog'
 import { GeminiMeetingService } from '../services/GeminiMeetingService'
 import { MeetingStorage, MeetingRecord } from '../services/MeetingStorage'
 import { DailyStandupService, DailyStandupDigest } from '../services/DailyStandupService'
+import { DepartmentRoom, DepartmentStorage } from '../services/DepartmentStorage'
+import BusinessIcon from '@mui/icons-material/Business'
 import store from '../stores'
 
 import Adam from '../images/login/Adam_login.png'
@@ -363,6 +366,53 @@ export default function BottomTaskbar() {
   // Standup Diário Automático
   const [showStandupModal, setShowStandupModal] = useState(false)
   const [standupData, setStandupData] = useState<DailyStandupDigest | null>(null)
+
+  // Gerenciador de Departamentos & Salas Fixas
+  const [showDepartmentDialog, setShowDepartmentDialog] = useState(false)
+
+  const handleSwitchDepartment = (dept: DepartmentRoom) => {
+    const game = phaserGame?.scene?.keys?.game as Game
+    const myName = game?.myPlayer?.playerName?.text || ''
+
+    if (!DepartmentStorage.canUserAccess(dept, myName)) {
+      alert(`⚠️ Você não tem permissão para acessar o departamento "${dept.name}". Contate o administrador.`)
+      return
+    }
+
+    if (dept.accessType === 'password') {
+      const pass = prompt(`Digite a senha para acessar "${dept.name}":`)
+      if (pass !== dept.password) {
+        alert('❌ Senha incorreta!')
+        return
+      }
+    }
+
+    // Teleporta o jogador suavemente para a ala do departamento selecionado
+    if (game?.myPlayer) {
+      let targetX = 705
+      let targetY = 500
+
+      if (dept.theme === 'ti_dev') {
+        targetX = 1050
+        targetY = 640
+      } else if (dept.theme === 'executive') {
+        targetX = 400
+        targetY = 640
+      } else if (dept.theme === 'creative') {
+        targetX = 960
+        targetY = 240
+      }
+
+      game.myPlayer.x = targetX
+      game.myPlayer.y = targetY
+      if (game.myPlayer.playerContainer) {
+        game.myPlayer.playerContainer.x = targetX
+        game.myPlayer.playerContainer.y = targetY
+      }
+      game.cameras.main.centerOn(targetX, targetY)
+      alert(`➔ Você entrou no departamento: ${dept.name}!`)
+    }
+  }
 
   useEffect(() => {
     // Checa se já dispensou o standup hoje
@@ -806,6 +856,21 @@ export default function BottomTaskbar() {
           </div>
         </Tooltip>
 
+        {/* 4.6 Departamentos & Salas Fixas */}
+        <Tooltip title="Departamentos & Salas Corporativas">
+          <ActionBtn
+            onClick={() => setShowDepartmentDialog(true)}
+            style={{
+              background: '#eff6ff',
+              border: '1.5px solid #bfdbfe',
+              color: '#2563eb',
+            }}
+            aria-label="Departamentos"
+          >
+            <BusinessIcon style={{ fontSize: 20 }} />
+          </ActionBtn>
+        </Tooltip>
+
         {/* 5. Miniatura / Avatar do Usuário */}
         <Tooltip title="Seu perfil no escritório">
           <UserThumbnail>
@@ -1024,6 +1089,12 @@ export default function BottomTaskbar() {
           setShowMeetingHistory(true)
           setHasNewAtaBadge(false)
         }}
+      />
+
+      <DepartmentManagerDialog
+        open={showDepartmentDialog}
+        onClose={() => setShowDepartmentDialog(false)}
+        onSwitchDepartment={handleSwitchDepartment}
       />
     </>
   )
