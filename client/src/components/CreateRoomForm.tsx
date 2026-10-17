@@ -7,7 +7,12 @@ import InputAdornment from '@mui/material/InputAdornment'
 import Visibility from '@mui/icons-material/Visibility'
 import VisibilityOff from '@mui/icons-material/VisibilityOff'
 
-import { IRoomData } from '../../../types/Rooms'
+import FormControl from '@mui/material/FormControl'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
+import InputLabel from '@mui/material/InputLabel'
+
+import { IRoomData, RoomTheme } from '../../../types/Rooms'
 import { useAppSelector } from '../hooks'
 
 import phaserGame from '../PhaserGame'
@@ -16,8 +21,8 @@ import Bootstrap from '../scenes/Bootstrap'
 const CreateRoomFormWrapper = styled.form`
   display: flex;
   flex-direction: column;
-  width: 320px;
-  gap: 20px;
+  width: 340px;
+  gap: 16px;
 `
 
 export const CreateRoomForm = () => {
@@ -26,6 +31,7 @@ export const CreateRoomForm = () => {
     description: '',
     password: null,
     autoDispose: true,
+    theme: 'default',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [nameFieldEmpty, setNameFieldEmpty] = useState(false)
@@ -74,9 +80,25 @@ export const CreateRoomForm = () => {
         error={descriptionFieldEmpty}
         helperText={descriptionFieldEmpty && 'A descrição é obrigatória'}
         multiline
-        rows={4}
+        rows={2}
         onChange={handleChange('description')}
       />
+
+      <FormControl variant="outlined" color="secondary" size="small">
+        <InputLabel id="theme-select-label">Ambiente / Setor da Sala</InputLabel>
+        <Select
+          labelId="theme-select-label"
+          id="theme-select"
+          value={values.theme || 'default'}
+          label="Ambiente / Setor da Sala"
+          onChange={(e) => setValues({ ...values, theme: e.target.value as RoomTheme })}
+        >
+          <MenuItem value="default">🏢 Escritório Geral Corporativo</MenuItem>
+          <MenuItem value="ti_dev">💻 Setor Squad TI, Devs & Infra</MenuItem>
+          <MenuItem value="executive">👔 Sala de Diretoria & Conferência</MenuItem>
+          <MenuItem value="creative">🎨 Estúdio de Design & Brainstorming</MenuItem>
+        </Select>
+      </FormControl>
 
       <TextField
         type={showPassword ? 'text' : 'password'}

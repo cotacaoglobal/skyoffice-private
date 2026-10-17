@@ -38,7 +38,8 @@ export class SkyOffice extends Room<OfficeState> {
       this.password = await bcrypt.hash(password, salt)
       hasPassword = true
     }
-    this.setMetadata({ name, description, hasPassword })
+    const theme = options.theme || 'default'
+    this.setMetadata({ name, description, hasPassword, theme })
 
     this.setState(new OfficeState())
 
@@ -241,6 +242,7 @@ export class SkyOffice extends Room<OfficeState> {
       id: this.roomId,
       name: this.name,
       description: this.description,
+      theme: (this.metadata as any)?.theme || 'default',
     })
 
     // Sincroniza todas as mesas atualmente vinculadas para o novo cliente

@@ -151,7 +151,37 @@ export const CustomRoomTable = () => {
                     </Avatar>
                   </TableCell>
                   <TableCell>
-                    <div className="name">{name}</div>
+                    <div className="name" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontWeight: 600 }}>{name}</span>
+                      {metadata?.theme && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            padding: '1px 6px',
+                            borderRadius: 4,
+                            background:
+                              metadata.theme === 'ti_dev'
+                                ? '#0284c7'
+                                : metadata.theme === 'executive'
+                                ? '#7c3aed'
+                                : metadata.theme === 'creative'
+                                ? '#059669'
+                                : '#475569',
+                            color: '#ffffff',
+                            width: 'fit-content',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          {metadata.theme === 'ti_dev'
+                            ? '💻 TI & Devs'
+                            : metadata.theme === 'executive'
+                            ? '👔 Diretoria'
+                            : metadata.theme === 'creative'
+                            ? '🎨 Criativo'
+                            : '🏢 Corporativo'}
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="description">{description}</div>

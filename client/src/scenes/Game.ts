@@ -101,9 +101,23 @@ export default class Game extends Phaser.Scene {
     groundLayer.skipCull = true
     groundLayer.setCullPadding(4, 4)
 
-    // debugDraw(groundLayer, this)
+    // Posição de spawn inicial adaptada ao modelo/tema da sala
+    const currentTheme = (store.getState() as any).room?.roomTheme || 'default'
+    let spawnX = 705
+    let spawnY = 500
 
-    this.myPlayer = this.add.myPlayer(705, 500, 'adam', this.network.mySessionId)
+    if (currentTheme === 'ti_dev') {
+      spawnX = 1050
+      spawnY = 640 // Spawna direto na ala dos computadores e servidores de TI
+    } else if (currentTheme === 'executive') {
+      spawnX = 400
+      spawnY = 640 // Spawna dentro da sala de conferência e diretoria
+    } else if (currentTheme === 'creative') {
+      spawnX = 960
+      spawnY = 240 // Spawna no estúdio de design e quadros brancos
+    }
+
+    this.myPlayer = this.add.myPlayer(spawnX, spawnY, 'adam', this.network.mySessionId)
     this.playerSelector = new PlayerSelector(this, 0, 0, 16, 16)
 
     // import chair objects from Tiled map to Phaser

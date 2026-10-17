@@ -21,6 +21,7 @@ export const roomSlice = createSlice({
     roomId: '',
     roomName: '',
     roomDescription: '',
+    roomTheme: 'default',
     availableRooms: new Array<RoomAvailable>(),
   },
   reducers: {
@@ -32,11 +33,12 @@ export const roomSlice = createSlice({
     },
     setJoinedRoomData: (
       state,
-      action: PayloadAction<{ id: string; name: string; description: string }>
+      action: PayloadAction<{ id: string; name: string; description: string; theme?: string }>
     ) => {
       state.roomId = action.payload.id
       state.roomName = action.payload.name
       state.roomDescription = action.payload.description
+      state.roomTheme = action.payload.theme || 'default'
     },
     setAvailableRooms: (state, action: PayloadAction<RoomAvailable[]>) => {
       state.availableRooms = action.payload.filter((room) => isCustomRoom(room))
