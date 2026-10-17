@@ -93,20 +93,6 @@ export default class Game extends Phaser.Scene {
       2
     )
 
-    // Placa sólida de base recortada rigorosamente nas delimitações perimétricas do escritório
-    // Baseada exatamente no grid de tiles reais da construção (sem transbordar nas margens externas)
-    const floorBackdrop = this.add.graphics()
-    floorBackdrop.fillStyle(0xb2b8bc, 1)
-    // 1. Sala superior (café / descanso): x=608 (tile 19), y=32 (tile 1), w=480, h=96
-    floorBackdrop.fillRect(608, 32, 480, 96)
-    // 2. Transição superior: x=160 (tile 5), y=128 (tile 4), w=928, h=128
-    floorBackdrop.fillRect(160, 128, 928, 128)
-    // 3. Bloco principal amplo (salas da esquerda + corredor + salão da direita): x=160 (tile 5), y=256 (tile 8), w=1120, h=544
-    floorBackdrop.fillRect(160, 256, 1120, 544)
-    // 4. Ala inferior e entrada: x=608 (tile 19), y=800 (tile 25), w=672, h=160
-    floorBackdrop.fillRect(608, 800, 672, 160)
-    floorBackdrop.setDepth(-1)
-
     const groundLayer = this.map.createLayer('Ground', FloorAndGround)
     groundLayer.setCollisionByProperty({ collides: true })
     groundLayer.skipCull = true
@@ -179,12 +165,25 @@ export default class Game extends Phaser.Scene {
     this.cameras.main.setRoundPixels(true)
     this.cameras.main.startFollow(this.myPlayer, true)
 
-    // Suporte a Zoom (Roda do Mouse)
+    // Suporte a Zoom com níveis de escala estáveis e seguros
+    // Níveis de zoom discretos que não geram artefatos ou frestas sub-pixels (exclui o penúltimo nível instável)
+    const zoomLevels = [0.8, 1.0, 1.25, 1.5, 2.0]
+    let currentZoomIndex = 1 // Padrão: 1.0x
+
     this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any, deltaX: number, deltaY: number) => {
-      let newZoom = this.cameras.main.zoom - deltaY * 0.001
-      // Limita o zoom entre 0.8x e 2.0x
-      newZoom = Phaser.Math.Clamp(newZoom, 0.8, 2.0)
-      this.cameras.main.setZoom(newZoom)
+      if (deltaY > 0) {
+        // Reduz zoom (afasta a visão)
+        if (currentZoomIndex > 0) {
+          currentZoomIndex--
+          this.cameras.main.setZoom(zoomLevels[currentZoomIndex])
+        }
+      } else if (deltaY < 0) {
+        // Aumenta zoom (aproxima a visão)
+        if (currentZoomIndex < zoomLevels.length - 1) {
+          currentZoomIndex++
+          this.cameras.main.setZoom(zoomLevels[currentZoomIndex])
+        }
+      }
     })
 
     // Suporte a Arrastar o Mapa com o Mouse (Pan) com cursor de mãozinha
