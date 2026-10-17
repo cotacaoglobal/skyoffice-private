@@ -34,7 +34,7 @@ const initialState: ChatState = {
   privateChats: {},
   activeTab: 'global',
   focused: false,
-  showChat: true,
+  showChat: typeof window !== 'undefined' ? window.innerWidth >= 650 : true,
 }
 
 export const chatSlice = createSlice({

@@ -346,8 +346,8 @@ export default function BottomTaskbar() {
   const dispatch = useAppDispatch()
   const showJoystick = useAppSelector((state) => state.user.showJoystick)
 
-  const [audioEnabled, setAudioEnabled] = useState(true)
-  const [videoEnabled, setVideoEnabled] = useState(true)
+  const [audioEnabled, setAudioEnabled] = useState(false)
+  const [videoEnabled, setVideoEnabled] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [showReactions, setShowReactions] = useState(false)
   const [handRaised, setHandRaised] = useState(false)
@@ -540,6 +540,11 @@ export default function BottomTaskbar() {
   const handleToggleAudio = () => {
     const game = phaserGame?.scene?.keys?.game as Game
     if (game?.network?.webRTC) {
+      if (!game.network.webRTC.hasStream()) {
+        game.network.webRTC.getUserMedia(true)
+        setAudioEnabled(true)
+        return
+      }
       const newState = game.network.webRTC.toggleAudio()
       setAudioEnabled(newState)
     }
@@ -549,6 +554,11 @@ export default function BottomTaskbar() {
   const handleToggleVideo = () => {
     const game = phaserGame?.scene?.keys?.game as Game
     if (game?.network?.webRTC) {
+      if (!game.network.webRTC.hasStream()) {
+        game.network.webRTC.getUserMedia(true)
+        setVideoEnabled(true)
+        return
+      }
       const newState = game.network.webRTC.toggleVideo()
       setVideoEnabled(newState)
     }

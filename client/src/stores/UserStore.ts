@@ -19,7 +19,7 @@ export const userSlice = createSlice({
     loggedIn: false,
     playerNameMap: new Map<string, string>(),
     showJoystick: window.innerWidth < 650,
-    sidebarOpen: true,
+    sidebarOpen: window.innerWidth >= 650,
   },
   reducers: {
     toggleBackgroundMode: (state) => {
