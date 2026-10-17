@@ -38,22 +38,65 @@ function App() {
   const [authChecked, setAuthChecked] = React.useState<boolean>(false)
 
   React.useEffect(() => {
+    let isMounted = true
+    const timeout = setTimeout(() => {
+      if (isMounted) setAuthChecked(true)
+    }, 2000)
+
     // Verifica sessão existente do Supabase
-    import('./supabaseClient').then(({ supabase }) => {
-      supabase.auth.getSession().then(({ data }) => {
-        if (data?.session?.user) {
-          setAuthUser(data.session.user)
-        }
-        setAuthChecked(true)
-      }).catch(() => {
-        setAuthChecked(true)
+    import('./supabaseClient')
+      .then(({ supabase }) => {
+        supabase.auth
+          .getSession()
+          .then(({ data }) => {
+            if (isMounted) {
+              if (data?.session?.user) {
+                setAuthUser(data.session.user)
+              }
+              setAuthChecked(true)
+            }
+          })
+          .catch((err) => {
+            console.warn('Erro ao obter sessão do Supabase:', err)
+            if (isMounted) setAuthChecked(true)
+          })
       })
-    })
+      .catch((err) => {
+        console.warn('Erro ao carregar cliente Supabase:', err)
+        if (isMounted) setAuthChecked(true)
+      })
+
+    return () => {
+      isMounted = false
+      clearTimeout(timeout)
+    }
   }, [])
 
   let ui: JSX.Element
   if (!authChecked) {
-    ui = <></>
+    ui = (
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: '#091326',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#00f5d4',
+          fontFamily: "'Silkscreen', monospace, sans-serif",
+          zIndex: 99999,
+          gap: 12,
+        }}
+      >
+        <div style={{ fontSize: 24 }}>🏢 Carregando Escritório...</div>
+        <div style={{ fontSize: 13, color: '#94a3b8' }}>Inicializando ambiente virtual...</div>
+      </div>
+    )
   } else if (!authUser) {
     ui = <AuthDialog onAuthSuccess={(user) => setAuthUser(user)} />
   } else if (loggedIn) {
