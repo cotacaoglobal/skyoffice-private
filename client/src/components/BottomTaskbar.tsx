@@ -25,6 +25,7 @@ import ScreenShareIcon from '@mui/icons-material/ScreenShare'
 import StopScreenShareIcon from '@mui/icons-material/StopScreenShare'
 import CampaignIcon from '@mui/icons-material/Campaign'
 import StopIcon from '@mui/icons-material/Stop'
+import DescriptionIcon from '@mui/icons-material/Description'
 
 import phaserGame from '../PhaserGame'
 import Game from '../scenes/Game'
@@ -32,6 +33,10 @@ import { phaserEvents } from '../events/EventCenter'
 import { useAppSelector, useAppDispatch } from '../hooks'
 import { setShowJoystick } from '../stores/UserStore'
 import { PlayerBehavior } from '../../../types/PlayerBehavior'
+import MeetingHistoryDialog from './MeetingHistoryDialog'
+import { GeminiMeetingService } from '../services/GeminiMeetingService'
+import { MeetingStorage } from '../services/MeetingStorage'
+import store from '../stores'
 
 import Adam from '../images/login/Adam_login.png'
 import Ash from '../images/login/Ash_login.png'
@@ -345,6 +350,8 @@ export default function BottomTaskbar() {
   // Gravação de tela / áudio
   const [isRecording, setIsRecording] = useState(false)
   const [recordingSeconds, setRecordingSeconds] = useState(0)
+  const [isGeneratingAta, setIsGeneratingAta] = useState(false)
+  const [showMeetingHistory, setShowMeetingHistory] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordedChunksRef = useRef<Blob[]>([])
 
@@ -518,20 +525,45 @@ export default function BottomTaskbar() {
             recordedChunksRef.current.push(event.data)
           }
         }
-        recorder.onstop = () => {
+        recorder.onstop = async () => {
           const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
           const url = URL.createObjectURL(blob)
+          const fileName = `reuniao-skyoffice-${new Date().toISOString().slice(0, 10)}.webm`
           const a = document.createElement('a')
           a.style.display = 'none'
           a.href = url
-          a.download = `reuniao-skyoffice-${new Date().toISOString().slice(0, 10)}.webm`
+          a.download = fileName
           document.body.appendChild(a)
           a.click()
           setTimeout(() => {
             document.body.removeChild(a)
-            window.URL.revokeObjectURL(url)
           }, 100)
           stream.getTracks().forEach((track) => track.stop())
+
+          setIsGeneratingAta(true)
+          try {
+            const game = phaserGame?.scene?.keys?.game as Game
+            const roomName = (store.getState() as any).room?.roomName || 'Escritório Geral'
+            const participants = game?.myPlayer?.playerName?.text ? [game.myPlayer.playerName.text] : ['Você']
+
+            const meeting = await GeminiMeetingService.generateMeetingNotes({
+              audioBlob: blob,
+              roomName,
+              participants,
+              durationSeconds: recordingSeconds,
+              meetingTitle: `Reunião - ${roomName}`,
+            })
+
+            meeting.videoBlobUrl = url
+            meeting.videoFileName = fileName
+            MeetingStorage.saveMeeting(meeting)
+
+            setShowMeetingHistory(true)
+          } catch (err) {
+            console.error('Erro ao gerar ata com IA', err)
+          } finally {
+            setIsGeneratingAta(false)
+          }
         }
         recorder.start(1000)
         mediaRecorderRef.current = recorder
@@ -706,6 +738,22 @@ export default function BottomTaskbar() {
           </ActionBtn>
         </Tooltip>
 
+        {/* 4.5 Central de Atas & Gravações IA */}
+        <Tooltip title={isGeneratingAta ? 'Gerando Ata com IA...' : 'Central de Atas & Gravações IA'}>
+          <ActionBtn
+            onClick={() => setShowMeetingHistory(true)}
+            style={{
+              background: isGeneratingAta ? '#063542' : '#091c36',
+              border: '1.5px solid #00f5d4',
+              color: '#00f5d4',
+              animation: isGeneratingAta ? 'pulse 1.2s infinite' : 'none',
+            }}
+            aria-label="Meeting Notes & AI"
+          >
+            <DescriptionIcon style={{ fontSize: 20 }} />
+          </ActionBtn>
+        </Tooltip>
+
         {/* 5. Miniatura / Avatar do Usuário */}
         <Tooltip title="Seu perfil no escritório">
           <UserThumbnail>
@@ -728,6 +776,18 @@ export default function BottomTaskbar() {
         {/* Menu Pop-up com as Opções da Imagem 3 */}
         {showMoreMenu && (
           <PopupMenu>
+            <MenuItem
+              onClick={() => {
+                setShowMoreMenu(false)
+                setShowMeetingHistory(true)
+              }}
+            >
+              <div className="left">
+                <DescriptionIcon style={{ fontSize: 18, color: '#00f5d4' }} />
+                <span>Central de Atas & Gravações</span>
+              </div>
+              <span className="shortcut" style={{ color: '#00f5d4', border: '1px solid #00f5d4' }}>IA</span>
+            </MenuItem>
             <MenuItem
               onClick={() => {
                 setShowMoreMenu(false)
@@ -886,6 +946,11 @@ export default function BottomTaskbar() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <MeetingHistoryDialog
+        open={showMeetingHistory}
+        onClose={() => setShowMeetingHistory(false)}
+      />
     </>
   )
 }
