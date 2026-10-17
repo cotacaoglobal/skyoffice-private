@@ -51,8 +51,12 @@ export default class WebRTC {
 
   initialize() {
     this.myPeer.on('call', (call) => {
+      // Auto-obter mídia local caso o usuário receptor ainda não tenha iniciado
+      if (!this.myStream) {
+        this.getUserMedia(false)
+      }
+
       const streamToSend = this.myStream || this.createAvatarStream()
-      this.myStream = streamToSend
 
       // If we already have an active outgoing call to this peer, break tie cleanly
       if (this.peers.has(call.peer)) {
@@ -128,6 +132,28 @@ export default class WebRTC {
     return new MediaStream(tracks)
   }
 
+  private replaceTracksOnAllCalls(newStream: MediaStream) {
+    const newVideoTrack = newStream.getVideoTracks()[0]
+    const newAudioTrack = newStream.getAudioTracks()[0]
+
+    const allConnections: Peer.MediaConnection[] = []
+    this.peers.forEach((p) => allConnections.push(p.call))
+    this.onCalledPeers.forEach((p) => allConnections.push(p.call))
+
+    allConnections.forEach((conn) => {
+      const pc: RTCPeerConnection = (conn as any).peerConnection
+      if (pc && pc.getSenders) {
+        pc.getSenders().forEach((sender) => {
+          if (sender.track?.kind === 'video' && newVideoTrack) {
+            sender.replaceTrack(newVideoTrack).catch((err) => console.warn('Erro ao atualizar vídeo na chamada:', err))
+          } else if (sender.track?.kind === 'audio' && newAudioTrack) {
+            sender.replaceTrack(newAudioTrack).catch((err) => console.warn('Erro ao atualizar áudio na chamada:', err))
+          }
+        })
+      }
+    })
+  }
+
   getUserMedia(alertOnError = true) {
     const askMedia = (constraints: MediaStreamConstraints) => {
       return navigator.mediaDevices?.getUserMedia(constraints)
@@ -138,6 +164,7 @@ export default class WebRTC {
       .then((stream) => {
         this.myStream = stream
         this.addVideoStream(this.myVideo, this.myStream)
+        this.replaceTracksOnAllCalls(this.myStream)
         this.setUpButtons()
         store.dispatch(setVideoConnected(true))
         this.network.videoConnected()
@@ -147,8 +174,7 @@ export default class WebRTC {
         askMedia({ audio: true, video: false })
           .then((audioStream) => {
             this.myStream = this.createAvatarStream(audioStream)
-            // Não adiciona localmente para não poluir a tela do usuário com card estático,
-            // mas garante stream completo com áudio e vídeo para enviar nas chamadas
+            this.replaceTracksOnAllCalls(this.myStream)
             this.setUpButtons()
             store.dispatch(setVideoConnected(true))
             this.network.videoConnected()
@@ -156,6 +182,7 @@ export default class WebRTC {
           .catch((finalErr) => {
             console.warn('Permissão de microfone não concedida, criando canal virtual para recepção...', finalErr)
             this.myStream = this.createAvatarStream()
+            this.replaceTracksOnAllCalls(this.myStream)
             this.setUpButtons()
             store.dispatch(setVideoConnected(true))
             this.network.videoConnected()
@@ -174,7 +201,6 @@ export default class WebRTC {
   // method to call a peer
   connectToNewUser(userId: string) {
     const streamToSend = this.myStream || this.createAvatarStream()
-    this.myStream = streamToSend
 
     const sanitizedId = this.replaceInvalidId(userId)
     if (!this.peers.has(sanitizedId) && !this.onCalledPeers.has(sanitizedId)) {
@@ -194,10 +220,16 @@ export default class WebRTC {
     video.srcObject = stream
     video.playsInline = true
     video.autoplay = true
-    const videoTrack = stream.getVideoTracks()[0]
-    const isEnabled = videoTrack ? videoTrack.enabled : false
-    video.style.display = isEnabled ? 'block' : 'none'
 
+    const updateDisplay = () => {
+      const videoTrack = stream.getVideoTracks()[0]
+      const isEnabled = videoTrack ? videoTrack.enabled : false
+      video.style.display = isEnabled ? 'block' : 'none'
+    }
+
+    updateDisplay()
+
+    const videoTrack = stream.getVideoTracks()[0]
     if (videoTrack) {
       videoTrack.onmute = () => {
         video.style.display = 'none'
@@ -207,9 +239,17 @@ export default class WebRTC {
       }
     }
 
+    // Monitor track additions (e.g. when sender dynamically upgrades stream)
+    stream.onaddtrack = () => {
+      updateDisplay()
+      video.play().catch((err) => console.warn('Erro ao reproduzir stream:', err))
+    }
+
     video.addEventListener('loadedmetadata', () => {
+      updateDisplay()
       video.play().catch((err) => console.warn('Erro ao reproduzir stream:', err))
     })
+
     if (this.videoGrid && !video.parentElement) this.videoGrid.append(video)
   }
 

@@ -63,7 +63,6 @@ export default class OtherPlayer extends Player {
     ) {
       if (!webRTC.hasStream()) {
         webRTC.getUserMedia(false)
-        return
       }
 
       webRTC.connectToNewUser(this.playerId)
