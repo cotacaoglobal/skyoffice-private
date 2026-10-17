@@ -5,8 +5,8 @@ import { setVideoConnected } from '../stores/UserStore'
 
 export default class WebRTC {
   private myPeer: Peer
-  private peers = new Map<string, { call: Peer.MediaConnection; video: HTMLVideoElement }>()
-  private onCalledPeers = new Map<string, { call: Peer.MediaConnection; video: HTMLVideoElement }>()
+  private peers = new Map<string, { call: Peer.MediaConnection; video: HTMLVideoElement; audio?: HTMLAudioElement; stream?: MediaStream }>()
+  private onCalledPeers = new Map<string, { call: Peer.MediaConnection; video: HTMLVideoElement; audio?: HTMLAudioElement; stream?: MediaStream }>()
   private videoGrid = document.querySelector('.video-grid')
   private buttonGrid = document.querySelector('.button-grid')
   private myVideo = document.createElement('video')
@@ -30,6 +30,20 @@ export default class WebRTC {
     // Torna a área da câmera arrastável tanto no mobile quanto no desktop
     this.initVideoGridDrag()
 
+    // Desbloqueia áudio se houver restrição de autoplay do navegador ao interagir
+    const unlockAudio = () => {
+      this.peers.forEach((p) => {
+        p.audio?.play().catch(() => {})
+        p.video?.play().catch(() => {})
+      })
+      this.onCalledPeers.forEach((p) => {
+        p.audio?.play().catch(() => {})
+        p.video?.play().catch(() => {})
+      })
+    }
+    window.addEventListener('click', unlockAudio, { passive: true })
+    window.addEventListener('touchstart', unlockAudio, { passive: true })
+
     // config peerJS
     this.initialize()
   }
@@ -47,6 +61,27 @@ export default class WebRTC {
 
   hasStream(): boolean {
     return !!this.myStream
+  }
+
+  /**
+   * Retorna o stream de mídia local
+   */
+  getMyStream(): MediaStream | undefined {
+    return this.myStream
+  }
+
+  /**
+   * Retorna todos os streams remotos ativos para o mixer de gravação
+   */
+  getAllRemoteStreams(): MediaStream[] {
+    const streams: MediaStream[] = []
+    this.peers.forEach((p) => {
+      if (p.stream) streams.push(p.stream)
+    })
+    this.onCalledPeers.forEach((p) => {
+      if (p.stream) streams.push(p.stream)
+    })
+    return streams
   }
 
   initialize() {
@@ -71,9 +106,19 @@ export default class WebRTC {
       if (!this.onCalledPeers.has(call.peer)) {
         call.answer(streamToSend)
         const video = document.createElement('video')
-        this.onCalledPeers.set(call.peer, { call, video })
+        video.muted = false
+        const audio = document.createElement('audio')
+        audio.autoplay = true
+        audio.style.display = 'none'
+        document.body.appendChild(audio)
+
+        const peerRecord = { call, video, audio, stream: undefined as MediaStream | undefined }
+        this.onCalledPeers.set(call.peer, peerRecord)
 
         call.on('stream', (userVideoStream) => {
+          peerRecord.stream = userVideoStream
+          audio.srcObject = userVideoStream
+          audio.play().catch((e) => console.warn('Erro ao tocar áudio recebido:', e))
           this.addVideoStream(video, userVideoStream)
         })
       }
@@ -207,9 +252,19 @@ export default class WebRTC {
       console.log('calling', sanitizedId)
       const call = this.myPeer.call(sanitizedId, streamToSend)
       const video = document.createElement('video')
-      this.peers.set(sanitizedId, { call, video })
+      video.muted = false
+      const audio = document.createElement('audio')
+      audio.autoplay = true
+      audio.style.display = 'none'
+      document.body.appendChild(audio)
+
+      const peerRecord = { call, video, audio, stream: undefined as MediaStream | undefined }
+      this.peers.set(sanitizedId, peerRecord)
 
       call.on('stream', (userVideoStream) => {
+        peerRecord.stream = userVideoStream
+        audio.srcObject = userVideoStream
+        audio.play().catch((e) => console.warn('Erro ao tocar áudio recebido:', e))
         this.addVideoStream(video, userVideoStream)
       })
     }
@@ -260,6 +315,7 @@ export default class WebRTC {
       const peer = this.peers.get(sanitizedId)
       peer?.call.close()
       peer?.video.remove()
+      peer?.audio?.remove()
       this.peers.delete(sanitizedId)
     }
   }
@@ -271,6 +327,7 @@ export default class WebRTC {
       const onCalledPeer = this.onCalledPeers.get(sanitizedId)
       onCalledPeer?.call.close()
       onCalledPeer?.video.remove()
+      onCalledPeer?.audio?.remove()
       this.onCalledPeers.delete(sanitizedId)
     }
   }

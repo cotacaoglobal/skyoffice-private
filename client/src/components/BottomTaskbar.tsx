@@ -590,7 +590,10 @@ export default function BottomTaskbar() {
     setShowMoreMenu(false)
   }
 
-  // 5. Gravar Reunião
+  // 5. Gravar Reunião com Mixer de Áudio Completo (Microfone Local + Colegas WebRTC + Tela)
+  const recordingAudioContextRef = useRef<AudioContext | null>(null)
+  const recordingActiveStreamsRef = useRef<MediaStream[]>([])
+
   const handleToggleRecording = async () => {
     setShowMoreMenu(false)
     if (isRecording) {
@@ -600,23 +603,118 @@ export default function BottomTaskbar() {
       }
       setIsRecording(false)
     } else {
-      // Inicia gravação de tela e áudio
+      // Inicia gravação com Mixer de Áudio
       try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
           audio: true,
         })
+
+        const game = phaserGame?.scene?.keys?.game as Game
+        const webRTC = game?.network?.webRTC
+
+        // Cria o AudioContext para o mixer
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+        const audioCtx = new AudioContextClass()
+        recordingAudioContextRef.current = audioCtx
+        const destination = audioCtx.createMediaStreamDestination()
+
+        const activeStreams: MediaStream[] = [displayStream]
+
+        // 1. Conecta o áudio do compartilhamento de tela se disponível
+        if (displayStream.getAudioTracks().length > 0) {
+          try {
+            const displaySource = audioCtx.createMediaStreamSource(displayStream)
+            displaySource.connect(destination)
+          } catch (e) {
+            console.warn('Não foi possível conectar áudio da tela:', e)
+          }
+        }
+
+        // 2. Conecta o microfone local do usuário
+        let localStream = webRTC?.getMyStream()
+        if (!localStream || localStream.getAudioTracks().length === 0) {
+          try {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+            activeStreams.push(localStream)
+          } catch (e) {
+            console.warn('Microfone local não disponível para gravação:', e)
+          }
+        }
+        if (localStream && localStream.getAudioTracks().length > 0) {
+          try {
+            const localSource = audioCtx.createMediaStreamSource(localStream)
+            localSource.connect(destination)
+          } catch (e) {
+            console.warn('Não foi possível conectar microfone local ao mixer:', e)
+          }
+        }
+
+        // 3. Conecta o áudio de todos os outros colegas na reunião
+        const remoteStreams = webRTC?.getAllRemoteStreams() || []
+        remoteStreams.forEach((remStream) => {
+          if (remStream.getAudioTracks().length > 0) {
+            try {
+              const remoteSource = audioCtx.createMediaStreamSource(remStream)
+              remoteSource.connect(destination)
+            } catch (e) {
+              console.warn('Não foi possível conectar áudio remoto ao mixer:', e)
+            }
+          }
+        })
+
+        recordingActiveStreamsRef.current = activeStreams
+
+        // Monta o stream combinado de gravação: Vídeo da tela + Áudio mixado
+        const mixedAudioTrack = destination.stream.getAudioTracks()[0]
+        const tracksToRecord: MediaStreamTrack[] = [...displayStream.getVideoTracks()]
+        if (mixedAudioTrack) {
+          tracksToRecord.push(mixedAudioTrack)
+        }
+        const recordStream = new MediaStream(tracksToRecord)
+
+        // Grava simultaneamente um buffer de áudio isolado de alta qualidade para o Gemini
+        const audioOnlyStream = mixedAudioTrack ? new MediaStream([mixedAudioTrack]) : null
+        let audioChunks: Blob[] = []
+        let audioRecorder: MediaRecorder | null = null
+        if (audioOnlyStream) {
+          try {
+            audioRecorder = new MediaRecorder(audioOnlyStream, { mimeType: 'audio/webm' })
+            audioRecorder.ondataavailable = (ev) => {
+              if (ev.data.size > 0) audioChunks.push(ev.data)
+            }
+            audioRecorder.start(1000)
+          } catch (e) {
+            console.warn('MediaRecorder de áudio não suportado, usando stream padrão:', e)
+          }
+        }
+
         recordedChunksRef.current = []
-        const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' })
+        const recorder = new MediaRecorder(recordStream, { mimeType: 'video/webm' })
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
             recordedChunksRef.current.push(event.data)
           }
         }
+
+        // Se o usuário clicar em "Interromper compartilhamento" pela barra flutuante do navegador
+        displayStream.getVideoTracks()[0].onended = () => {
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            mediaRecorderRef.current.stop()
+            setIsRecording(false)
+          }
+        }
+
         recorder.onstop = async () => {
-          const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
-          const url = URL.createObjectURL(blob)
+          if (audioRecorder && audioRecorder.state !== 'inactive') {
+            audioRecorder.stop()
+          }
+
+          const videoBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
+          const audioBlob = audioChunks.length > 0 ? new Blob(audioChunks, { type: 'audio/webm' }) : videoBlob
+          const url = URL.createObjectURL(videoBlob)
           const fileName = `reuniao-skyoffice-${new Date().toISOString().slice(0, 10)}.webm`
+
           const a = document.createElement('a')
           a.style.display = 'none'
           a.href = url
@@ -626,18 +724,32 @@ export default function BottomTaskbar() {
           setTimeout(() => {
             document.body.removeChild(a)
           }, 100)
-          stream.getTracks().forEach((track) => track.stop())
+
+          // Encerra os streams de captura da gravação
+          recordingActiveStreamsRef.current.forEach((st) => st.getTracks().forEach((track) => track.stop()))
+          recordStream.getTracks().forEach((track) => track.stop())
+          if (recordingAudioContextRef.current && recordingAudioContextRef.current.state !== 'closed') {
+            recordingAudioContextRef.current.close().catch(() => {})
+          }
 
           setIsGeneratingAta(true)
           try {
-            const game = phaserGame?.scene?.keys?.game as Game
+            const currentGame = phaserGame?.scene?.keys?.game as Game
             const roomName = (store.getState() as any).room?.roomName || 'Escritório Geral'
-            const participants = game?.myPlayer?.playerName?.text ? [game.myPlayer.playerName.text] : ['Você']
+            const participants: string[] = []
+            if (currentGame?.myPlayer?.playerName?.text) {
+              participants.push(currentGame.myPlayer.playerName.text)
+            }
+            if (currentGame?.otherPlayerMap) {
+              currentGame.otherPlayerMap.forEach((p) => {
+                if (p.playerName?.text) participants.push(p.playerName.text)
+              })
+            }
 
             const meeting = await GeminiMeetingService.generateMeetingNotes({
-              audioBlob: blob,
+              audioBlob,
               roomName,
-              participants,
+              participants: participants.length > 0 ? participants : ['Você'],
               durationSeconds: recordingSeconds,
               meetingTitle: `Reunião - ${roomName}`,
             })
@@ -656,6 +768,7 @@ export default function BottomTaskbar() {
             setIsGeneratingAta(false)
           }
         }
+
         recorder.start(1000)
         mediaRecorderRef.current = recorder
         setIsRecording(true)
