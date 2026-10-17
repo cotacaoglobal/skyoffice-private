@@ -337,8 +337,8 @@ export default function LoginDialog() {
   const dispatch = useAppDispatch()
   const videoConnected = useAppSelector((state) => state.user.videoConnected)
   const roomJoined = useAppSelector((state) => state.room.roomJoined)
-  const roomName = useAppSelector((state) => state.room.roomName)
-  const roomDescription = useAppSelector((state) => state.room.roomDescription)
+  const rawRoomName = useAppSelector((state) => state.room.roomName)
+  const roomName = rawRoomName === 'Public Lobby' || !rawRoomName ? 'Pink Aplly' : rawRoomName
   const game = phaserGame.scene.keys.game as Game
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -384,9 +384,6 @@ export default function LoginDialog() {
         </Avatar>
         <h3>{roomName}</h3>
       </RoomName>
-      <RoomDescription>
-        <ArrowRightIcon /> {roomDescription}
-      </RoomDescription>
       <Content>
         <Left>
           <SubTitle>Escolha seu avatar</SubTitle>
