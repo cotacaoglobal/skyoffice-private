@@ -15,7 +15,16 @@ export default class WebRTC {
 
   constructor(userId: string, network: Network) {
     const sanitizedId = this.replaceInvalidId(userId)
-    this.myPeer = new Peer(sanitizedId)
+    this.myPeer = new Peer(sanitizedId, {
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:global.stun.twilio.com:3478' },
+        ],
+      },
+    })
     this.network = network
     console.log('userId:', userId)
     console.log('sanitizedId:', sanitizedId)
@@ -43,6 +52,7 @@ export default class WebRTC {
     }
     window.addEventListener('click', unlockAudio, { passive: true })
     window.addEventListener('touchstart', unlockAudio, { passive: true })
+    window.addEventListener('keydown', unlockAudio, { passive: true })
 
     // config peerJS
     this.initialize()
@@ -92,19 +102,10 @@ export default class WebRTC {
       }
 
       const streamToSend = this.myStream || this.createAvatarStream()
+      call.answer(streamToSend)
 
-      // If we already have an active outgoing call to this peer, break tie cleanly
-      if (this.peers.has(call.peer)) {
-        if (this.myPeer.id < call.peer) {
-          this.deleteVideoStream(call.peer)
-        } else {
-          call.answer(streamToSend)
-          return
-        }
-      }
-
-      if (!this.onCalledPeers.has(call.peer)) {
-        call.answer(streamToSend)
+      let peerRecord = this.onCalledPeers.get(call.peer)
+      if (!peerRecord) {
         const video = document.createElement('video')
         video.muted = false
         const audio = document.createElement('audio')
@@ -112,16 +113,30 @@ export default class WebRTC {
         audio.style.display = 'none'
         document.body.appendChild(audio)
 
-        const peerRecord = { call, video, audio, stream: undefined as MediaStream | undefined }
+        peerRecord = { call, video, audio, stream: undefined }
         this.onCalledPeers.set(call.peer, peerRecord)
-
-        call.on('stream', (userVideoStream) => {
-          peerRecord.stream = userVideoStream
-          audio.srcObject = userVideoStream
-          audio.play().catch((e) => console.warn('Erro ao tocar áudio recebido:', e))
-          this.addVideoStream(video, userVideoStream)
-        })
+      } else {
+        peerRecord.call = call
       }
+
+      const currentRecord = peerRecord
+      call.on('stream', (userVideoStream) => {
+        currentRecord.stream = userVideoStream
+        if (currentRecord.audio) {
+          currentRecord.audio.srcObject = userVideoStream
+          currentRecord.audio.play().catch((e) => console.warn('Erro ao tocar áudio recebido:', e))
+        }
+        this.addVideoStream(currentRecord.video, userVideoStream)
+      })
+
+      call.on('close', () => {
+        this.deleteOnCalledVideoStream(call.peer)
+      })
+
+      call.on('error', (err) => {
+        console.warn('Erro na chamada recebida:', err)
+        this.deleteOnCalledVideoStream(call.peer)
+      })
     })
   }
 
@@ -131,6 +146,19 @@ export default class WebRTC {
     navigator.permissions?.query({ name: permissionName }).then((result) => {
       if (result.state === 'granted') this.getUserMedia(false)
     })
+  }
+
+  private createSilentAudioTrack(): MediaStreamTrack | undefined {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+      if (!AudioContextClass) return undefined
+      const audioCtx = new AudioContextClass()
+      const dst = audioCtx.createMediaStreamDestination()
+      return dst.stream.getAudioTracks()[0]
+    } catch (e) {
+      console.warn('Could not create silent audio track', e)
+      return undefined
+    }
   }
 
   private createAvatarStream(audioStream?: MediaStream): MediaStream {
@@ -171,6 +199,9 @@ export default class WebRTC {
     if (audioStream) {
       const audioTrack = audioStream.getAudioTracks()[0]
       if (audioTrack) tracks.push(audioTrack)
+    } else {
+      const silentAudio = this.createSilentAudioTrack()
+      if (silentAudio) tracks.push(silentAudio)
     }
     if (videoTrack) tracks.push(videoTrack)
 
@@ -188,13 +219,20 @@ export default class WebRTC {
     allConnections.forEach((conn) => {
       const pc: RTCPeerConnection = (conn as any).peerConnection
       if (pc && pc.getSenders) {
-        pc.getSenders().forEach((sender) => {
-          if (sender.track?.kind === 'video' && newVideoTrack) {
-            sender.replaceTrack(newVideoTrack).catch((err) => console.warn('Erro ao atualizar vídeo na chamada:', err))
-          } else if (sender.track?.kind === 'audio' && newAudioTrack) {
-            sender.replaceTrack(newAudioTrack).catch((err) => console.warn('Erro ao atualizar áudio na chamada:', err))
-          }
-        })
+        const videoSender = pc.getSenders().find((s) => s.track?.kind === 'video')
+        const audioSender = pc.getSenders().find((s) => s.track?.kind === 'audio')
+
+        if (videoSender && newVideoTrack) {
+          videoSender.replaceTrack(newVideoTrack).catch((err) => console.warn('Erro ao atualizar vídeo na chamada:', err))
+        } else if (!videoSender && newVideoTrack) {
+          try { pc.addTrack(newVideoTrack, newStream) } catch (e) {}
+        }
+
+        if (audioSender && newAudioTrack) {
+          audioSender.replaceTrack(newAudioTrack).catch((err) => console.warn('Erro ao atualizar áudio na chamada:', err))
+        } else if (!audioSender && newAudioTrack) {
+          try { pc.addTrack(newAudioTrack, newStream) } catch (e) {}
+        }
       }
     })
   }
@@ -267,6 +305,15 @@ export default class WebRTC {
         audio.play().catch((e) => console.warn('Erro ao tocar áudio recebido:', e))
         this.addVideoStream(video, userVideoStream)
       })
+
+      call.on('close', () => {
+        this.deleteVideoStream(sanitizedId)
+      })
+
+      call.on('error', (err) => {
+        console.warn('Erro na chamada emitida:', err)
+        this.deleteVideoStream(sanitizedId)
+      })
     }
   }
 
@@ -305,6 +352,9 @@ export default class WebRTC {
       video.play().catch((err) => console.warn('Erro ao reproduzir stream:', err))
     })
 
+    if (!this.videoGrid) {
+      this.videoGrid = document.querySelector('.video-grid')
+    }
     if (this.videoGrid && !video.parentElement) this.videoGrid.append(video)
   }
 

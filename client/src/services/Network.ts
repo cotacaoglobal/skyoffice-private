@@ -24,7 +24,7 @@ import { setWhiteboardUrls } from '../stores/WhiteboardStore'
 
 export default class Network {
   private client: Client
-  private room?: Room<IOfficeState>
+  room?: Room<IOfficeState>
   private lobby!: Room
   webRTC?: WebRTC
 
@@ -108,6 +108,21 @@ export default class Network {
     store.dispatch(setSessionId(this.room.sessionId))
     this.webRTC = new WebRTC(this.mySessionId, this)
 
+    const cleanLeave = () => {
+      try {
+        this.room?.leave()
+      } catch (e) {}
+    }
+    window.addEventListener('beforeunload', cleanLeave)
+    window.addEventListener('pagehide', cleanLeave)
+
+    this.room.onLeave((code) => {
+      console.log('Saiu da sala Colyseus com código:', code)
+    })
+    this.room.onError((code, message) => {
+      console.warn('Erro na sala Colyseus:', code, message)
+    })
+
     // new instance added to the players MapSchema
     this.room.state.players.onAdd = (player: IPlayer, key: string) => {
       if (key === this.mySessionId) return
@@ -135,7 +150,11 @@ export default class Network {
             // Only emit PLAYER_JOINED if we haven't already done so via onAdd
             if (!this.emittedJoinIds.has(key)) {
               this.emittedJoinIds.add(key)
-              phaserEvents.emit(Event.PLAYER_JOINED, player, key)
+              if (this.gameSceneReady) {
+                phaserEvents.emit(Event.PLAYER_JOINED, player, key)
+              } else {
+                this.pendingPlayers.push({ player, key })
+              }
             }
             store.dispatch(setPlayerNameMap({ id: key, name: value }))
             store.dispatch(pushPlayerJoinedMessage(value))
@@ -146,10 +165,12 @@ export default class Network {
 
     // an instance removed from the players MapSchema
     this.room.state.players.onRemove = (player: IPlayer, key: string) => {
+      this.emittedJoinIds.delete(key)
+      this.pendingPlayers = this.pendingPlayers.filter((p) => p.key !== key)
       phaserEvents.emit(Event.PLAYER_LEFT, key)
       this.webRTC?.deleteVideoStream(key)
       this.webRTC?.deleteOnCalledVideoStream(key)
-      store.dispatch(pushPlayerLeftMessage(player.name))
+      store.dispatch(pushPlayerLeftMessage(player?.name || 'Colega'))
       store.dispatch(removePlayerNameMap(key))
     }
 
@@ -234,6 +255,7 @@ export default class Network {
     this.room.onMessage(Message.DISCONNECT_STREAM, (clientId: string) => {
       this.webRTC?.deleteOnCalledVideoStream(clientId)
       this.webRTC?.deleteVideoStream(clientId)
+      phaserEvents.emit('PLAYER_STREAM_DISCONNECTED', clientId)
     })
 
     // when a computer user stops sharing screen

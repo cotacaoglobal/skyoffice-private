@@ -40,10 +40,14 @@ export const userSlice = createSlice({
       state.loggedIn = action.payload
     },
     setPlayerNameMap: (state, action: PayloadAction<{ id: string; name: string }>) => {
-      state.playerNameMap.set(sanitizeId(action.payload.id), action.payload.name)
+      const next = new Map(state.playerNameMap)
+      next.set(sanitizeId(action.payload.id), action.payload.name)
+      state.playerNameMap = next
     },
     removePlayerNameMap: (state, action: PayloadAction<string>) => {
-      state.playerNameMap.delete(sanitizeId(action.payload))
+      const next = new Map(state.playerNameMap)
+      next.delete(sanitizeId(action.payload))
+      state.playerNameMap = next
     },
     setShowJoystick: (state, action: PayloadAction<boolean>) => {
       state.showJoystick = action.payload

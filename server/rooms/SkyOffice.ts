@@ -115,6 +115,14 @@ export class SkyOffice extends Room<OfficeState> {
 
     // when receiving updatePlayerName message, call the PlayerUpdateNameCommand
     this.onMessage(Message.UPDATE_PLAYER_NAME, (client, message: { name: string }) => {
+      // Remove any ghost players with the same name from previous abandoned sessions
+      this.state.players.forEach((p, sId) => {
+        if (sId !== client.sessionId && p.name && p.name.trim().toLowerCase() === message.name.trim().toLowerCase()) {
+          console.log(`Removendo jogador fantasma com mesmo nome: ${p.name} (${sId})`)
+          this.state.players.delete(sId)
+        }
+      })
+
       this.dispatcher.dispatch(new PlayerUpdateNameCommand(), {
         client,
         name: message.name,

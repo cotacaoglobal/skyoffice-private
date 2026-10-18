@@ -45,6 +45,10 @@ export default class OtherPlayer extends Player {
     this.on('pointerdown', handleContextMenu)
   }
 
+  setConnected(connected: boolean) {
+    this.connected = connected
+  }
+
   makeCall(myPlayer: MyPlayer, webRTC?: WebRTC) {
     this.myPlayer = myPlayer
     if (!webRTC) return
@@ -53,14 +57,17 @@ export default class OtherPlayer extends Player {
     if (webRTC.hasConnectionWith(this.playerId)) {
       this.connected = true
       return
+    } else {
+      this.connected = false
     }
 
-    if (
-      !this.connected &&
-      this.connectionBufferTime >= 750 &&
-      myPlayer.readyToConnect &&
-      this.readyToConnect
-    ) {
+    // Deterministic tie-breaking: only the peer with the lexicographically larger session ID initiates the call
+    // The peer with the smaller ID waits to answer the incoming call. This 100% eliminates WebRTC glare/collision.
+    if (myPlayer.playerId < this.playerId) {
+      return
+    }
+
+    if (!this.connected && this.connectionBufferTime >= 500) {
       if (!webRTC.hasStream()) {
         webRTC.getUserMedia(false)
       }
@@ -180,7 +187,7 @@ export default class OtherPlayer extends Player {
     // while currently connected with myPlayer
     // if myPlayer and the otherPlayer move away and are not in meeting room, delete video stream
     this.connectionBufferTime += dt
-    if (this.connected && this.connectionBufferTime >= 750) {
+    if (this.connected && this.connectionBufferTime >= 500) {
       const dist = this.myPlayer
         ? Phaser.Math.Distance.Between(this.x, this.y, this.myPlayer.x, this.myPlayer.y)
         : 9999
@@ -202,6 +209,26 @@ export default class OtherPlayer extends Player {
         phaserEvents.emit(Event.PLAYER_DISCONNECTED, this.playerId)
         this.connectionBufferTime = 0
         this.connected = false
+      }
+    } else if (!this.connected && this.connectionBufferTime >= 500) {
+      const gameScene = this.scene as any
+      if (gameScene?.myPlayer && gameScene?.network?.webRTC) {
+        const myP = gameScene.myPlayer
+        const dist = Phaser.Math.Distance.Between(this.x, this.y, myP.x, myP.y)
+        const inMeeting =
+          this.x >= 180 &&
+          this.x <= 620 &&
+          this.y >= 490 &&
+          this.y <= 830 &&
+          myP.x >= 180 &&
+          myP.x <= 620 &&
+          myP.y >= 490 &&
+          myP.y <= 830
+        const inProximity = dist <= 100
+
+        if (inMeeting || inProximity) {
+          this.makeCall(myP, gameScene.network.webRTC)
+        }
       }
     }
   }

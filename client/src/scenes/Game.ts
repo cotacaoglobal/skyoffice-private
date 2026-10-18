@@ -346,6 +346,22 @@ export default class Game extends Phaser.Scene {
     // Flush any PLAYER_JOINED events that fired before the Game scene was ready.
     // This handles existing players in the room when we join or after a page refresh.
     this.network.flushPendingPlayers()
+
+    // Sincronização direta e infalível com todos os jogadores presentes no estado do servidor
+    if (this.network?.room?.state?.players) {
+      this.network.room.state.players.forEach((player: IPlayer, key: string) => {
+        if (key !== this.network.mySessionId && !this.otherPlayerMap.has(key)) {
+          this.handlePlayerJoined(player, key)
+        }
+      })
+    }
+
+    phaserEvents.on('PLAYER_STREAM_DISCONNECTED', (id: string) => {
+      const other = this.otherPlayerMap.get(id)
+      if (other) {
+        other.setConnected(false)
+      }
+    })
   }
 
   private handleItemSelectorOverlap(playerSelector, selectionItem) {
@@ -436,7 +452,14 @@ export default class Game extends Phaser.Scene {
 
   // function to update target position upon receiving player updates
   private handlePlayerUpdated(field: string, value: number | string, id: string) {
-    const otherPlayer = this.otherPlayerMap.get(id)
+    let otherPlayer = this.otherPlayerMap.get(id)
+    if (!otherPlayer && this.network?.room?.state?.players?.has(id)) {
+      const playerSchema = this.network.room.state.players.get(id)
+      if (playerSchema) {
+        this.handlePlayerJoined(playerSchema, id)
+        otherPlayer = this.otherPlayerMap.get(id)
+      }
+    }
     otherPlayer?.updateOtherPlayer(field, value)
   }
 
