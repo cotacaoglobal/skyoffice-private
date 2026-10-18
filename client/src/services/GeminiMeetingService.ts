@@ -18,6 +18,46 @@ export class GeminiMeetingService {
   }
 
   /**
+   * Consulta a lista de modelos ativos disponíveis para a chave do Gemini
+   */
+  static async getAvailableModels(apiKey: string): Promise<string[]> {
+    const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '')
+    const defaultList = [
+      'gemini-3.8-flash',
+      'gemini-2.5-flash',
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-1.5-pro',
+    ]
+
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data.models)) {
+          const contentModels = data.models
+            .filter((m: any) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+            .map((m: any) => m.name.replace(/^models\//, ''))
+
+          if (contentModels.length > 0) {
+            // Ordena os modelos "flash" primeiro
+            contentModels.sort((a: string, b: string) => {
+              const aIsFlash = a.includes('flash') ? -1 : 1
+              const bIsFlash = b.includes('flash') ? -1 : 1
+              return aIsFlash - bIsFlash
+            })
+            return Array.from(new Set([...contentModels, ...defaultList]))
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[GeminiMeetingService] Erro ao listar modelos dinamicamente:', e)
+    }
+
+    return defaultList
+  }
+
+  /**
    * Testa a validade de uma chave de API do Gemini em tempo real
    */
   static async testApiKey(apiKey: string): Promise<{ success: boolean; message: string }> {
@@ -26,7 +66,7 @@ export class GeminiMeetingService {
       return { success: false, message: 'Por favor, insira uma chave de API antes de testar.' }
     }
 
-    const candidateModels = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash']
+    const candidateModels = await this.getAvailableModels(cleanKey)
     let lastError = ''
 
     for (const model of candidateModels) {
@@ -56,7 +96,7 @@ export class GeminiMeetingService {
 
         const errData = await res.json().catch(() => ({}))
         const errMsg = errData.error?.message || `HTTP ${res.status} ${res.statusText}`
-        lastError = errMsg
+        lastError = `[${model}]: ${errMsg}`
       } catch (err) {
         lastError = String(err)
       }
@@ -281,12 +321,7 @@ DIRETRIZES FUNDAMENTAIS:
 
     parts.push({ text: prompt })
 
-    const candidateModels = [
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-latest',
-      'gemini-2.0-flash',
-      'gemini-1.5-pro',
-    ]
+    const candidateModels = await this.getAvailableModels(params.apiKey)
 
     let response: Response | null = null
     let lastError = ''
