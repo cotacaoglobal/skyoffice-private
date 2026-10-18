@@ -365,6 +365,7 @@ export default function BottomTaskbar() {
   const recordedChunksRef = useRef<Blob[]>([])
   const recordingAudioContextRef = useRef<AudioContext | null>(null)
   const recordingActiveStreamsRef = useRef<MediaStream[]>([])
+  const taskbarRef = useRef<HTMLDivElement>(null)
   // Standup Diário Automático
   const [showStandupModal, setShowStandupModal] = useState(false)
   const [standupData, setStandupData] = useState<DailyStandupDigest | null>(null)
@@ -417,21 +418,25 @@ export default function BottomTaskbar() {
   }
 
   useEffect(() => {
-    // Checa se já dispensou o standup hoje
-    if (!DailyStandupService.isStandupDismissedToday()) {
-      const allMeetings = MeetingStorage.getMeetings()
-      if (allMeetings.length > 0) {
-        const digest = DailyStandupService.generateDailyStandup(allMeetings)
-        // Só exibe se houver reuniões gravadas
-        if (digest.totalMeetings > 0) {
-          setStandupData(digest)
-          // Pequeno delay de 1.5s para entrada suave no escritório
-          const timer = setTimeout(() => {
-            setShowStandupModal(true)
-          }, 1500)
-          return () => clearTimeout(timer)
+    try {
+      // Checa se já dispensou o standup hoje
+      if (!DailyStandupService.isStandupDismissedToday()) {
+        const allMeetings = MeetingStorage.getMeetings()
+        if (allMeetings && allMeetings.length > 0) {
+          const digest = DailyStandupService.generateDailyStandup(allMeetings)
+          // Só exibe se houver reuniões gravadas
+          if (digest && digest.totalMeetings > 0) {
+            setStandupData(digest)
+            // Pequeno delay de 1.5s para entrada suave no escritório
+            const timer = setTimeout(() => {
+              setShowStandupModal(true)
+            }, 1500)
+            return () => clearTimeout(timer)
+          }
         }
       }
+    } catch (err) {
+      console.warn('Erro ao verificar DailyStandup no mount:', err)
     }
   }, [])
 
@@ -526,7 +531,6 @@ export default function BottomTaskbar() {
   }, [isScreenSharing])
 
   // Fecha menus ao clicar fora
-  const taskbarRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (taskbarRef.current && !taskbarRef.current.contains(e.target as Node)) {
