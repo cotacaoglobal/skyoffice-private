@@ -180,30 +180,54 @@ IMPORTANTE:
 
     parts.push({ text: prompt })
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${params.apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts,
-            },
-          ],
-          generationConfig: {
-            temperature: 0.2,
-            responseMimeType: 'application/json',
-          },
-        }),
-      }
-    )
+    const candidateModels = [
+      'gemini-1.5-flash-latest',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+      'gemini-pro',
+    ]
 
-    if (!response.ok) {
-      const errText = await response.text()
-      throw new Error(`Erro na API Gemini (${response.status}): ${errText}`)
+    let response: Response | null = null
+    let lastError = ''
+
+    for (const model of candidateModels) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${params.apiKey}`
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts,
+              },
+            ],
+            generationConfig: {
+              temperature: 0.2,
+              responseMimeType: 'application/json',
+            },
+          }),
+        })
+
+        if (res.ok) {
+          response = res
+          console.log(`[GeminiMeetingService] Sucesso com o modelo: ${model}`)
+          break
+        } else {
+          const errBody = await res.text()
+          lastError = `[${model}] (${res.status}): ${errBody}`
+          console.warn(`[GeminiMeetingService] Tentativa com modelo ${model} falhou:`, res.status)
+        }
+      } catch (err) {
+        lastError = String(err)
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(`Falha em todos os modelos do Gemini: ${lastError}`)
     }
 
     const data = await response.json()

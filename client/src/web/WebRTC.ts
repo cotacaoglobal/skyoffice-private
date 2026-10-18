@@ -123,8 +123,14 @@ export default class WebRTC {
       call.on('stream', (userVideoStream) => {
         currentRecord.stream = userVideoStream
         if (currentRecord.audio) {
-          currentRecord.audio.srcObject = userVideoStream
-          currentRecord.audio.play().catch((e) => console.warn('Erro ao tocar áudio recebido:', e))
+          if (currentRecord.audio.srcObject !== userVideoStream) {
+            currentRecord.audio.srcObject = userVideoStream
+          }
+          currentRecord.audio.play().catch((e) => {
+            if (e.name !== 'AbortError') {
+              console.warn('Erro ao tocar áudio recebido:', e)
+            }
+          })
         }
         this.addVideoStream(currentRecord.video, userVideoStream)
       })
@@ -301,8 +307,14 @@ export default class WebRTC {
 
       call.on('stream', (userVideoStream) => {
         peerRecord.stream = userVideoStream
-        audio.srcObject = userVideoStream
-        audio.play().catch((e) => console.warn('Erro ao tocar áudio recebido:', e))
+        if (audio.srcObject !== userVideoStream) {
+          audio.srcObject = userVideoStream
+        }
+        audio.play().catch((e) => {
+          if (e.name !== 'AbortError') {
+            console.warn('Erro ao tocar áudio recebido:', e)
+          }
+        })
         this.addVideoStream(video, userVideoStream)
       })
 

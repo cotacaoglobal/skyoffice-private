@@ -97,25 +97,44 @@ Diretrizes de Resposta:
           parts: [{ text: params.question }],
         })
 
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              systemInstruction: {
-                parts: [{ text: systemPrompt }],
-              },
-              contents: conversationParts,
-              generationConfig: {
-                temperature: 0.3,
-                maxOutputTokens: 1024,
-              },
-            }),
-          }
-        )
+        const candidateModels = [
+          'gemini-1.5-flash-latest',
+          'gemini-2.0-flash',
+          'gemini-1.5-flash',
+          'gemini-1.5-pro',
+          'gemini-pro',
+        ]
 
-        if (response.ok) {
+        let response: Response | null = null
+        for (const model of candidateModels) {
+          try {
+            const res = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  systemInstruction: {
+                    parts: [{ text: systemPrompt }],
+                  },
+                  contents: conversationParts,
+                  generationConfig: {
+                    temperature: 0.3,
+                    maxOutputTokens: 1024,
+                  },
+                }),
+              }
+            )
+            if (res.ok) {
+              response = res
+              break
+            }
+          } catch (e) {
+            // tenta o próximo modelo
+          }
+        }
+
+        if (response && response.ok) {
           const data = await response.json()
           const answer = data.candidates?.[0]?.content?.parts?.[0]?.text
           if (answer) {
