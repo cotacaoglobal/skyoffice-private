@@ -19,6 +19,8 @@ SkyOffice works on all PC browsers (mobile browsers are currently not supported)
 - [PeerJS](https://github.com/peers/peerjs) - WebRTC for video/screen sharing
 - [TypeScript](https://github.com/microsoft/TypeScript) and [ES6](https://github.com/eslint/eslint) - for both client and server sides
 
+Para ver as especificações detalhadas de funcionamento e o histórico de correções do sistema, consulte [SPECS.md](SPECS.md).
+
 ## Features
 
 - [Proximity Chat](#proximity-chat-distance-based-interactive-system)
