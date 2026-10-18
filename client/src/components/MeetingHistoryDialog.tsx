@@ -24,6 +24,11 @@ import TravelExploreIcon from '@mui/icons-material/TravelExplore'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import SendIcon from '@mui/icons-material/Send'
+import WhatsAppIcon from '@mui/icons-material/WhatsApp'
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined'
+import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined'
+import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined'
+import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 
@@ -364,10 +369,86 @@ const CleanCard = styled.div`
   }
 `
 
-const TaskCard = styled.div`
-  background: #f8fafc;
+const PulseGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-left: 4px solid #10b981;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+  .pulse-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .pulse-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+    }
+
+    .pulse-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+  }
+`
+
+const InsightCard = styled.div<{ $type: 'risk' | 'blind_spot' | 'recommendation' }>`
+  background: ${({ $type }) =>
+    $type === 'risk' ? '#fef2f2' : $type === 'blind_spot' ? '#fffbeb' : '#f0f9ff'};
+  border: 1px solid
+    ${({ $type }) =>
+      $type === 'risk' ? '#fecaca' : $type === 'blind_spot' ? '#fde68a' : '#bae6fd'};
+  border-left: 4px solid
+    ${({ $type }) =>
+      $type === 'risk' ? '#ef4444' : $type === 'blind_spot' ? '#f59e0b' : '#0284c7'};
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+
+  .insight-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+
+    .insight-type-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: ${({ $type }) =>
+        $type === 'risk' ? '#fee2e2' : $type === 'blind_spot' ? '#fef3c7' : '#e0f2fe'};
+      color: ${({ $type }) =>
+        $type === 'risk' ? '#991b1b' : $type === 'blind_spot' ? '#92400e' : '#0369a1'};
+    }
+
+    strong {
+      font-size: 14px;
+      color: #0f172a;
+    }
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #334155;
+  }
+`
+
+const TaskCard = styled.div<{ $done?: boolean }>`
+  background: ${({ $done }) => ($done ? '#f0fdf4' : '#ffffff')};
+  border: 1px solid ${({ $done }) => ($done ? '#bbf7d0' : '#e2e8f0')};
+  border-left: 4px solid ${({ $done }) => ($done ? '#22c55e' : '#3b82f6')};
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 10px;
@@ -375,11 +456,31 @@ const TaskCard = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+  }
+
+  .task-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .task-check {
+    color: ${({ $done }) => ($done ? '#22c55e' : '#94a3b8')};
+    display: flex;
+    align-items: center;
+  }
 
   .task-text {
     font-size: 14px;
     font-weight: 500;
-    color: #1e293b;
+    color: ${({ $done }) => ($done ? '#64748b' : '#1e293b')};
+    text-decoration: ${({ $done }) => ($done ? 'line-through' : 'none')};
   }
 
   .task-badges {
@@ -388,9 +489,9 @@ const TaskCard = styled.div`
     align-items: center;
 
     .assignee-badge {
-      background: #ecfdf5;
-      border: 1px solid #a7f3d0;
-      color: #065f46;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: #1e293b;
       font-size: 12px;
       font-weight: 600;
       padding: 3px 8px;
@@ -398,11 +499,21 @@ const TaskCard = styled.div`
     }
 
     .deadline-badge {
-      background: #f1f5f9;
-      color: #64748b;
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      color: #92400e;
       font-size: 12px;
       padding: 3px 8px;
       border-radius: 6px;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: ${({ $done }) => ($done ? '#dcfce7' : '#fef9c3')};
+      color: ${({ $done }) => ($done ? '#15803d' : '#854d0e')};
     }
   }
 `
@@ -1089,6 +1200,8 @@ export default function MeetingHistoryDialog({ open, onClose }: Props) {
   const [apiKey, setApiKey] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
+  const [copyWhatsAppSuccess, setCopyWhatsAppSuccess] = useState(false)
+  const [copyEmailSuccess, setCopyEmailSuccess] = useState(false)
   const [isTestingKey, setIsTestingKey] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [isRegenerating, setIsRegenerating] = useState(false)
@@ -1223,6 +1336,126 @@ export default function MeetingHistoryDialog({ open, onClose }: Props) {
     // Persist to localStorage
     const updated = updatedMeetings.find((m) => m.id === selectedMeeting.id)
     if (updated) MeetingStorage.saveMeeting(updated)
+  }
+
+  const handleToggleActionItem = (actionIndex: number) => {
+    if (!selectedMeeting) return
+    const updated = MeetingStorage.toggleActionItemStatus(selectedMeeting.id, actionIndex)
+    if (updated) {
+      setMeetings((prev) => prev.map((m) => (m.id === updated.id ? updated : m)))
+    }
+  }
+
+  const handleCopyWhatsApp = () => {
+    if (!selectedMeeting) return
+    const dateFormatted = new Date(selectedMeeting.createdAt).toLocaleDateString('pt-BR')
+    const timeFormatted = new Date(selectedMeeting.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
+    let text = `*📋 ATA EXECUTIVA DE REUNIÃO*\n`
+    text += `*Assunto:* ${selectedMeeting.title}\n`
+    text += `*Data/Hora:* ${dateFormatted} às ${timeFormatted} | *Duração:* ${selectedMeeting.durationFormatted}\n`
+    text += `*Local/Sala:* ${selectedMeeting.roomName}\n`
+    text += `*Participantes:* ${selectedMeeting.participants.join(', ')}\n\n`
+
+    if (selectedMeeting.pulse) {
+      text += `*📊 METRICS & PULSE DA SESSÃO*\n`
+      text += `• Alinhamento: ${selectedMeeting.pulse.alignmentLevel} | Clima: ${selectedMeeting.pulse.tone}\n`
+      text += `• Foco: ${selectedMeeting.pulse.focusArea} | Eficiência: ${selectedMeeting.pulse.efficiencyRating}\n\n`
+    }
+
+    text += `*📌 RESUMO DOS PRINCIPAIS PONTOS*\n`
+    selectedMeeting.summary.forEach((s) => {
+      text += `• ${s}\n`
+    })
+    text += `\n`
+
+    text += `*⚖️ DECISÕES TOMADAS*\n`
+    selectedMeeting.decisions.forEach((d) => {
+      text += `• ${d}\n`
+    })
+    text += `\n`
+
+    if (selectedMeeting.actionItems && selectedMeeting.actionItems.length > 0) {
+      text += `*🎯 ITENS DE AÇÃO / TAREFAS*\n`
+      selectedMeeting.actionItems.forEach((a) => {
+        const check = a.status === 'done' ? '✅' : '⏳'
+        text += `${check} ${a.task} _(Resp: ${a.assignee}${a.deadline ? ` | Prazo: ${a.deadline}` : ''})_\n`
+      })
+      text += `\n`
+    }
+
+    if (selectedMeeting.insights && selectedMeeting.insights.length > 0) {
+      text += `*💡 INSIGHTS E RECOMENDAÇÕES DA IA*\n`
+      selectedMeeting.insights.forEach((ins) => {
+        const icon = ins.type === 'risk' ? '🚨' : ins.type === 'blind_spot' ? '⚠️' : '💡'
+        text += `${icon} *${ins.title}*: ${ins.description}\n`
+      })
+      text += `\n`
+    }
+
+    text += `_Gerado automaticamente via SkyOffice AI_`
+
+    navigator.clipboard.writeText(text)
+    setCopyWhatsAppSuccess(true)
+    setTimeout(() => setCopyWhatsAppSuccess(false), 2500)
+  }
+
+  const handleCopyEmail = () => {
+    if (!selectedMeeting) return
+    const dateFormatted = new Date(selectedMeeting.createdAt).toLocaleDateString('pt-BR')
+    const timeFormatted = new Date(selectedMeeting.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
+    let text = `Prezados,\n\nSegue a ata executiva referente à reunião "${selectedMeeting.title}".\n\n`
+    text += `===============================================\n`
+    text += `INFORMAÇÕES DA SESSÃO\n`
+    text += `===============================================\n`
+    text += `Data: ${dateFormatted} às ${timeFormatted}\n`
+    text += `Duração: ${selectedMeeting.durationFormatted}\n`
+    text += `Sala: ${selectedMeeting.roomName}\n`
+    text += `Participantes: ${selectedMeeting.participants.join(', ')}\n\n`
+
+    if (selectedMeeting.pulse) {
+      text += `CLIMA E EFICIÊNCIA DA SESSÃO\n`
+      text += `- Alinhamento: ${selectedMeeting.pulse.alignmentLevel}\n`
+      text += `- Tom da Reunião: ${selectedMeeting.pulse.tone}\n`
+      text += `- Área de Foco: ${selectedMeeting.pulse.focusArea}\n`
+      text += `- Avaliação de Eficiência: ${selectedMeeting.pulse.efficiencyRating}\n\n`
+    }
+
+    text += `1. RESUMO EXECUTIVO\n`
+    selectedMeeting.summary.forEach((s) => {
+      text += `  • ${s}\n`
+    })
+    text += `\n`
+
+    text += `2. DECISÕES ALINHADAS\n`
+    selectedMeeting.decisions.forEach((d) => {
+      text += `  • ${d}\n`
+    })
+    text += `\n`
+
+    if (selectedMeeting.actionItems && selectedMeeting.actionItems.length > 0) {
+      text += `3. PLANO DE AÇÃO E RESPONSABILIDADES\n`
+      selectedMeeting.actionItems.forEach((a) => {
+        const mark = a.status === 'done' ? '[CONCLUÍDO]' : '[PENDENTE]'
+        text += `  ${mark} ${a.task} | Responsável: ${a.assignee}${a.deadline ? ` | Prazo: ${a.deadline}` : ''}\n`
+      })
+      text += `\n`
+    }
+
+    if (selectedMeeting.insights && selectedMeeting.insights.length > 0) {
+      text += `4. RECOMENDAÇÕES E INSIGHTS DA IA\n`
+      selectedMeeting.insights.forEach((ins) => {
+        text += `  • [${ins.type.toUpperCase()}] ${ins.title}: ${ins.description}\n`
+      })
+      text += `\n`
+    }
+
+    text += `Atenciosamente,\nSkyOffice Virtual Suite`
+
+    navigator.clipboard.writeText(text)
+    setCopyEmailSuccess(true)
+    setTimeout(() => setCopyEmailSuccess(false), 2500)
   }
 
   const handleCopyMinutes = () => {
@@ -1426,7 +1659,7 @@ ${commitmentLines}`
                     </div>
                   </div>
 
-                  <div className="action-buttons" style={{ display: 'flex', gap: 10 }}>
+                  <div className="action-buttons" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <CleanButton
                       $variant="secondary"
                       onClick={handleRegenerateAta}
@@ -1436,6 +1669,26 @@ ${commitmentLines}`
                     >
                       <AutoAwesomeIcon style={{ fontSize: 16, color: '#9333ea' }} />
                       {isRegenerating ? 'Gerando Ata com IA...' : 'Gerar Ata com IA'}
+                    </CleanButton>
+
+                    <CleanButton
+                      $variant="secondary"
+                      onClick={handleCopyWhatsApp}
+                      title="Copiar ata formatada para envio no WhatsApp"
+                      style={{ border: '1px solid #bbf7d0', color: '#15803d', background: '#f0fdf4' }}
+                    >
+                      <WhatsAppIcon style={{ fontSize: 16, color: '#16a34a' }} />
+                      {copyWhatsAppSuccess ? 'Copiado p/ Zap!' : 'WhatsApp'}
+                    </CleanButton>
+
+                    <CleanButton
+                      $variant="secondary"
+                      onClick={handleCopyEmail}
+                      title="Copiar ata formatada como E-mail Executivo"
+                      style={{ border: '1px solid #bae6fd', color: '#0369a1', background: '#f0f9ff' }}
+                    >
+                      <EmailOutlinedIcon style={{ fontSize: 16, color: '#0284c7' }} />
+                      {copyEmailSuccess ? 'Copiado p/ E-mail!' : 'E-mail'}
                     </CleanButton>
 
                     <CleanButton $variant="secondary" onClick={handleCopyMinutes}>
@@ -1453,6 +1706,32 @@ ${commitmentLines}`
                     </CleanButton>
                   </div>
                 </DetailHeader>
+
+                {/* 📊 Meeting Pulse (Clima, Alinhamento & Métricas da Reunião) */}
+                {selectedMeeting.pulse && (
+                  <PulseGrid>
+                    <div className="pulse-box">
+                      <span className="pulse-title">🎯 Nível de Alinhamento</span>
+                      <span className="pulse-value" style={{ color: selectedMeeting.pulse.alignmentLevel === 'Alto' ? '#16a34a' : '#2563eb' }}>
+                        {selectedMeeting.pulse.alignmentLevel}
+                      </span>
+                    </div>
+                    <div className="pulse-box">
+                      <span className="pulse-title">💬 Clima & Tom</span>
+                      <span className="pulse-value">{selectedMeeting.pulse.tone}</span>
+                    </div>
+                    <div className="pulse-box">
+                      <span className="pulse-title">🔍 Foco Principal</span>
+                      <span className="pulse-value">{selectedMeeting.pulse.focusArea}</span>
+                    </div>
+                    <div className="pulse-box">
+                      <span className="pulse-title">⚡ Eficiência da Sessão</span>
+                      <span className="pulse-value" style={{ color: '#0284c7' }}>
+                        {selectedMeeting.pulse.efficiencyRating}
+                      </span>
+                    </div>
+                  </PulseGrid>
+                )}
 
                 {/* 📌 Resumo dos Principais Pontos */}
                 <CleanCard>
@@ -1474,18 +1753,87 @@ ${commitmentLines}`
                   </ul>
                 </CleanCard>
 
-                {/* ✅ Itens de Ação (Tarefas e Responsáveis) */}
+                {/* 💡 Insights Estratégicos & Pontos Cegos (Recomendações Consultivas da IA) */}
+                {selectedMeeting.insights && selectedMeeting.insights.length > 0 && (
+                  <CleanCard>
+                    <h3>
+                      <LightbulbOutlinedIcon style={{ fontSize: 18, color: '#eab308' }} />
+                      💡 Insights Estratégicos & Pontos Cegos da IA
+                    </h3>
+                    {selectedMeeting.insights.map((ins, idx) => (
+                      <InsightCard key={idx} $type={ins.type}>
+                        <div className="insight-top">
+                          <span className="insight-type-badge">
+                            {ins.type === 'risk' ? '🚨 Risco' : ins.type === 'blind_spot' ? '⚠️ Ponto Cego' : '💡 Recomendação'}
+                          </span>
+                          <strong>{ins.title}</strong>
+                        </div>
+                        <p>{ins.description}</p>
+                      </InsightCard>
+                    ))}
+                  </CleanCard>
+                )}
+
+                {/* 🎯 Quadro de Tarefas Interativo (To-Do & Kanban da Reunião) */}
                 <CleanCard>
-                  <h3>✅ Itens de Ação (Tarefas e Responsáveis)</h3>
-                  {selectedMeeting.actionItems.map((act, idx) => (
-                    <TaskCard key={idx}>
-                      <span className="task-text">✓ {act.task}</span>
-                      <div className="task-badges">
-                        <span className="assignee-badge">👤 {act.assignee}</span>
-                        {act.deadline && <span className="deadline-badge">⏰ {act.deadline}</span>}
-                      </div>
-                    </TaskCard>
-                  ))}
+                  <h3>
+                    <AssignmentTurnedInOutlinedIcon style={{ fontSize: 18, color: '#2563eb' }} />
+                    🎯 Plano de Ação & Tarefas Interativas
+                    {selectedMeeting.actionItems.length > 0 && (
+                      <span style={{
+                        marginLeft: 'auto',
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: '#64748b',
+                        background: '#f1f5f9',
+                        padding: '2px 10px',
+                        borderRadius: 12,
+                      }}>
+                        {selectedMeeting.actionItems.filter((a) => a.status === 'done').length} de {selectedMeeting.actionItems.length} concluídas
+                      </span>
+                    )}
+                  </h3>
+                  {selectedMeeting.actionItems.map((act, idx) => {
+                    const isDone = act.status === 'done'
+                    return (
+                      <TaskCard
+                        key={idx}
+                        $done={isDone}
+                        onClick={() => handleToggleActionItem(idx)}
+                        title="Clique para alternar status da tarefa (Pendente / Concluída)"
+                      >
+                        <div className="task-left">
+                          <div className="task-check">
+                            {isDone ? (
+                              <CheckCircleIcon style={{ fontSize: 20 }} />
+                            ) : (
+                              <RadioButtonUncheckedIcon style={{ fontSize: 20 }} />
+                            )}
+                          </div>
+                          <span className="task-text">{act.task}</span>
+                        </div>
+                        <div className="task-badges">
+                          <span className="assignee-badge">👤 {act.assignee}</span>
+                          {act.deadline && <span className="deadline-badge">⏰ {act.deadline}</span>}
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            background: isDone ? '#dcfce7' : '#fef3c7',
+                            color: isDone ? '#166534' : '#92400e',
+                          }}>
+                            {isDone ? 'Concluída' : 'Pendente'}
+                          </span>
+                        </div>
+                      </TaskCard>
+                    )
+                  })}
+                  {selectedMeeting.actionItems.length === 0 && (
+                    <div style={{ color: '#94a3b8', fontSize: 13, padding: '8px 0' }}>
+                      Nenhuma tarefa registrada para esta reunião.
+                    </div>
+                  )}
                 </CleanCard>
 
                 {/* 🔖 Compromissos Detectados pela IA */}

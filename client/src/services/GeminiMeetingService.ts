@@ -1,4 +1,4 @@
-import { MeetingRecord, MeetingStorage, ActionItem, Commitment, TimestampedSegment } from './MeetingStorage'
+import { MeetingRecord, MeetingStorage, ActionItem, Commitment, TimestampedSegment, MeetingPulse, StrategicInsight } from './MeetingStorage'
 
 export class GeminiMeetingService {
   /**
@@ -163,6 +163,8 @@ export class GeminiMeetingService {
             commitments: result.commitments,
             timestampedSegments: result.timestampedSegments,
             transcript: result.transcript || params.rawTranscript || '',
+            pulse: result.pulse,
+            insights: result.insights,
           }
           MeetingStorage.saveMeeting(meeting)
           return meeting
@@ -239,11 +241,13 @@ export class GeminiMeetingService {
     commitments: Commitment[]
     timestampedSegments: TimestampedSegment[]
     transcript: string
+    pulse?: MeetingPulse
+    insights?: StrategicInsight[]
   } | null> {
-    const prompt = `Você é um assistente executivo sênior especialista em atas e documentação corporativa para a reunião realizada na sala "${params.roomName}" com duração de ${params.durationFormatted}.
+    const prompt = `Você é um assistente executivo sênior especialista em atas e consultoria corporativa para a reunião realizada na sala "${params.roomName}" com duração de ${params.durationFormatted}.
 Participantes da reunião: ${params.participants.join(', ')}.
 
-Analise todo o conteúdo do áudio e/ou da transcrição das falas fornecidas e gere a ATA COMPLETA da reunião.
+Analise todo o conteúdo do áudio e/ou da transcrição das falas fornecidas e gere a ATA EXECUTIVA COMPLETA com insights consultivos e métricas de clima da reunião.
 Responda EXCLUSIVAMENTE em formato JSON com o seguinte formato exato (sem texto ou blocos markdown adicionais):
 {
   "summary": [
@@ -278,14 +282,38 @@ Responda EXCLUSIVAMENTE em formato JSON com o seguinte formato exato (sem texto 
       "type": "summary"
     }
   ],
-  "transcript": "Transcrição completa, clara e organizada de tudo o que foi conversado durante a reunião"
+  "transcript": "Transcrição completa, clara e organizada de tudo o que foi conversado durante a reunião",
+  "pulse": {
+    "alignmentLevel": "Alto | Médio | Baixo",
+    "tone": "ex: Produtivo e Colaborativo / Focado e Ágil / Urgente",
+    "focusArea": "ex: Técnico e Automação / Estratégico e Planejamento / Comercial",
+    "efficiencyRating": "Alta Eficiência / Moderada / Longa Discussão"
+  },
+  "insights": [
+    {
+      "type": "risk",
+      "title": "Alerta de Risco ou Gargalo",
+      "description": "Explicação objetiva sobre riscos técnicos ou operacionais identificados nas falas."
+    },
+    {
+      "type": "blind_spot",
+      "title": "Ponto Cego (O que a equipe esqueceu de alinhar)",
+      "description": "Tópicos críticos que não foram definidos (ex: prazos, critérios de aceite, aprovações)."
+    },
+    {
+      "type": "recommendation",
+      "title": "Dica Estratégica da IA",
+      "description": "Recomendação prática de boas práticas de mercado para o sucesso das decisões."
+    }
+  ]
 }
 
 DIRETRIZES FUNDAMENTAIS:
 1. Resuma todos os pontos principais de forma executiva, objetiva e profissional em português do Brasil.
-2. Identifique todas as tarefas ("actionItems") distribuindo entre os participantes presentes.
-3. Em "transcript", transcreva com fidelidade as falas dos participantes.
-4. Se houver áudio e pouca fala, descreva os tópicos contextuais abordados na sala.`
+2. Identifique todas as tarefas ("actionItems") distribuindo com precisão entre os participantes presentes.
+3. Atue como consultor em "insights": alerte gargalos reais, aponte prazos não estipulados e dê dicas de implementação.
+4. Avalie o clima e foco da conversa em "pulse".
+5. Em "transcript", transcreva com fidelidade as falas dos participantes.`
 
     const parts: any[] = []
 
@@ -385,7 +413,15 @@ DIRETRIZES FUNDAMENTAIS:
       return {
         summary: Array.isArray(parsed.summary) && parsed.summary.length > 0 ? parsed.summary : [parsed.summary || 'Reunião realizada com sucesso.'],
         decisions: Array.isArray(parsed.decisions) && parsed.decisions.length > 0 ? parsed.decisions : [parsed.decisions || 'Decisões deliberadas na conversa.'],
-        actionItems: Array.isArray(parsed.actionItems) ? parsed.actionItems : [],
+        actionItems: Array.isArray(parsed.actionItems)
+          ? parsed.actionItems.map((a: any, idx: number) => ({
+              id: a.id || `action-${idx}-${Date.now()}`,
+              task: a.task || '',
+              assignee: a.assignee || 'Equipe',
+              deadline: a.deadline || 'Em breve',
+              status: (a.status === 'done' ? 'done' : 'pending') as 'pending' | 'done',
+            }))
+          : [],
         commitments: Array.isArray(parsed.commitments)
           ? parsed.commitments.map((c: any) => ({
               description: c.description || '',
@@ -406,6 +442,19 @@ DIRETRIZES FUNDAMENTAIS:
             }))
           : [],
         transcript: parsed.transcript || params.rawTranscript || '',
+        pulse: parsed.pulse || {
+          alignmentLevel: 'Alto',
+          tone: 'Produtivo e Colaborativo',
+          focusArea: 'Técnico e Executivo',
+          efficiencyRating: 'Alta Eficiência',
+        },
+        insights: Array.isArray(parsed.insights)
+          ? parsed.insights.map((ins: any) => ({
+              type: ['risk', 'blind_spot', 'recommendation'].includes(ins.type) ? ins.type : 'recommendation',
+              title: ins.title || 'Recomendação Estratégica',
+              description: ins.description || '',
+            }))
+          : [],
       }
     } catch (e) {
       console.error('[GeminiMeetingService] Erro ao fazer parse do JSON do Gemini:', e, contentText)

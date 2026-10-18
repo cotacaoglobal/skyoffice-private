@@ -1,7 +1,9 @@
 export interface ActionItem {
+  id?: string
   task: string
   assignee: string
   deadline?: string
+  status?: 'pending' | 'done'
 }
 
 export interface Commitment {
@@ -19,6 +21,19 @@ export interface TimestampedSegment {
   type: 'summary' | 'decision' | 'commitment' | 'general'
 }
 
+export interface MeetingPulse {
+  alignmentLevel: 'Alto' | 'Médio' | 'Baixo' | string
+  tone: string // ex: "Produtivo e Colaborativo"
+  focusArea: string // ex: "Técnico e Operacional"
+  efficiencyRating: string // ex: "Alta Eficiência"
+}
+
+export interface StrategicInsight {
+  type: 'risk' | 'blind_spot' | 'recommendation'
+  title: string
+  description: string
+}
+
 export interface MeetingRecord {
   id: string
   title: string
@@ -34,6 +49,9 @@ export interface MeetingRecord {
   commitments: Commitment[]
   timestampedSegments: TimestampedSegment[]
   transcript?: string
+  // Novas inteligências corporativas
+  pulse?: MeetingPulse
+  insights?: StrategicInsight[]
 }
 
 const STORAGE_KEY = 'skyoffice_meeting_records'
@@ -174,6 +192,23 @@ export class MeetingStorage {
     }
   }
 
+  static toggleActionItemStatus(meetingId: string, actionIndex: number): MeetingRecord | null {
+    try {
+      const current = this.getMeetings()
+      const meeting = current.find((m) => m.id === meetingId)
+      if (!meeting || !meeting.actionItems || !meeting.actionItems[actionIndex]) return null
+
+      const currentStatus = meeting.actionItems[actionIndex].status || 'pending'
+      meeting.actionItems[actionIndex].status = currentStatus === 'done' ? 'pending' : 'done'
+
+      this.saveMeeting(meeting)
+      return meeting
+    } catch (err) {
+      console.error('Erro ao alternar status do item de ação:', err)
+      return null
+    }
+  }
+
   private static getSampleMeetings(): MeetingRecord[] {
     return [
       {
@@ -261,6 +296,32 @@ export class MeetingStorage {
         ],
         transcript:
           '[00:01] Felipe: Bom dia a todos, vamos começar nosso alinhamento semanal.\n[00:15] Ana: Bom dia! Os dados da sprint passada já estão consolidados.\n[01:05] Carlos: O desempenho do WebRTC na VPS está muito estável após os ajustes.\n[02:30] Felipe: Excelente. Vamos focar agora em finalizar o gravador e a IA de atas.',
+        pulse: {
+          alignmentLevel: 'Alto',
+          tone: 'Produtivo e Colaborativo',
+          focusArea: 'Arquitetura e Produto',
+          efficiencyRating: 'Alta Eficiência (92%)',
+        },
+        insights: [
+          {
+            type: 'risk',
+            title: 'Gargalo de Banda em Picos de Conexão WebRTC',
+            description:
+              'A transição para VPS exige monitoramento proativo da quota de transferência para evitar degradação de vídeo em reuniões com mais de 8 participantes simultâneos.',
+          },
+          {
+            type: 'blind_spot',
+            title: 'Ausência de Fallback para Modelos Gemini Descontinuados',
+            description:
+              'Recomenda-se listar dinamicamente os modelos ativos da API do Gemini para evitar falhas silenciosas caso versões como gemini-2.0 sejam aposentadas pela Google.',
+          },
+          {
+            type: 'recommendation',
+            title: 'Sincronização Contínua de Tarefas',
+            description:
+              'Permitir que itens de ação da ata sejam marcados como concluídos diretamente na interface de atas melhora a governança e o acompanhamento pós-reunião.',
+          },
+        ],
       },
     ]
   }
