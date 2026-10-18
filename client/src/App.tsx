@@ -1,7 +1,9 @@
 import React from 'react'
 import styled from 'styled-components'
 
-import { useAppSelector } from './hooks'
+import { useAppSelector, useAppDispatch } from './hooks'
+import store from './stores'
+import { setLoggedIn } from './stores/UserStore'
 
 import RoomSelectionDialog from './components/RoomSelectionDialog'
 import LoginDialog from './components/LoginDialog'
@@ -36,6 +38,7 @@ function App() {
 
   const [authUser, setAuthUser] = React.useState<any>(null)
   const [authChecked, setAuthChecked] = React.useState<boolean>(false)
+  const [isAutoConnecting, setIsAutoConnecting] = React.useState<boolean>(false)
 
   React.useEffect(() => {
     let isMounted = true
@@ -72,6 +75,55 @@ function App() {
     }
   }, [])
 
+  // Auto-login / Reconexão automática caso o usuário tenha recarregado a página (F5)
+  React.useEffect(() => {
+    if (!authChecked || !authUser || loggedIn || isAutoConnecting) return
+
+    const autoLogin = localStorage.getItem('skyoffice_auto_login') === 'true'
+    const savedName = localStorage.getItem('skyoffice_user_name')
+    const savedAvatar = localStorage.getItem('skyoffice_user_avatar') || 'adam'
+
+    if (autoLogin && savedName) {
+      setIsAutoConnecting(true)
+
+      const tryAutoConnect = () => {
+        const bootstrap = (window as any).game?.scene?.keys?.bootstrap
+        const gameScene = (window as any).game?.scene?.keys?.game
+        const lobbyJoined = (store?.getState?.() as any)?.room?.lobbyJoined
+
+        if (bootstrap && bootstrap.network && (lobbyJoined || bootstrap.network.lobbyJoined)) {
+          bootstrap.network
+            .joinOrCreatePublic()
+            .then(() => {
+              bootstrap.launchGame()
+              // Aguarda o Game Scene estar pronto para registrar teclas e jogador
+              const checkGameInterval = setInterval(() => {
+                const activeGame = (window as any).game?.scene?.keys?.game
+                if (activeGame && activeGame.myPlayer) {
+                  clearInterval(checkGameInterval)
+                  activeGame.registerKeys()
+                  activeGame.myPlayer.setPlayerName(savedName)
+                  activeGame.myPlayer.setPlayerTexture(savedAvatar)
+                  activeGame.network.readyToConnect()
+                  store.dispatch(setLoggedIn(true))
+                  setIsAutoConnecting(false)
+                }
+              }, 100)
+            })
+            .catch((err) => {
+              console.warn('Falha no auto-login / reconexão automática:', err)
+              setIsAutoConnecting(false)
+            })
+        } else {
+          // Tenta novamente após um pequeno delay até o lobby carregar
+          setTimeout(tryAutoConnect, 200)
+        }
+      }
+
+      tryAutoConnect()
+    }
+  }, [authChecked, authUser, loggedIn, isAutoConnecting])
+
   let ui: JSX.Element
   if (!authChecked) {
     ui = (
@@ -99,6 +151,30 @@ function App() {
     )
   } else if (!authUser) {
     ui = <AuthDialog onAuthSuccess={(user) => setAuthUser(user)} />
+  } else if (isAutoConnecting || (!loggedIn && localStorage.getItem('skyoffice_auto_login') === 'true' && localStorage.getItem('skyoffice_user_name'))) {
+    ui = (
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: '#091326',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#00f5d4',
+          fontFamily: "'Silkscreen', monospace, sans-serif",
+          zIndex: 99999,
+          gap: 12,
+        }}
+      >
+        <div style={{ fontSize: 24 }}>🏢 Reconectando ao Escritório...</div>
+        <div style={{ fontSize: 13, color: '#94a3b8' }}>Restaurando sua sessão e avatar...</div>
+      </div>
+    )
   } else if (loggedIn) {
     if (computerDialogOpen) {
       /* Render ComputerDialog if user is using a computer. */

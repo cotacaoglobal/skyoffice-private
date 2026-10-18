@@ -461,6 +461,9 @@ export default function MembersSidebar() {
         game.network.webRTC.getUserMedia(false)
       }
       // Desconecta do Supabase se desejar logout completo
+      try {
+        localStorage.removeItem('skyoffice_auto_login')
+      } catch (e) {}
       const { supabase } = await import('../supabaseClient')
       await supabase.auth.signOut()
 
@@ -469,6 +472,9 @@ export default function MembersSidebar() {
       dispatch(setRoomJoined(false))
       window.location.reload()
     } catch (e) {
+      try {
+        localStorage.removeItem('skyoffice_auto_login')
+      } catch (err) {}
       window.location.reload()
     }
   }

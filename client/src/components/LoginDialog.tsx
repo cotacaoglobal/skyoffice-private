@@ -353,6 +353,7 @@ export default function LoginDialog() {
       try {
         localStorage.setItem('skyoffice_user_name', name.trim())
         localStorage.setItem('skyoffice_user_avatar', chosenAvatar)
+        localStorage.setItem('skyoffice_auto_login', 'true')
       } catch (err) {
         console.warn('Erro ao salvar preferências no localStorage', err)
       }

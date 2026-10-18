@@ -366,6 +366,7 @@ export default function Chat() {
   }
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    event.stopPropagation()
     if (event.key === 'Escape') {
       inputRef.current?.blur()
       dispatch(setShowChat(false))
@@ -428,7 +429,6 @@ export default function Chat() {
           aria-label="showChat"
           onClick={() => {
             dispatch(setShowChat(true))
-            dispatch(setFocused(true))
           }}
         >
           <Badge badgeContent={totalUnread} color="error">
@@ -556,6 +556,8 @@ export default function Chat() {
             }
             value={inputValue}
             onKeyDown={handleKeyDown}
+            onKeyUp={(e) => e.stopPropagation()}
+            onKeyPress={(e) => e.stopPropagation()}
             onChange={handleChange}
             onFocus={() => {
               if (!focused) {

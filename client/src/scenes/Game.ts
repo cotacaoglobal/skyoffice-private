@@ -66,10 +66,12 @@ export default class Game extends Phaser.Scene {
 
   disableKeys() {
     this.input.keyboard.enabled = false
+    this.input.keyboard.resetKeys()
   }
 
   enableKeys() {
     this.input.keyboard.enabled = true
+    this.input.keyboard.resetKeys()
   }
 
   create(data: { network: Network }) {
@@ -211,6 +213,12 @@ export default class Game extends Phaser.Scene {
       // Ignora se o clique ocorreu sobre algum elemento HTML da interface
       const target = pointer.event?.target as HTMLElement
       if (target && target.tagName !== 'CANVAS') return
+
+      // Retira o foco de qualquer campo HTML (ex: chat) para liberar o teclado para o jogo
+      if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
+        document.activeElement.blur()
+        store.dispatch(setFocused(false))
+      }
 
       // Duplo-clique no chão centraliza imediatamente no avatar
       if (pointer.event?.detail === 2) {
@@ -498,6 +506,13 @@ export default class Game extends Phaser.Scene {
 
   update(t: number, dt: number) {
     if (this.myPlayer && this.network) {
+      if (!this.input.keyboard.enabled) {
+        if (this.myPlayer.playerBehavior === PlayerBehavior.IDLE) {
+          this.myPlayer.setVelocity(0, 0)
+        }
+        return
+      }
+
       if (!this.cursors) return
 
       this.playerSelector.update(this.myPlayer, this.cursors)
