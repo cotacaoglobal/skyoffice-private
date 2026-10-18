@@ -3,7 +3,7 @@ export interface ActionItem {
   task: string
   assignee: string
   deadline?: string
-  status?: 'pending' | 'done'
+  status?: 'pending' | 'in_progress' | 'done'
 }
 
 export interface Commitment {
@@ -205,6 +205,25 @@ export class MeetingStorage {
       return meeting
     } catch (err) {
       console.error('Erro ao alternar status do item de ação:', err)
+      return null
+    }
+  }
+
+  static updateActionItemStatus(
+    meetingId: string,
+    actionIndex: number,
+    status: 'pending' | 'in_progress' | 'done'
+  ): MeetingRecord | null {
+    try {
+      const current = this.getMeetings()
+      const meeting = current.find((m) => m.id === meetingId)
+      if (!meeting || !meeting.actionItems || !meeting.actionItems[actionIndex]) return null
+
+      meeting.actionItems[actionIndex].status = status
+      this.saveMeeting(meeting)
+      return meeting
+    } catch (err) {
+      console.error('Erro ao atualizar status do item de ação:', err)
       return null
     }
   }

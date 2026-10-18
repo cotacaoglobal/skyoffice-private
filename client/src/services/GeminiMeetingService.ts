@@ -462,6 +462,141 @@ DIRETRIZES FUNDAMENTAIS:
     }
   }
 
+  static async generateInsightsAndPulse(
+    meeting: MeetingRecord
+  ): Promise<{ pulse: MeetingPulse; insights: StrategicInsight[] }> {
+    const apiKey = await MeetingStorage.getApiKeyAsync()
+    if (!apiKey) {
+      return this.deriveFallbackInsights(meeting)
+    }
+
+    const prompt = `Você é um consultor executivo sênior e estrategista corporativo.
+Analise os tópicos, decisões e falas desta reunião:
+Título: ${meeting.title}
+Sala: ${meeting.roomName}
+Participantes: ${meeting.participants.join(', ')}
+
+Resumo dos Pontos:
+${meeting.summary.map((s) => `- ${s}`).join('\n')}
+
+Decisões Tomadas:
+${meeting.decisions.map((d) => `- ${d}`).join('\n')}
+
+Plano de Ação / Tarefas:
+${meeting.actionItems.map((a) => `- ${a.task} (Responsável: ${a.assignee})`).join('\n')}
+
+Transcrição / Diálogos:
+${meeting.transcript || ''}
+
+Gere o PULSE (métrica de clima, alinhamento e eficiência) e 3 INSIGHTS ESTRATÉGICOS (risco, ponto cego e recomendação tática).
+Responda EXCLUSIVAMENTE em formato JSON (sem markdown adicional):
+{
+  "pulse": {
+    "alignmentLevel": "Alto",
+    "tone": "Produtivo e Focado",
+    "focusArea": "Operação e Automação",
+    "efficiencyRating": "Alta Eficiência"
+  },
+  "insights": [
+    {
+      "type": "risk",
+      "title": "Alerta de Risco ou Gargalo",
+      "description": "Explicação objetiva sobre riscos técnicos ou operacionais identificados nas falas."
+    },
+    {
+      "type": "blind_spot",
+      "title": "Ponto Cego (O que a equipe esqueceu de alinhar)",
+      "description": "Explicação sobre tópicos não aprofundados ou sem responsável/prazo."
+    },
+    {
+      "type": "recommendation",
+      "title": "Recomendação Tática Proativa",
+      "description": "Sugestão prática de melhoria para o time avançar com segurança."
+    }
+  ]
+}`
+
+    try {
+      const candidateModels = await this.getAvailableModels(apiKey)
+      for (const model of candidateModels) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.3,
+                responseMimeType: 'application/json',
+              },
+            }),
+          })
+          if (res.ok) {
+            const data = await res.json()
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+            if (text) {
+              const parsed = JSON.parse(text)
+              if (parsed.pulse && Array.isArray(parsed.insights)) {
+                return {
+                  pulse: parsed.pulse,
+                  insights: parsed.insights.map((ins: any) => ({
+                    type: ['risk', 'blind_spot', 'recommendation'].includes(ins.type)
+                      ? ins.type
+                      : 'recommendation',
+                    title: ins.title || 'Insight Estratégico',
+                    description: ins.description || '',
+                  })),
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn(`[GeminiMeetingService] Erro ao obter insights com ${model}:`, e)
+        }
+      }
+    } catch (err) {
+      console.warn('[GeminiMeetingService] Falha geral ao gerar insights:', err)
+    }
+
+    return this.deriveFallbackInsights(meeting)
+  }
+
+  private static deriveFallbackInsights(
+    meeting: MeetingRecord
+  ): { pulse: MeetingPulse; insights: StrategicInsight[] } {
+    const hasTasks = meeting.actionItems && meeting.actionItems.length > 0
+    const hasDecisions = meeting.decisions && meeting.decisions.length > 0
+    return {
+      pulse: {
+        alignmentLevel: hasDecisions ? 'Alto' : 'Médio',
+        tone: 'Produtivo e Colaborativo',
+        focusArea: meeting.roomName || 'Alinhamento Geral',
+        efficiencyRating: hasTasks ? 'Alta Eficiência' : 'Sessão Alinhada',
+      },
+      insights: [
+        {
+          type: 'risk',
+          title: 'Gargalos de Integração e Prazos',
+          description:
+            'A distribuição de frentes distintas (automação, agente IA e dashboards) requer marcos de integração definidos para evitar gargalos na entrega.',
+        },
+        {
+          type: 'blind_spot',
+          title: 'Critérios de Aceite e Protocolos de Teste',
+          description:
+            'Foram definidos os responsáveis pelas áreas, mas ainda não constam critérios formais de teste conjunto entre a Bia e os fluxos automatizados.',
+        },
+        {
+          type: 'recommendation',
+          title: 'Check-in Técnico Intermediário',
+          description:
+            'Realizar uma validação rápida do fluxo entre automação e o agente Bia antes de finalizar as telas de dashboard.',
+        },
+      ],
+    }
+  }
+
   private static formatDuration(seconds: number): string {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)

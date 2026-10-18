@@ -518,6 +518,185 @@ const TaskCard = styled.div<{ $done?: boolean }>`
   }
 `
 
+const ViewSwitcher = styled.div`
+  display: flex;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 2px;
+  margin-left: auto;
+
+  button {
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+
+    &.active {
+      background: #ffffff;
+      color: #1e293b;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+  }
+`
+
+const KanbanContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 14px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`
+
+const KanbanColumn = styled.div<{ $color: string }>`
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-top: 3px solid ${({ $color }) => $color};
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 190px;
+
+  .kanban-column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+
+    .count-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background: #e2e8f0;
+      color: #475569;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+  }
+
+  .kanban-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .kanban-empty {
+    font-size: 12px;
+    color: #94a3b8;
+    text-align: center;
+    padding: 28px 8px;
+    font-style: italic;
+  }
+`
+
+const KanbanItemCard = styled.div`
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+    border-color: #94a3b8;
+  }
+
+  .kanban-item-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.45;
+  }
+
+  .kanban-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+
+    .assignee {
+      font-size: 11px;
+      font-weight: 600;
+      background: #eff6ff;
+      color: #1d4ed8;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid #dbeafe;
+    }
+
+    .deadline {
+      font-size: 11px;
+      background: #fef3c7;
+      color: #92400e;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid #fde68a;
+    }
+  }
+
+  .kanban-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+    padding-top: 8px;
+    border-top: 1px dashed #e2e8f0;
+
+    button {
+      flex: 1;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+      }
+
+      &.advance {
+        background: #f0fdf4;
+        border-color: #86efac;
+        color: #15803d;
+
+        &:hover {
+          background: #dcfce7;
+        }
+      }
+
+      &.done {
+        background: #ecfdf5;
+        border-color: #a7f3d0;
+        color: #065f46;
+      }
+    }
+  }
+`
+
 // ====== Commitment Tracking Styles ======
 
 const CommitmentCard = styled.div<{ $done: boolean }>`
@@ -1205,6 +1384,8 @@ export default function MeetingHistoryDialog({ open, onClose }: Props) {
   const [isTestingKey, setIsTestingKey] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [isRegenerating, setIsRegenerating] = useState(false)
+  const [taskViewMode, setTaskViewMode] = useState<'kanban' | 'list'>('kanban')
+  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false)
 
   // Estados do Chat da Bia
   const [biaMessages, setBiaMessages] = useState<ChatMessage[]>([
@@ -1312,6 +1493,30 @@ export default function MeetingHistoryDialog({ open, onClose }: Props) {
     }
   }, [open])
 
+  // Preenchimento proativo de Insights e Pulse para reuniões gravadas antes da funcionalidade
+  useEffect(() => {
+    if (!open || !selectedMeetingId) return
+    const current = meetings.find((m) => m.id === selectedMeetingId)
+    if (!current) return
+
+    const lacksPulse = !current.pulse
+    const lacksInsights = !current.insights || current.insights.length === 0
+    if (lacksPulse || lacksInsights) {
+      GeminiMeetingService.generateInsightsAndPulse(current)
+        .then(({ pulse, insights }) => {
+          const updated: MeetingRecord = {
+            ...current,
+            pulse: current.pulse || pulse,
+            insights:
+              current.insights && current.insights.length > 0 ? current.insights : insights,
+          }
+          MeetingStorage.saveMeeting(updated)
+          setMeetings((prev) => prev.map((m) => (m.id === updated.id ? updated : m)))
+        })
+        .catch((e) => console.warn('Erro na geração automática de insights:', e))
+    }
+  }, [open, selectedMeetingId, meetings])
+
   if (!open) return null
 
   const selectedMeeting = meetings.find((m) => m.id === selectedMeetingId) || meetings[0]
@@ -1343,6 +1548,36 @@ export default function MeetingHistoryDialog({ open, onClose }: Props) {
     const updated = MeetingStorage.toggleActionItemStatus(selectedMeeting.id, actionIndex)
     if (updated) {
       setMeetings((prev) => prev.map((m) => (m.id === updated.id ? updated : m)))
+    }
+  }
+
+  const handleUpdateTaskStatus = (
+    actionIndex: number,
+    status: 'pending' | 'in_progress' | 'done'
+  ) => {
+    if (!selectedMeeting) return
+    const updated = MeetingStorage.updateActionItemStatus(selectedMeeting.id, actionIndex, status)
+    if (updated) {
+      setMeetings((prev) => prev.map((m) => (m.id === updated.id ? updated : m)))
+    }
+  }
+
+  const handleGenerateInsightsNow = async () => {
+    if (!selectedMeeting) return
+    setIsGeneratingInsights(true)
+    try {
+      const { pulse, insights } = await GeminiMeetingService.generateInsightsAndPulse(selectedMeeting)
+      const updated: MeetingRecord = {
+        ...selectedMeeting,
+        pulse,
+        insights,
+      }
+      MeetingStorage.saveMeeting(updated)
+      setMeetings((prev) => prev.map((m) => (m.id === updated.id ? updated : m)))
+    } catch (err: any) {
+      console.error('Erro ao gerar insights:', err)
+    } finally {
+      setIsGeneratingInsights(false)
     }
   }
 
@@ -1708,11 +1943,16 @@ ${commitmentLines}`
                 </DetailHeader>
 
                 {/* 📊 Meeting Pulse (Clima, Alinhamento & Métricas da Reunião) */}
-                {selectedMeeting.pulse && (
+                {selectedMeeting.pulse ? (
                   <PulseGrid>
                     <div className="pulse-box">
                       <span className="pulse-title">🎯 Nível de Alinhamento</span>
-                      <span className="pulse-value" style={{ color: selectedMeeting.pulse.alignmentLevel === 'Alto' ? '#16a34a' : '#2563eb' }}>
+                      <span
+                        className="pulse-value"
+                        style={{
+                          color: selectedMeeting.pulse.alignmentLevel === 'Alto' ? '#16a34a' : '#2563eb',
+                        }}
+                      >
                         {selectedMeeting.pulse.alignmentLevel}
                       </span>
                     </div>
@@ -1731,6 +1971,31 @@ ${commitmentLines}`
                       </span>
                     </div>
                   </PulseGrid>
+                ) : (
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px dashed #cbd5e1',
+                      borderRadius: 10,
+                      padding: '12px 18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                    }}
+                  >
+                    <span style={{ fontSize: 13, color: '#64748b' }}>
+                      📊 <strong>Meeting Pulse:</strong> Avalie clima, alinhamento e eficiência desta reunião com a IA.
+                    </span>
+                    <CleanButton
+                      $variant="secondary"
+                      onClick={handleGenerateInsightsNow}
+                      disabled={isGeneratingInsights}
+                      style={{ fontSize: 12, padding: '6px 14px' }}
+                    >
+                      {isGeneratingInsights ? 'Analisando...' : '✨ Analisar Pulse & Clima'}
+                    </CleanButton>
+                  </div>
                 )}
 
                 {/* 📌 Resumo dos Principais Pontos */}
@@ -1754,85 +2019,336 @@ ${commitmentLines}`
                 </CleanCard>
 
                 {/* 💡 Insights Estratégicos & Pontos Cegos (Recomendações Consultivas da IA) */}
-                {selectedMeeting.insights && selectedMeeting.insights.length > 0 && (
-                  <CleanCard>
-                    <h3>
+                <CleanCard>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 14,
+                      flexWrap: 'wrap',
+                      gap: 10,
+                    }}
+                  >
+                    <h3 style={{ margin: 0 }}>
                       <LightbulbOutlinedIcon style={{ fontSize: 18, color: '#eab308' }} />
                       💡 Insights Estratégicos & Pontos Cegos da IA
                     </h3>
-                    {selectedMeeting.insights.map((ins, idx) => (
+                    {(!selectedMeeting.insights || selectedMeeting.insights.length === 0) && (
+                      <CleanButton
+                        $variant="secondary"
+                        onClick={handleGenerateInsightsNow}
+                        disabled={isGeneratingInsights}
+                        style={{
+                          fontSize: 12,
+                          padding: '5px 12px',
+                          border: '1px solid #fde68a',
+                          color: '#92400e',
+                          background: '#fffbeb',
+                        }}
+                      >
+                        {isGeneratingInsights ? 'Gerando Análise...' : '✨ Gerar Insights Agora'}
+                      </CleanButton>
+                    )}
+                  </div>
+
+                  {selectedMeeting.insights && selectedMeeting.insights.length > 0 ? (
+                    selectedMeeting.insights.map((ins, idx) => (
                       <InsightCard key={idx} $type={ins.type}>
                         <div className="insight-top">
                           <span className="insight-type-badge">
-                            {ins.type === 'risk' ? '🚨 Risco' : ins.type === 'blind_spot' ? '⚠️ Ponto Cego' : '💡 Recomendação'}
+                            {ins.type === 'risk'
+                              ? '🚨 Risco'
+                              : ins.type === 'blind_spot'
+                              ? '⚠️ Ponto Cego'
+                              : '💡 Recomendação'}
                           </span>
                           <strong>{ins.title}</strong>
                         </div>
                         <p>{ins.description}</p>
                       </InsightCard>
-                    ))}
-                  </CleanCard>
-                )}
-
-                {/* 🎯 Quadro de Tarefas Interativo (To-Do & Kanban da Reunião) */}
-                <CleanCard>
-                  <h3>
-                    <AssignmentTurnedInOutlinedIcon style={{ fontSize: 18, color: '#2563eb' }} />
-                    🎯 Plano de Ação & Tarefas Interativas
-                    {selectedMeeting.actionItems.length > 0 && (
-                      <span style={{
-                        marginLeft: 'auto',
-                        fontSize: 12,
-                        fontWeight: 500,
-                        color: '#64748b',
-                        background: '#f1f5f9',
-                        padding: '2px 10px',
-                        borderRadius: 12,
-                      }}>
-                        {selectedMeeting.actionItems.filter((a) => a.status === 'done').length} de {selectedMeeting.actionItems.length} concluídas
-                      </span>
-                    )}
-                  </h3>
-                  {selectedMeeting.actionItems.map((act, idx) => {
-                    const isDone = act.status === 'done'
-                    return (
-                      <TaskCard
-                        key={idx}
-                        $done={isDone}
-                        onClick={() => handleToggleActionItem(idx)}
-                        title="Clique para alternar status da tarefa (Pendente / Concluída)"
+                    ))
+                  ) : (
+                    <div
+                      style={{
+                        background: '#fffbeb',
+                        border: '1px dashed #fde68a',
+                        borderRadius: 8,
+                        padding: '16px',
+                        textAlign: 'center',
+                        color: '#92400e',
+                        fontSize: 13,
+                      }}
+                    >
+                      <p style={{ margin: '0 0 10px 0' }}>
+                        Esta reunião foi gravada antes do módulo consultivo de IA. Clique no botão abaixo para analisar riscos, pontos cegos e recomendações táticas agora mesmo:
+                      </p>
+                      <CleanButton
+                        $variant="secondary"
+                        onClick={handleGenerateInsightsNow}
+                        disabled={isGeneratingInsights}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #f59e0b',
+                          color: '#b45309',
+                          fontWeight: 600,
+                        }}
                       >
-                        <div className="task-left">
-                          <div className="task-check">
-                            {isDone ? (
-                              <CheckCircleIcon style={{ fontSize: 20 }} />
-                            ) : (
-                              <RadioButtonUncheckedIcon style={{ fontSize: 20 }} />
-                            )}
-                          </div>
-                          <span className="task-text">{act.task}</span>
-                        </div>
-                        <div className="task-badges">
-                          <span className="assignee-badge">👤 {act.assignee}</span>
-                          {act.deadline && <span className="deadline-badge">⏰ {act.deadline}</span>}
-                          <span style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            padding: '2px 8px',
-                            borderRadius: 4,
-                            background: isDone ? '#dcfce7' : '#fef3c7',
-                            color: isDone ? '#166534' : '#92400e',
-                          }}>
-                            {isDone ? 'Concluída' : 'Pendente'}
+                        <AutoAwesomeIcon style={{ fontSize: 15, color: '#f59e0b' }} />
+                        {isGeneratingInsights ? 'Analisando Diálogos com IA...' : 'Analisar Riscos & Pontos Cegos com IA'}
+                      </CleanButton>
+                    </div>
+                  )}
+                </CleanCard>
+
+                {/* 🎯 Plano de Ação & Quadro Kanban de Tarefas */}
+                <CleanCard>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 10,
+                      marginBottom: 14,
+                    }}
+                  >
+                    <h3 style={{ margin: 0 }}>
+                      <AssignmentTurnedInOutlinedIcon style={{ fontSize: 18, color: '#2563eb' }} />
+                      🎯 Quadro de Tarefas & Kanban da Reunião
+                      {selectedMeeting.actionItems.length > 0 && (
+                        <span
+                          style={{
+                            marginLeft: 10,
+                            fontSize: 12,
+                            fontWeight: 500,
+                            color: '#64748b',
+                            background: '#f1f5f9',
+                            padding: '2px 10px',
+                            borderRadius: 12,
+                          }}
+                        >
+                          {selectedMeeting.actionItems.filter((a) => a.status === 'done').length} de{' '}
+                          {selectedMeeting.actionItems.length} concluídas
+                        </span>
+                      )}
+                    </h3>
+
+                    <ViewSwitcher>
+                      <button
+                        className={taskViewMode === 'kanban' ? 'active' : ''}
+                        onClick={() => setTaskViewMode('kanban')}
+                      >
+                        ⊞ Quadro Kanban
+                      </button>
+                      <button
+                        className={taskViewMode === 'list' ? 'active' : ''}
+                        onClick={() => setTaskViewMode('list')}
+                      >
+                        ≡ Lista Interativa
+                      </button>
+                    </ViewSwitcher>
+                  </div>
+
+                  {taskViewMode === 'kanban' ? (
+                    <KanbanContainer>
+                      {/* Coluna 1: A Fazer */}
+                      <KanbanColumn $color="#3b82f6">
+                        <div className="kanban-column-header">
+                          <span>📋 A Fazer</span>
+                          <span className="count-badge">
+                            {
+                              selectedMeeting.actionItems.filter(
+                                (a) => !a.status || a.status === 'pending'
+                              ).length
+                            }
                           </span>
                         </div>
-                      </TaskCard>
-                    )
-                  })}
-                  {selectedMeeting.actionItems.length === 0 && (
-                    <div style={{ color: '#94a3b8', fontSize: 13, padding: '8px 0' }}>
-                      Nenhuma tarefa registrada para esta reunião.
-                    </div>
+                        <div className="kanban-cards">
+                          {selectedMeeting.actionItems.map((act, idx) => {
+                            const status = act.status || 'pending'
+                            if (status !== 'pending') return null
+                            return (
+                              <KanbanItemCard key={idx}>
+                                <div className="kanban-item-text">{act.task}</div>
+                                <div className="kanban-item-meta">
+                                  <span className="assignee">👤 {act.assignee}</span>
+                                  {act.deadline && <span className="deadline">⏰ {act.deadline}</span>}
+                                </div>
+                                <div className="kanban-actions">
+                                  <button
+                                    className="advance"
+                                    onClick={() => handleUpdateTaskStatus(idx, 'in_progress')}
+                                    title="Mover para Em Andamento"
+                                  >
+                                    ▶ Iniciar
+                                  </button>
+                                  <button
+                                    className="done"
+                                    onClick={() => handleUpdateTaskStatus(idx, 'done')}
+                                    title="Marcar como Concluída"
+                                  >
+                                    ✓ Concluir
+                                  </button>
+                                </div>
+                              </KanbanItemCard>
+                            )
+                          })}
+                          {selectedMeeting.actionItems.filter(
+                            (a) => !a.status || a.status === 'pending'
+                          ).length === 0 && (
+                            <div className="kanban-empty">Nenhuma tarefa pendente</div>
+                          )}
+                        </div>
+                      </KanbanColumn>
+
+                      {/* Coluna 2: Em Andamento */}
+                      <KanbanColumn $color="#f59e0b">
+                        <div className="kanban-column-header">
+                          <span>⚡ Em Andamento</span>
+                          <span className="count-badge">
+                            {
+                              selectedMeeting.actionItems.filter((a) => a.status === 'in_progress')
+                                .length
+                            }
+                          </span>
+                        </div>
+                        <div className="kanban-cards">
+                          {selectedMeeting.actionItems.map((act, idx) => {
+                            if (act.status !== 'in_progress') return null
+                            return (
+                              <KanbanItemCard key={idx}>
+                                <div className="kanban-item-text">{act.task}</div>
+                                <div className="kanban-item-meta">
+                                  <span className="assignee">👤 {act.assignee}</span>
+                                  {act.deadline && <span className="deadline">⏰ {act.deadline}</span>}
+                                </div>
+                                <div className="kanban-actions">
+                                  <button
+                                    onClick={() => handleUpdateTaskStatus(idx, 'pending')}
+                                    title="Voltar para A Fazer"
+                                  >
+                                    ◀ Voltar
+                                  </button>
+                                  <button
+                                    className="done"
+                                    onClick={() => handleUpdateTaskStatus(idx, 'done')}
+                                    title="Marcar como Concluída"
+                                  >
+                                    ✓ Concluir
+                                  </button>
+                                </div>
+                              </KanbanItemCard>
+                            )
+                          })}
+                          {selectedMeeting.actionItems.filter((a) => a.status === 'in_progress')
+                            .length === 0 && (
+                            <div className="kanban-empty">Nenhuma tarefa em andamento</div>
+                          )}
+                        </div>
+                      </KanbanColumn>
+
+                      {/* Coluna 3: Concluídas */}
+                      <KanbanColumn $color="#10b981">
+                        <div className="kanban-column-header">
+                          <span>✅ Concluídas</span>
+                          <span className="count-badge">
+                            {selectedMeeting.actionItems.filter((a) => a.status === 'done').length}
+                          </span>
+                        </div>
+                        <div className="kanban-cards">
+                          {selectedMeeting.actionItems.map((act, idx) => {
+                            if (act.status !== 'done') return null
+                            return (
+                              <KanbanItemCard
+                                key={idx}
+                                style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }}
+                              >
+                                <div
+                                  className="kanban-item-text"
+                                  style={{ textDecoration: 'line-through', color: '#64748b' }}
+                                >
+                                  {act.task}
+                                </div>
+                                <div className="kanban-item-meta">
+                                  <span className="assignee">👤 {act.assignee}</span>
+                                  {act.deadline && <span className="deadline">⏰ {act.deadline}</span>}
+                                </div>
+                                <div className="kanban-actions">
+                                  <button
+                                    onClick={() => handleUpdateTaskStatus(idx, 'pending')}
+                                    title="Reabrir tarefa como A Fazer"
+                                  >
+                                    ↺ Reabrir
+                                  </button>
+                                </div>
+                              </KanbanItemCard>
+                            )
+                          })}
+                          {selectedMeeting.actionItems.filter((a) => a.status === 'done').length ===
+                            0 && <div className="kanban-empty">Nenhuma tarefa concluída</div>}
+                        </div>
+                      </KanbanColumn>
+                    </KanbanContainer>
+                  ) : (
+                    // Modo Lista
+                    <>
+                      {selectedMeeting.actionItems.map((act, idx) => {
+                        const isDone = act.status === 'done'
+                        return (
+                          <TaskCard
+                            key={idx}
+                            $done={isDone}
+                            onClick={() => handleToggleActionItem(idx)}
+                            title="Clique para alternar status da tarefa (Pendente / Concluída)"
+                          >
+                            <div className="task-left">
+                              <div className="task-check">
+                                {isDone ? (
+                                  <CheckCircleIcon style={{ fontSize: 20 }} />
+                                ) : (
+                                  <RadioButtonUncheckedIcon style={{ fontSize: 20 }} />
+                                )}
+                              </div>
+                              <span className="task-text">{act.task}</span>
+                            </div>
+                            <div className="task-badges">
+                              <span className="assignee-badge">👤 {act.assignee}</span>
+                              {act.deadline && <span className="deadline-badge">⏰ {act.deadline}</span>}
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  padding: '2px 8px',
+                                  borderRadius: 4,
+                                  background: isDone
+                                    ? '#dcfce7'
+                                    : act.status === 'in_progress'
+                                    ? '#fef3c7'
+                                    : '#f1f5f9',
+                                  color: isDone
+                                    ? '#166534'
+                                    : act.status === 'in_progress'
+                                    ? '#92400e'
+                                    : '#475569',
+                                }}
+                              >
+                                {isDone
+                                  ? 'Concluída'
+                                  : act.status === 'in_progress'
+                                  ? 'Em Andamento'
+                                  : 'Pendente'}
+                              </span>
+                            </div>
+                          </TaskCard>
+                        )
+                      })}
+                      {selectedMeeting.actionItems.length === 0 && (
+                        <div style={{ color: '#94a3b8', fontSize: 13, padding: '8px 0' }}>
+                          Nenhuma tarefa registrada para esta reunião.
+                        </div>
+                      )}
+                    </>
                   )}
                 </CleanCard>
 
