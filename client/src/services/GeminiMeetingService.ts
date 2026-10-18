@@ -29,13 +29,14 @@ export class GeminiMeetingService {
     participants: string[]
     durationSeconds: number
   }): Promise<MeetingRecord> {
-    const apiKey = MeetingStorage.getApiKey()
+    let apiKey = await MeetingStorage.getApiKeyAsync()
     const durationFormatted = this.formatDuration(params.durationSeconds)
     const title = params.meetingTitle || `Reunião - ${params.roomName}`
 
     // Se temos chave e áudio ou transcrição, chama a API do Gemini
     if (apiKey) {
       try {
+        console.log('[GeminiMeetingService] Iniciando processamento de ata com IA para:', title)
         const result = await this.callGeminiAPI({
           apiKey,
           audioBlob: params.audioBlob,
@@ -63,7 +64,7 @@ export class GeminiMeetingService {
           return meeting
         }
       } catch (err) {
-        console.warn('Falha na chamada da API Gemini, usando síntese estruturada', err)
+        console.error('Falha na chamada da API Gemini:', err)
       }
     }
 
@@ -209,8 +210,15 @@ IMPORTANTE:
     const contentText = data.candidates?.[0]?.content?.parts?.[0]?.text
     if (!contentText) return null
 
+    let cleanedText = contentText.trim()
+    if (cleanedText.startsWith('```json')) {
+      cleanedText = cleanedText.replace(/^```json\s*/, '').replace(/```\s*$/, '')
+    } else if (cleanedText.startsWith('```')) {
+      cleanedText = cleanedText.replace(/^```\s*/, '').replace(/```\s*$/, '')
+    }
+
     try {
-      const parsed = JSON.parse(contentText)
+      const parsed = JSON.parse(cleanedText)
       return {
         summary: Array.isArray(parsed.summary) ? parsed.summary : [parsed.summary || ''],
         decisions: Array.isArray(parsed.decisions) ? parsed.decisions : [parsed.decisions || ''],
@@ -237,7 +245,7 @@ IMPORTANTE:
         transcript: parsed.transcript || '',
       }
     } catch (e) {
-      console.error('Erro ao fazer parse do JSON do Gemini', e, contentText)
+      console.error('Erro ao fazer parse do JSON do Gemini:', e, contentText)
       return null
     }
   }

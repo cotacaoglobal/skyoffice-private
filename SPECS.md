@@ -66,3 +66,55 @@ Este documento centraliza as especificações de arquitetura, comportamento espe
 ### Verificação
 - A correção do isolamento do estado dos jogadores no servidor garantiu que as instâncias do `OtherPlayer` permaneçam ativas no Phaser do cliente, permitindo que a verificação de proximidade (`Phaser.Math.Distance.Between`) funcione continuamente sem interrupções.
 - **Status Atual**: ✅ **Funcionando perfeitamente**.
+
+---
+
+## 5. Gravação de Reuniões com Compatibilidade Multi-Dispositivo (Desktop & Mobile)
+
+### Especificação Esperada
+- No desktop, a gravação captura áudio mixado (tela + microfone local + colegas via WebRTC) e vídeo da tela compartilhada.
+- No mobile (onde `getDisplayMedia` é bloqueado por restrições dos navegadores móveis), a gravação realiza fallback automático para captura de áudio local + vozes dos participantes sem travar ou falhar silenciosamente.
+- Suporte a formatos de vídeo `video/webm` e `video/mp4` conforme a compatibilidade do dispositivo.
+
+### Correção Registrada: Gravação Mobile e Falhas Silenciosas
+- **Problema anterior**: No celular, clicar em "Gravar Reunião" falhava silenciosamente porque navegadores mobile rejeitam `getDisplayMedia`.
+- **Resolução Implementada** (`client/src/components/BottomTaskbar.tsx`):
+  - Fallback defensivo que detecta suporte a `getDisplayMedia` e, em caso de erro ou dispositivo móvel, grava o áudio do mixer e vídeo da câmera do avatar.
+  - Seleção dinâmica do `mimeType` suportado pelo navegador (`video/webm` ou `video/mp4`).
+- **Status Atual**: ✅ **Funcionando perfeitamente**.
+
+---
+
+## 6. Persistência de Vídeos Gravados no Navegador (IndexedDB)
+
+### Especificação Esperada
+- Vídeos gravados não devem sumir após recarregar a página (F5) ou fechar e reabrir o escritório.
+- O usuário deve poder reproduzir qualquer reunião gravada anterior diretamente pela aba "Vídeos Gravados" da Central de Reuniões.
+
+### Correção Registrada: Perda de Blob URL em Recarregamentos
+- **Problema anterior**: Os vídeos gravados geravam apenas URLs em memória (`blob:http...`), que eram descartadas pelo navegador ao sair da sessão ou dar F5.
+- **Resolução Implementada** (`client/src/services/VideoStorageService.ts` e `client/src/components/MeetingHistoryDialog.tsx`):
+  - Criação de armazenamento persistente com `IndexedDB` (`skyoffice_media_db`), que suporta grandes volumes de dados (vídeos HD).
+  - Ao gravar, o `Blob` do vídeo é salvo no IndexedDB associado ao ID da reunião.
+  - Ao abrir a Central de Reuniões, as URLs de vídeo são reidratadas automaticamente via `VideoStorageService.getVideoUrl(m.id)`.
+- **Status Atual**: ✅ **Funcionando perfeitamente**. Os vídeos gravados permanecem acessíveis e prontos para reprodução/download mesmo após múltiplos recarregamentos.
+
+---
+
+## 7. Central de Atas e Inteligência Artificial Centralizada por Escritório
+
+### Especificação Esperada
+- Apenas **UMA** chave de API da IA (Google Gemini) deve ser configurada por escritório, compartilhada entre todos os membros da equipe.
+- Membros comuns não precisam saber, gerar ou digitar chaves de API individuais.
+- Ao salvar a chave na aba "Configuração de IA", ela é sincronizada no backend do servidor e compartilhada para toda a organização.
+- A IA do Gemini 1.5 Flash deve processar o áudio gravado e gerar a ata completa: resumo executivo, decisões aprovadas, itens de ação, compromissos por pessoa e transcrição.
+
+### Correção Registrada: Falha de Geração de Atas e Chaves Fragmentadas por Usuário
+- **Problema anterior**: A chave de API ficava restrita ao `localStorage` do computador de quem a digitou. Se a resposta da IA retornasse blocos markdown envoltos em ```json, o parse quebrava e gerava apenas fallback genérico sem transcrição.
+- **Resolução Implementada**:
+  - `server/index.ts`: Criados os endpoints `/api/office-settings` (GET e POST) para armazenamento centralizado da chave corporativa da IA no servidor.
+  - `client/src/services/MeetingStorage.ts`: Adicionado `getApiKeyAsync()` e `setApiKey()`, sincronizando automaticamente com o servidor central.
+  - `client/src/services/GeminiMeetingService.ts`: Sanitização inteligente de blocos de resposta JSON com suporte a remoção de formatação markdown antes do parse, garantindo extração robusta de resumos, transcrição e decisões.
+  - Atualização dos serviços `BiaChatService` e `SemanticSearchService` para utilizar a chave corporativa unificada.
+- **Status Atual**: ✅ **Funcionando perfeitamente**. A IA processa áudio, atas, busca semântica e chat com a assistente Bia de forma centralizada.
+

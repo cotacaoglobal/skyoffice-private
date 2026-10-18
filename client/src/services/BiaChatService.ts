@@ -67,7 +67,7 @@ ${commitments}
     chatHistory: ChatMessage[]
     meetings: MeetingRecord[]
   }): Promise<{ text: string; references?: ChatMessage['references'] }> {
-    const apiKey = MeetingStorage.getApiKey()
+    const apiKey = await MeetingStorage.getApiKeyAsync()
     const context = this.buildMeetingsContext(params.meetings)
 
     // Se temos a API Key do Gemini configurada, chama o modelo 1.5 Flash

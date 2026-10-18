@@ -39,6 +39,7 @@ import StandupNotification from './StandupNotification'
 import DepartmentManagerDialog from './DepartmentManagerDialog'
 import { GeminiMeetingService } from '../services/GeminiMeetingService'
 import { MeetingStorage, MeetingRecord } from '../services/MeetingStorage'
+import { VideoStorageService } from '../services/VideoStorageService'
 import { DailyStandupService, DailyStandupDigest } from '../services/DailyStandupService'
 import { DepartmentRoom, DepartmentStorage } from '../services/DepartmentStorage'
 import BusinessIcon from '@mui/icons-material/Business'
@@ -608,10 +609,17 @@ export default function BottomTaskbar() {
     } else {
       // Inicia gravação com Mixer de Áudio
       try {
-        const displayStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-          audio: true,
-        })
+        let displayStream: MediaStream | null = null
+        try {
+          if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+            displayStream = await navigator.mediaDevices.getDisplayMedia({
+              video: true,
+              audio: true,
+            })
+          }
+        } catch (displayErr) {
+          console.warn('getDisplayMedia não disponível ou cancelado, fallback para gravação de áudio/câmera:', displayErr)
+        }
 
         const game = phaserGame?.scene?.keys?.game as Game
         const webRTC = game?.network?.webRTC
@@ -622,10 +630,13 @@ export default function BottomTaskbar() {
         recordingAudioContextRef.current = audioCtx
         const destination = audioCtx.createMediaStreamDestination()
 
-        const activeStreams: MediaStream[] = [displayStream]
+        const activeStreams: MediaStream[] = []
+        if (displayStream) {
+          activeStreams.push(displayStream)
+        }
 
         // 1. Conecta o áudio do compartilhamento de tela se disponível
-        if (displayStream.getAudioTracks().length > 0) {
+        if (displayStream && displayStream.getAudioTracks().length > 0) {
           try {
             const displaySource = audioCtx.createMediaStreamSource(displayStream)
             displaySource.connect(destination)
@@ -668,9 +679,10 @@ export default function BottomTaskbar() {
 
         recordingActiveStreamsRef.current = activeStreams
 
-        // Monta o stream combinado de gravação: Vídeo da tela + Áudio mixado
+        // Monta o stream combinado de gravação: Vídeo da tela ou câmera + Áudio mixado
         const mixedAudioTrack = destination.stream.getAudioTracks()[0]
-        const tracksToRecord: MediaStreamTrack[] = [...displayStream.getVideoTracks()]
+        const videoTracks: MediaStreamTrack[] = displayStream ? displayStream.getVideoTracks() : (localStream ? localStream.getVideoTracks() : [])
+        const tracksToRecord: MediaStreamTrack[] = [...videoTracks]
         if (mixedAudioTrack) {
           tracksToRecord.push(mixedAudioTrack)
         }
@@ -693,7 +705,12 @@ export default function BottomTaskbar() {
         }
 
         recordedChunksRef.current = []
-        const recorder = new MediaRecorder(recordStream, { mimeType: 'video/webm' })
+        const mimeType = MediaRecorder.isTypeSupported('video/webm')
+          ? 'video/webm'
+          : MediaRecorder.isTypeSupported('video/mp4')
+          ? 'video/mp4'
+          : ''
+        const recorder = mimeType ? new MediaRecorder(recordStream, { mimeType }) : new MediaRecorder(recordStream)
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
             recordedChunksRef.current.push(event.data)
@@ -701,10 +718,12 @@ export default function BottomTaskbar() {
         }
 
         // Se o usuário clicar em "Interromper compartilhamento" pela barra flutuante do navegador
-        displayStream.getVideoTracks()[0].onended = () => {
-          if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-            mediaRecorderRef.current.stop()
-            setIsRecording(false)
+        if (displayStream && displayStream.getVideoTracks()[0]) {
+          displayStream.getVideoTracks()[0].onended = () => {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+              mediaRecorderRef.current.stop()
+              setIsRecording(false)
+            }
           }
         }
 
@@ -760,6 +779,11 @@ export default function BottomTaskbar() {
             meeting.videoBlobUrl = url
             meeting.videoFileName = fileName
             MeetingStorage.saveMeeting(meeting)
+
+            // Salva o arquivo de vídeo no IndexedDB para não sumir após F5
+            VideoStorageService.saveVideo(meeting.id, videoBlob).catch((e) =>
+              console.warn('Erro ao salvar no IndexedDB', e)
+            )
 
             // Ativa o Digest pós-reunião e o badge visual
             setDigestMeeting(meeting)

@@ -28,6 +28,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 
 import { MeetingRecord, MeetingStorage, Commitment } from '../services/MeetingStorage'
+import { VideoStorageService } from '../services/VideoStorageService'
 import { SemanticSearchService, SearchMatch } from '../services/SemanticSearchService'
 import { BiaChatService, ChatMessage } from '../services/BiaChatService'
 
@@ -1171,6 +1172,8 @@ export default function MeetingHistoryDialog({ open, onClose }: Props) {
     setActiveTab('minutes')
   }
 
+  const [videoUrlsMap, setVideoUrlsMap] = useState<Record<string, string>>({})
+
   useEffect(() => {
     if (open) {
       const records = MeetingStorage.getMeetings()
@@ -1178,13 +1181,24 @@ export default function MeetingHistoryDialog({ open, onClose }: Props) {
       if (records.length > 0) {
         setSelectedMeetingId(records[0].id)
       }
-      setApiKey(MeetingStorage.getApiKey())
+
+      // Sincroniza a chave do servidor central
+      MeetingStorage.getApiKeyAsync().then((k) => setApiKey(k))
+
+      // Carrega URLs de vídeos persistidos no IndexedDB
+      records.forEach(async (m) => {
+        const persistedUrl = await VideoStorageService.getVideoUrl(m.id)
+        if (persistedUrl) {
+          setVideoUrlsMap((prev) => ({ ...prev, [m.id]: persistedUrl }))
+        }
+      })
     }
   }, [open])
 
   if (!open) return null
 
   const selectedMeeting = meetings.find((m) => m.id === selectedMeetingId) || meetings[0]
+  const currentVideoUrl = selectedMeeting ? (videoUrlsMap[selectedMeeting.id] || selectedMeeting.videoBlobUrl) : undefined
 
   const filteredMeetings = meetings.filter((m) => {
     const text = `${m.title} ${m.roomName} ${m.participants.join(' ')}`.toLowerCase()
@@ -1237,8 +1251,8 @@ ${commitmentLines}`
     setTimeout(() => setCopySuccess(false), 2500)
   }
 
-  const handleSaveApiKey = () => {
-    MeetingStorage.setApiKey(apiKey)
+  const handleSaveApiKey = async () => {
+    await MeetingStorage.setApiKey(apiKey)
     setSaveSuccess(true)
     setTimeout(() => setSaveSuccess(false), 2500)
   }
@@ -1647,10 +1661,10 @@ ${commitmentLines}`
                 </p>
               </div>
 
-              {selectedMeeting?.videoBlobUrl ? (
+              {currentVideoUrl ? (
                 <CleanCard>
                   <video
-                    src={selectedMeeting.videoBlobUrl}
+                    src={currentVideoUrl}
                     controls
                     style={{
                       width: '100%',
@@ -1670,7 +1684,7 @@ ${commitmentLines}`
                       </p>
                     </div>
                     <a
-                      href={selectedMeeting.videoBlobUrl}
+                      href={currentVideoUrl}
                       download={selectedMeeting.videoFileName || 'reuniao-skyoffice.webm'}
                       style={{ textDecoration: 'none' }}
                     >

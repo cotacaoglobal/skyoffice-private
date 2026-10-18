@@ -40,12 +40,58 @@ const STORAGE_KEY = 'skyoffice_meeting_records'
 const GEMINI_API_KEY_STORAGE = 'skyoffice_gemini_api_key'
 
 export class MeetingStorage {
+  private static cachedServerKey: string | null = null
+
+  static getHttpBaseUrl(): string {
+    const protocol = window.location.protocol
+    const port = window.location.port
+    if (import.meta.env.VITE_SERVER_URL) {
+      return import.meta.env.VITE_SERVER_URL.replace('ws', 'http').replace('/colyseus', '')
+    }
+    if (port === '2567' || port === '5173' || port === '3000') {
+      return `${protocol}//${window.location.hostname}:2567`
+    }
+    return `${protocol}//${window.location.host}`
+  }
+
   static getApiKey(): string {
+    if (this.cachedServerKey) return this.cachedServerKey
     return localStorage.getItem(GEMINI_API_KEY_STORAGE) || ''
   }
 
-  static setApiKey(key: string): void {
-    localStorage.setItem(GEMINI_API_KEY_STORAGE, key.trim())
+  static async getApiKeyAsync(): Promise<string> {
+    if (this.cachedServerKey) return this.cachedServerKey
+    try {
+      const res = await fetch(`${this.getHttpBaseUrl()}/api/office-settings`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.geminiApiKey) {
+          this.cachedServerKey = data.geminiApiKey
+          localStorage.setItem(GEMINI_API_KEY_STORAGE, data.geminiApiKey)
+          return data.geminiApiKey
+        }
+      }
+    } catch (e) {
+      console.warn('Não foi possível sincronizar chave da IA com o servidor:', e)
+    }
+    return this.getApiKey()
+  }
+
+  static async setApiKey(key: string): Promise<void> {
+    const trimmed = key.trim()
+    this.cachedServerKey = trimmed
+    localStorage.setItem(GEMINI_API_KEY_STORAGE, trimmed)
+
+    // Sincroniza com o servidor central para compartilhar com todo o escritório
+    try {
+      await fetch(`${this.getHttpBaseUrl()}/api/office-settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ geminiApiKey: trimmed }),
+      })
+    } catch (e) {
+      console.warn('Erro ao propagar chave da IA para o servidor:', e)
+    }
   }
 
   static getMeetings(): MeetingRecord[] {

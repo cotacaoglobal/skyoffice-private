@@ -16,6 +16,27 @@ app.use(cors())
 app.use(express.json())
 // app.use(express.static('dist'))
 
+// Configuração Centralizada da IA do Escritório
+let officeGeminiApiKey: string = process.env.GEMINI_API_KEY || ''
+
+app.get('/api/office-settings', (req, res) => {
+  res.json({
+    hasGeminiApiKey: Boolean(officeGeminiApiKey),
+    geminiApiKey: officeGeminiApiKey,
+  })
+})
+
+app.post('/api/office-settings', (req, res) => {
+  const { geminiApiKey } = req.body
+  if (typeof geminiApiKey === 'string') {
+    officeGeminiApiKey = geminiApiKey.trim()
+    console.log('[SkyOffice] Chave de API do Gemini do escritório atualizada com sucesso.')
+    res.json({ success: true, hasGeminiApiKey: Boolean(officeGeminiApiKey) })
+  } else {
+    res.status(400).json({ error: 'Chave inválida' })
+  }
+})
+
 const server = http.createServer(app)
 const gameServer = new Server({
   server,

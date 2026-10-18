@@ -86,7 +86,7 @@ export class SemanticSearchService {
     }
 
     const trimmedQuery = query.trim()
-    const apiKey = MeetingStorage.getApiKey()
+    const apiKey = await MeetingStorage.getApiKeyAsync()
     const queryTokens = this.tokenize(trimmedQuery)
 
     // Prepara fragmentos de busca de cada reunião
