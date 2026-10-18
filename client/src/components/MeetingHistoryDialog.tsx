@@ -1089,6 +1089,9 @@ export default function MeetingHistoryDialog({ open, onClose }: Props) {
   const [apiKey, setApiKey] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
+  const [isTestingKey, setIsTestingKey] = useState(false)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [isRegenerating, setIsRegenerating] = useState(false)
 
   // Estados do Chat da Bia
   const [biaMessages, setBiaMessages] = useState<ChatMessage[]>([
@@ -1251,10 +1254,6 @@ ${commitmentLines}`
     setCopySuccess(true)
     setTimeout(() => setCopySuccess(false), 2500)
   }
-
-  const [isTestingKey, setIsTestingKey] = useState(false)
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
-  const [isRegenerating, setIsRegenerating] = useState(false)
 
   const handleSaveApiKey = async () => {
     await MeetingStorage.setApiKey(apiKey)
