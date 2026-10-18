@@ -16,8 +16,25 @@ app.use(cors())
 app.use(express.json())
 // app.use(express.static('dist'))
 
-// Configuração Centralizada da IA do Escritório
+// Configuração Centralizada da IA do Escritório com persistência em disco
+import fs from 'fs'
+import path from 'path'
+
+const settingsFilePath = path.join(__dirname, 'office-settings.json')
 let officeGeminiApiKey: string = process.env.GEMINI_API_KEY || ''
+
+try {
+  if (fs.existsSync(settingsFilePath)) {
+    const raw = fs.readFileSync(settingsFilePath, 'utf-8')
+    const parsed = JSON.parse(raw)
+    if (parsed.geminiApiKey) {
+      officeGeminiApiKey = parsed.geminiApiKey
+      console.log('[SkyOffice] Chave de API do Gemini carregada do arquivo de configurações.')
+    }
+  }
+} catch (e) {
+  console.warn('[SkyOffice] Não foi possível ler office-settings.json:', e)
+}
 
 app.get('/api/office-settings', (req, res) => {
   res.json({
@@ -30,6 +47,11 @@ app.post('/api/office-settings', (req, res) => {
   const { geminiApiKey } = req.body
   if (typeof geminiApiKey === 'string') {
     officeGeminiApiKey = geminiApiKey.trim()
+    try {
+      fs.writeFileSync(settingsFilePath, JSON.stringify({ geminiApiKey: officeGeminiApiKey }, null, 2))
+    } catch (err) {
+      console.warn('[SkyOffice] Erro ao salvar office-settings.json no disco:', err)
+    }
     console.log('[SkyOffice] Chave de API do Gemini do escritório atualizada com sucesso.')
     res.json({ success: true, hasGeminiApiKey: Boolean(officeGeminiApiKey) })
   } else {

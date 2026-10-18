@@ -74,6 +74,15 @@ server {
         proxy_set_header Connection "Upgrade";
         proxy_set_header Host $host;
     }
+
+    # Proxy para API REST do Colyseus/Express (Configurações da IA, atas, etc)
+    location /api/ {
+        proxy_pass http://176.57.188.108:2567/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
 }
 EOF
 ```

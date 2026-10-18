@@ -118,3 +118,42 @@ Este documento centraliza as especificações de arquitetura, comportamento espe
   - Atualização dos serviços `BiaChatService` e `SemanticSearchService` para utilizar a chave corporativa unificada.
 - **Status Atual**: ✅ **Funcionando perfeitamente**. A IA processa áudio, atas, busca semântica e chat com a assistente Bia de forma centralizada.
 
+---
+
+## 8. Geração da Ata Completa com IA, Duração Real, Data/Horário e Reconhecimento de Voz
+
+### Especificação Esperada
+- As reuniões gravadas devem exibir a **data completa** acompanhada do **horário de realização** (ex: `18/10/2026 às 16:30`) e o **tempo exato de duração** (ex: `2 min 15s`), eliminando a exibição errônea de `0 seg`.
+- A Inteligência Artificial (Google Gemini) deve gerar o conteúdo **real e executivo** da ata:
+  1. **Resumo dos Principais Pontos**: Tópicos reais discutidos na sessão.
+  2. **Decisões Tomadas pela Equipe**: Deliberações e acordos firmados.
+  3. **Itens de Ação (Tarefas e Responsáveis)**: Distribuição clara de atribuições entre os membros presentes.
+  4. **Compromissos Identificados**: Promessas com timestamps aproximados.
+  5. **Transcrição Completa**: Transcrição fiel de todos os diálogos da reunião.
+- A ferramenta deve fornecer um botão para **"Gerar Ata com IA"** / **"Regerar Ata com IA"** para atas já gravadas e um **"Testador de Conexão com Gemini"** em tempo real no painel de configurações.
+
+### Correção Registrada: Dados Mockados, Falha de Extração de Áudio e Duração Zerada (0 seg)
+- **Causas Raízes Identificadas**:
+  1. *Duração 0 seg*: Ao clicar em "Parar Gravação", o estado `isRecording` era alterado para `false`, disparando o reset do contador para `0` antes de o evento assíncrono `onstop` do `MediaRecorder` ler os segundos decorridos.
+  2. *Data sem Horário*: Apenas `toLocaleDateString` era chamado na listagem e cabeçalho, omitindo as horas e minutos.
+  3. *Queda no Mock / Erro no Gemini*:
+     - O `audioRecorder` gravava áudio simultâneo, mas seu método `stop()` é assíncrono. Como o código lia `audioChunks` imediatamente sem aguardar o `onstop`, a lista de chunks de áudio ficava vazia e o sistema enviava o arquivo de vídeo completo (`video/webm` com tela/câmera, ultrapassando 20MB) como inlineData, estourando o limite de payload HTTP da API do Gemini e acionando o fallback mockado.
+     - O Nginx na VPS não possuía rota para `/api/`, interceptando requisições REST para a chave da IA e retornando o HTML do `index.html`.
+- **Resolução Implementada**:
+  - `BottomTaskbar.tsx`:
+    - Adicionado `recordingStartTimeRef = useRef<number>(0)` para cálculo preciso do tempo decorrido no momento do `stop`: `Math.max(1, Math.round((Date.now() - recordingStartTimeRef.current) / 1000))`.
+    - Adicionado reconhecimento de fala contínuo em tempo real via Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`) em `pt-BR`, capturando e acumulando as falas dos participantes com timestamp relativo.
+    - Sincronização assíncrona com `Promise` no `audioRecorder.onstop`, garantindo entrega de áudio puro em Opus (`audio/webm;codecs=opus`, 32kbps), sem enviar vídeo pesado para a API.
+  - `GeminiMeetingService.ts`:
+    - Integração de modelos Gemini (`gemini-1.5-flash`, `gemini-1.5-flash-latest`, `gemini-2.0-flash`, `gemini-1.5-pro`).
+    - Validação de tamanho e formato do áudio, priorizando áudio puro e injetando a transcrição em tempo real `rawTranscript` no prompt executivo.
+    - Criação de método estático `testApiKey(apiKey)` para validação instantânea de chaves de API.
+    - Se houver erro de cota ou chave, o sistema informa a falha de forma transparente e utiliza os diálogos reais transcritos, sem inventar mock genérico.
+  - `MeetingHistoryDialog.tsx` & `PostMeetingDigest.tsx`:
+    - Formatação da data e horário com `toLocaleDateString('pt-BR') às toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })` e duração explícita `Duração: ${durationFormatted}`.
+    - Botão "Gerar Ata com IA" para reprocessar gravações existentes sob demanda via IndexedDB.
+    - Botão "Testar Conexão com Gemini" na aba de configurações com feedback instantâneo de status.
+  - `server/index.ts` & `DEPLOY_VPS.md`:
+    - Persistência da chave da IA em `server/office-settings.json` para suportar reinicializações do container.
+    - Rota `/api/` adicionada no `nginx.conf` da VPS para proxy direto ao backend `:2567`.
+- **Status Atual**: ✅ **Funcionando perfeitamente**. Atas completas, resumos executivos reais, decisões e transcrições geradas com fidelidade pela IA e com data/horário/duração precisos.

@@ -366,6 +366,9 @@ export default function BottomTaskbar() {
   const recordedChunksRef = useRef<Blob[]>([])
   const recordingAudioContextRef = useRef<AudioContext | null>(null)
   const recordingActiveStreamsRef = useRef<MediaStream[]>([])
+  const recordingStartTimeRef = useRef<number>(0)
+  const speechRecognitionRef = useRef<any>(null)
+  const liveTranscriptsRef = useRef<string[]>([])
   const taskbarRef = useRef<HTMLDivElement>(null)
   // Standup Diário Automático
   const [showStandupModal, setShowStandupModal] = useState(false)
@@ -694,14 +697,61 @@ export default function BottomTaskbar() {
         let audioRecorder: MediaRecorder | null = null
         if (audioOnlyStream) {
           try {
-            audioRecorder = new MediaRecorder(audioOnlyStream, { mimeType: 'audio/webm' })
+            const audioMime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+              ? 'audio/webm;codecs=opus'
+              : MediaRecorder.isTypeSupported('audio/webm')
+              ? 'audio/webm'
+              : MediaRecorder.isTypeSupported('audio/ogg')
+              ? 'audio/ogg'
+              : ''
+            audioRecorder = audioMime
+              ? new MediaRecorder(audioOnlyStream, { mimeType: audioMime, audioBitsPerSecond: 32000 })
+              : new MediaRecorder(audioOnlyStream)
             audioRecorder.ondataavailable = (ev) => {
-              if (ev.data.size > 0) audioChunks.push(ev.data)
+              if (ev.data && ev.data.size > 0) audioChunks.push(ev.data)
             }
             audioRecorder.start(1000)
           } catch (e) {
             console.warn('MediaRecorder de áudio não suportado, usando stream padrão:', e)
           }
+        }
+
+        // Inicia o reconhecimento de voz contínuo para transcrever o diálogo da reunião em tempo real
+        liveTranscriptsRef.current = []
+        try {
+          const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+          if (SpeechRec) {
+            const recognition = new SpeechRec()
+            recognition.continuous = true
+            recognition.interimResults = false
+            recognition.lang = 'pt-BR'
+            const currentGame = phaserGame?.scene?.keys?.game as Game
+            const mySpeakerName = currentGame?.myPlayer?.playerName?.text || 'Participante'
+
+            recognition.onresult = (ev: any) => {
+              for (let i = ev.resultIndex; i < ev.results.length; ++i) {
+                if (ev.results[i].isFinal) {
+                  const speechText = ev.results[i][0].transcript.trim()
+                  if (speechText) {
+                    const elapsedSecs = recordingStartTimeRef.current > 0
+                      ? Math.max(0, Math.round((Date.now() - recordingStartTimeRef.current) / 1000))
+                      : 0
+                    const mm = String(Math.floor(elapsedSecs / 60)).padStart(2, '0')
+                    const ss = String(elapsedSecs % 60).padStart(2, '0')
+                    liveTranscriptsRef.current.push(`[${mm}:${ss}] ${mySpeakerName}: ${speechText}`)
+                    console.log(`[Reunião Transcrição] [${mm}:${ss}] ${mySpeakerName}: ${speechText}`)
+                  }
+                }
+              }
+            }
+            recognition.onerror = (err: any) => {
+              console.warn('[SpeechRecognition] Detalhe:', err?.error)
+            }
+            recognition.start()
+            speechRecognitionRef.current = recognition
+          }
+        } catch (e) {
+          console.warn('[SpeechRecognition] Não suportado neste navegador:', e)
         }
 
         recordedChunksRef.current = []
@@ -728,12 +778,31 @@ export default function BottomTaskbar() {
         }
 
         recorder.onstop = async () => {
-          if (audioRecorder && audioRecorder.state !== 'inactive') {
-            audioRecorder.stop()
+          // Para o reconhecimento de fala
+          if (speechRecognitionRef.current) {
+            try {
+              speechRecognitionRef.current.stop()
+            } catch (e) {}
+            speechRecognitionRef.current = null
           }
 
+          // Aguarda o término seguro do gravador de áudio
+          const audioBlob: Blob | null = await new Promise((resolve) => {
+            if (!audioRecorder || audioRecorder.state === 'inactive') {
+              resolve(audioChunks.length > 0 ? new Blob(audioChunks, { type: 'audio/webm' }) : null)
+              return
+            }
+            audioRecorder.onstop = () => {
+              resolve(audioChunks.length > 0 ? new Blob(audioChunks, { type: 'audio/webm' }) : null)
+            }
+            try {
+              audioRecorder.stop()
+            } catch (e) {
+              resolve(audioChunks.length > 0 ? new Blob(audioChunks, { type: 'audio/webm' }) : null)
+            }
+          })
+
           const videoBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
-          const audioBlob = audioChunks.length > 0 ? new Blob(audioChunks, { type: 'audio/webm' }) : videoBlob
           const url = URL.createObjectURL(videoBlob)
           const fileName = `reuniao-skyoffice-${new Date().toISOString().slice(0, 10)}.webm`
 
@@ -768,11 +837,18 @@ export default function BottomTaskbar() {
               })
             }
 
+            const elapsed = recordingStartTimeRef.current > 0
+              ? Math.max(1, Math.round((Date.now() - recordingStartTimeRef.current) / 1000))
+              : recordingSeconds
+
+            const rawTranscript = liveTranscriptsRef.current.join('\n')
+
             const meeting = await GeminiMeetingService.generateMeetingNotes({
               audioBlob,
+              rawTranscript,
               roomName,
               participants: participants.length > 0 ? participants : ['Você'],
-              durationSeconds: recordingSeconds,
+              durationSeconds: elapsed,
               meetingTitle: `Reunião - ${roomName}`,
             })
 
@@ -796,6 +872,7 @@ export default function BottomTaskbar() {
           }
         }
 
+        recordingStartTimeRef.current = Date.now()
         recorder.start(1000)
         mediaRecorderRef.current = recorder
         setIsRecording(true)

@@ -225,7 +225,7 @@ export default function PostMeetingDigest({
 
   const handleCopy = () => {
     const text = `📋 Ata Rápida da Bia — ${meeting.title}\n` +
-      `Data: ${new Date(meeting.createdAt).toLocaleDateString('pt-BR')} | Sala: ${meeting.roomName}\n\n` +
+      `Data: ${new Date(meeting.createdAt).toLocaleDateString('pt-BR')} às ${new Date(meeting.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} | Duração: ${meeting.durationFormatted} | Sala: ${meeting.roomName}\n\n` +
       `📌 Resumo:\n${meeting.summary.map((s) => `• ${s}`).join('\n')}\n\n` +
       `⚖️ Decisões:\n${meeting.decisions.map((d) => `• ${d}`).join('\n')}\n`
     navigator.clipboard.writeText(text)

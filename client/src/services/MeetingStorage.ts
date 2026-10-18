@@ -56,42 +56,90 @@ export class MeetingStorage {
 
   static getApiKey(): string {
     if (this.cachedServerKey) return this.cachedServerKey
-    return localStorage.getItem(GEMINI_API_KEY_STORAGE) || ''
+    return (localStorage.getItem(GEMINI_API_KEY_STORAGE) || '').trim().replace(/^["']|["']$/g, '')
+  }
+
+  private static async fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 3000): Promise<Response> {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal })
+      clearTimeout(timer)
+      return res
+    } catch (err) {
+      clearTimeout(timer)
+      throw err
+    }
   }
 
   static async getApiKeyAsync(): Promise<string> {
     if (this.cachedServerKey) return this.cachedServerKey
-    try {
-      const res = await fetch(`${this.getHttpBaseUrl()}/api/office-settings`)
-      if (res.ok) {
-        const data = await res.json()
-        if (data.geminiApiKey) {
-          this.cachedServerKey = data.geminiApiKey
-          localStorage.setItem(GEMINI_API_KEY_STORAGE, data.geminiApiKey)
-          return data.geminiApiKey
+
+    const endpoints = [
+      `${this.getHttpBaseUrl()}/api/office-settings`,
+      `${window.location.protocol}//${window.location.hostname}:2567/api/office-settings`,
+    ]
+
+    for (const url of endpoints) {
+      try {
+        const res = await this.fetchWithTimeout(url, {}, 3000)
+        if (res.ok) {
+          const contentType = res.headers.get('content-type') || ''
+          if (contentType.includes('application/json')) {
+            const data = await res.json()
+            if (data.geminiApiKey) {
+              const cleanKey = String(data.geminiApiKey).trim().replace(/^["']|["']$/g, '')
+              this.cachedServerKey = cleanKey
+              localStorage.setItem(GEMINI_API_KEY_STORAGE, cleanKey)
+              return cleanKey
+            }
+          }
         }
+      } catch (e) {
+        // tenta o próximo endpoint
       }
-    } catch (e) {
-      console.warn('Não foi possível sincronizar chave da IA com o servidor:', e)
     }
-    return this.getApiKey()
+
+    const localKey = this.getApiKey()
+    // Se temos localKey mas o servidor não tinha, sincroniza para o servidor
+    if (localKey) {
+      this.cachedServerKey = localKey
+      this.syncKeyToServer(localKey).catch(() => {})
+    }
+    return localKey
+  }
+
+  static async syncKeyToServer(key: string): Promise<boolean> {
+    const trimmed = key.trim().replace(/^["']|["']$/g, '')
+    const endpoints = [
+      `${this.getHttpBaseUrl()}/api/office-settings`,
+      `${window.location.protocol}//${window.location.hostname}:2567/api/office-settings`,
+    ]
+
+    for (const url of endpoints) {
+      try {
+        const res = await this.fetchWithTimeout(
+          url,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ geminiApiKey: trimmed }),
+          },
+          3000
+        )
+        if (res.ok) return true
+      } catch (e) {
+        // tenta o próximo endpoint
+      }
+    }
+    return false
   }
 
   static async setApiKey(key: string): Promise<void> {
-    const trimmed = key.trim()
+    const trimmed = key.trim().replace(/^["']|["']$/g, '')
     this.cachedServerKey = trimmed
     localStorage.setItem(GEMINI_API_KEY_STORAGE, trimmed)
-
-    // Sincroniza com o servidor central para compartilhar com todo o escritório
-    try {
-      await fetch(`${this.getHttpBaseUrl()}/api/office-settings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ geminiApiKey: trimmed }),
-      })
-    } catch (e) {
-      console.warn('Erro ao propagar chave da IA para o servidor:', e)
-    }
+    await this.syncKeyToServer(trimmed)
   }
 
   static getMeetings(): MeetingRecord[] {

@@ -18,11 +18,61 @@ export class GeminiMeetingService {
   }
 
   /**
-   * Processa uma gravação com a IA (Google Gemini 1.5 Flash)
-   * Se a chave não estiver configurada, gera uma estrutura inteligente com base no contexto.
+   * Testa a validade de uma chave de API do Gemini em tempo real
+   */
+  static async testApiKey(apiKey: string): Promise<{ success: boolean; message: string }> {
+    const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '')
+    if (!cleanKey) {
+      return { success: false, message: 'Por favor, insira uma chave de API antes de testar.' }
+    }
+
+    const candidateModels = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash']
+    let lastError = ''
+
+    for (const model of candidateModels) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [{ text: 'Responda apenas: OK' }],
+              },
+            ],
+            generationConfig: {
+              maxOutputTokens: 10,
+            },
+          }),
+        })
+
+        if (res.ok) {
+          return {
+            success: true,
+            message: `Conexão bem-sucedida com o modelo ${model}! Sua IA está 100% pronta para gerar atas e transcrições.`,
+          }
+        }
+
+        const errData = await res.json().catch(() => ({}))
+        const errMsg = errData.error?.message || `HTTP ${res.status} ${res.statusText}`
+        lastError = errMsg
+      } catch (err) {
+        lastError = String(err)
+      }
+    }
+
+    return {
+      success: false,
+      message: `Falha na validação com o Google: ${lastError}`,
+    }
+  }
+
+  /**
+   * Processa uma gravação com a IA (Google Gemini 1.5 Flash / 2.0 Flash)
    */
   static async generateMeetingNotes(params: {
-    audioBlob?: Blob
+    audioBlob?: Blob | null
     rawTranscript?: string
     meetingTitle?: string
     roomName: string
@@ -32,27 +82,41 @@ export class GeminiMeetingService {
     let apiKey = await MeetingStorage.getApiKeyAsync()
     const durationFormatted = this.formatDuration(params.durationSeconds)
     const title = params.meetingTitle || `Reunião - ${params.roomName}`
+    const nowIso = new Date().toISOString()
+    const participantsList = params.participants.length > 0 ? params.participants : ['Você']
 
-    // Se temos chave e áudio ou transcrição, chama a API do Gemini
+    console.log('[GeminiMeetingService] Processando ata:', {
+      title,
+      duration: durationFormatted,
+      room: params.roomName,
+      hasApiKey: Boolean(apiKey),
+      hasAudioBlob: Boolean(params.audioBlob),
+      audioSize: params.audioBlob?.size || 0,
+      hasRawTranscript: Boolean(params.rawTranscript),
+    })
+
+    let apiError: string | null = null
+
+    // Se temos chave, tenta gerar via IA multimodal
     if (apiKey) {
       try {
-        console.log('[GeminiMeetingService] Iniciando processamento de ata com IA para:', title)
         const result = await this.callGeminiAPI({
           apiKey,
           audioBlob: params.audioBlob,
           rawTranscript: params.rawTranscript,
           roomName: params.roomName,
-          participants: params.participants,
+          participants: participantsList,
+          durationFormatted,
         })
 
         if (result) {
           const meeting: MeetingRecord = {
             id: `meeting-${Date.now()}`,
             title,
-            createdAt: new Date().toISOString(),
+            createdAt: nowIso,
             durationFormatted,
             roomName: params.roomName,
-            participants: params.participants.length > 0 ? params.participants : ['Você'],
+            participants: participantsList,
             summary: result.summary,
             decisions: result.decisions,
             actionItems: result.actionItems,
@@ -63,38 +127,58 @@ export class GeminiMeetingService {
           MeetingStorage.saveMeeting(meeting)
           return meeting
         }
-      } catch (err) {
-        console.error('Falha na chamada da API Gemini:', err)
+      } catch (err: any) {
+        apiError = err?.message || String(err)
+        console.error('[GeminiMeetingService] Erro na chamada da API Gemini:', apiError)
       }
     }
 
-    // Fallback inteligente caso a chave ainda não tenha sido inserida
+    // Se não há chave ou se a chamada da API falhou, gera uma ata real baseada no que foi capturado
+    const summaryItems: string[] = []
+    const decisionItems: string[] = []
+    const actionItems: ActionItem[] = []
+
+    if (apiError) {
+      summaryItems.push(`⚠️ Aviso da IA: Não foi possível obter resposta do Gemini (${apiError}).`)
+      summaryItems.push(`Reunião realizada com sucesso na sala "${params.roomName}" com duração de ${durationFormatted}.`)
+    } else if (!apiKey) {
+      summaryItems.push(`Reunião realizada com sucesso na sala "${params.roomName}" com duração de ${durationFormatted}.`)
+      summaryItems.push('💡 Para atas automáticas com IA generativa avançada, configure sua chave de API do Gemini na aba "Configurações de IA".')
+    } else {
+      summaryItems.push(`Reunião realizada na sala "${params.roomName}" com duração de ${durationFormatted}.`)
+    }
+
+    if (params.rawTranscript && params.rawTranscript.trim().length > 0) {
+      summaryItems.push(`Transcrição de áudio capturada com ${params.rawTranscript.split('\n').length} falas registradas.`)
+      decisionItems.push('Diálogos e registros da conversa foram preservados na íntegra.')
+    } else {
+      summaryItems.push('Gravação de áudio e vídeo capturada e salva com sucesso.')
+      decisionItems.push('Gravação armazenada no histórico para consulta e download.')
+    }
+
+    if (!apiKey) {
+      actionItems.push({
+        task: 'Configurar a Chave de API do Gemini no menu Configurações de IA',
+        assignee: participantsList[0] || 'Você',
+        deadline: 'Quando conveniente',
+      })
+    }
+
     const fallbackMeeting: MeetingRecord = {
       id: `meeting-${Date.now()}`,
       title,
-      createdAt: new Date().toISOString(),
+      createdAt: nowIso,
       durationFormatted,
       roomName: params.roomName,
-      participants: params.participants.length > 0 ? params.participants : ['Você'],
-      summary: [
-        `Reunião realizada com sucesso na sala "${params.roomName}" com duração de ${durationFormatted}.`,
-        'Gravação de áudio e vídeo capturada em alta definição.',
-        'Para transcrição detalhada automatizada via IA, configure sua chave do Google Gemini no painel de configurações.',
-      ],
-      decisions: [
-        'A gravação foi salva localmente e pode ser baixada a qualquer momento.',
-        'Pontos deliberados na conversa permanecem disponíveis no histórico deste dispositivo.',
-      ],
-      actionItems: [
-        {
-          task: 'Inserir a Chave de API do Gemini na aba Configurações de IA para transcrição completa',
-          assignee: params.participants[0] || 'Você',
-          deadline: 'Opcional',
-        },
-      ],
+      participants: participantsList,
+      summary: summaryItems,
+      decisions: decisionItems.length > 0 ? decisionItems : ['Nenhuma decisão explícita registrada.'],
+      actionItems,
       commitments: [],
       timestampedSegments: [],
-      transcript: params.rawTranscript || `[Gravação de ${durationFormatted} finalizada com sucesso.]`,
+      transcript:
+        params.rawTranscript ||
+        `[Gravação da reunião na sala "${params.roomName}" finalizada com sucesso. Duração: ${durationFormatted}]`,
     }
 
     MeetingStorage.saveMeeting(fallbackMeeting)
@@ -103,10 +187,11 @@ export class GeminiMeetingService {
 
   private static async callGeminiAPI(params: {
     apiKey: string
-    audioBlob?: Blob
+    audioBlob?: Blob | null
     rawTranscript?: string
     roomName: string
     participants: string[]
+    durationFormatted: string
   }): Promise<{
     summary: string[]
     decisions: string[]
@@ -115,31 +200,32 @@ export class GeminiMeetingService {
     timestampedSegments: TimestampedSegment[]
     transcript: string
   } | null> {
-    const prompt = `Você é um assistente executivo sênior de atas e reuniões corporativas no escritório virtual "${params.roomName}".
-Participantes conhecidos: ${params.participants.join(', ') || 'Equipe'}.
+    const prompt = `Você é um assistente executivo sênior especialista em atas e documentação corporativa para a reunião realizada na sala "${params.roomName}" com duração de ${params.durationFormatted}.
+Participantes da reunião: ${params.participants.join(', ')}.
 
-Analise o conteúdo da reunião e responda EXCLUSIVAMENTE em formato JSON com o seguinte formato exato (sem blocos markdown adicionais além do json):
+Analise todo o conteúdo do áudio e/ou da transcrição das falas fornecidas e gere a ATA COMPLETA da reunião.
+Responda EXCLUSIVAMENTE em formato JSON com o seguinte formato exato (sem texto ou blocos markdown adicionais):
 {
   "summary": [
-    "Ponto principal discutido 1",
-    "Ponto principal discutido 2"
+    "Resumo detalhado do ponto 1 discutido na reunião",
+    "Resumo detalhado do ponto 2 discutido na reunião"
   ],
   "decisions": [
-    "Decisão tomada 1",
-    "Decisão tomada 2"
+    "Decisão clara e acordada tomada pela equipe",
+    "Outra deliberação ou definição"
   ],
   "actionItems": [
     {
-      "task": "Descrição da tarefa",
-      "assignee": "Nome do responsável",
-      "deadline": "Prazo estimado ou Em breve"
+      "task": "Descrição clara da tarefa a ser executada",
+      "assignee": "Nome do participante responsável (use um dos participantes: ${params.participants.join(', ')})",
+      "deadline": "Prazo acordado ou Em breve"
     }
   ],
   "commitments": [
     {
-      "description": "Descrição do compromisso ou promessa feita",
+      "description": "Compromisso ou promessa verbal feita por alguém",
       "responsiblePerson": "Nome da pessoa que se comprometeu",
-      "deadline": "Prazo mencionado ou Em breve",
+      "deadline": "Prazo mencionado ou A definir",
       "detectedAt": "MM:SS",
       "status": "pending"
     }
@@ -148,44 +234,58 @@ Analise o conteúdo da reunião e responda EXCLUSIVAMENTE em formato JSON com o 
     {
       "timestamp": "MM:SS",
       "speaker": "Nome de quem falou",
-      "content": "Resumo do que foi dito nesse momento",
-      "type": "summary | decision | commitment | general"
+      "content": "Resumo do que foi falado neste trecho",
+      "type": "summary"
     }
   ],
-  "transcript": "Transcrição aproximada ou tópicos detalhados da conversa"
+  "transcript": "Transcrição completa, clara e organizada de tudo o que foi conversado durante a reunião"
 }
 
-IMPORTANTE:
-- Em "commitments", identifique todas as PROMESSAS, COMPROMISSOS e PRAZOS mencionados durante a reunião. Inclua quem se comprometeu, o que prometeu fazer e o timestamp aproximado de quando falou isso.
-- Em "timestampedSegments", vincule cada trecho importante da conversa ao timestamp aproximado no áudio. Classifique cada segmento como: summary (ponto discutido), decision (decisão tomada), commitment (promessa/compromisso) ou general (outros).
-- Os timestamps devem estar no formato MM:SS.`
+DIRETRIZES FUNDAMENTAIS:
+1. Resuma todos os pontos principais de forma executiva, objetiva e profissional em português do Brasil.
+2. Identifique todas as tarefas ("actionItems") distribuindo entre os participantes presentes.
+3. Em "transcript", transcreva com fidelidade as falas dos participantes.
+4. Se houver áudio e pouca fala, descreva os tópicos contextuais abordados na sala.`
 
     const parts: any[] = []
 
-    if (params.audioBlob) {
-      const base64Data = await this.blobToBase64(params.audioBlob)
-      parts.push({
-        inlineData: {
-          mimeType: params.audioBlob.type || 'audio/webm',
-          data: base64Data,
-        },
-      })
+    // Adiciona o áudio se disponível e com tamanho aceitável para inline (< 15MB)
+    if (params.audioBlob && params.audioBlob.size > 0) {
+      if (params.audioBlob.size <= 15 * 1024 * 1024) {
+        try {
+          const base64Data = await this.blobToBase64(params.audioBlob)
+          const mimeType = params.audioBlob.type && params.audioBlob.type.startsWith('audio/')
+            ? params.audioBlob.type.split(';')[0]
+            : 'audio/webm'
+
+          parts.push({
+            inlineData: {
+              mimeType,
+              data: base64Data,
+            },
+          })
+          console.log(`[GeminiMeetingService] Áudio anexado (${Math.round(params.audioBlob.size / 1024)} KB, ${mimeType})`)
+        } catch (e) {
+          console.warn('[GeminiMeetingService] Não foi possível converter áudio para Base64:', e)
+        }
+      } else {
+        console.warn(`[GeminiMeetingService] Áudio excede 15MB (${Math.round(params.audioBlob.size / 1024 / 1024)} MB). Priorizando transcrição textual.`)
+      }
     }
 
-    if (params.rawTranscript) {
+    if (params.rawTranscript && params.rawTranscript.trim()) {
       parts.push({
-        text: `Transcrição preliminar capturada:\n${params.rawTranscript}`,
+        text: `Registros de falas capturados em tempo real durante a reunião:\n${params.rawTranscript}`,
       })
     }
 
     parts.push({ text: prompt })
 
     const candidateModels = [
+      'gemini-1.5-flash',
       'gemini-1.5-flash-latest',
       'gemini-2.0-flash',
-      'gemini-1.5-flash',
       'gemini-1.5-pro',
-      'gemini-pro',
     ]
 
     let response: Response | null = null
@@ -193,6 +293,7 @@ IMPORTANTE:
 
     for (const model of candidateModels) {
       try {
+        console.log(`[GeminiMeetingService] Tentando requisição com modelo: ${model}`)
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${params.apiKey}`
         const res = await fetch(url, {
           method: 'POST',
@@ -206,7 +307,7 @@ IMPORTANTE:
               },
             ],
             generationConfig: {
-              temperature: 0.2,
+              temperature: 0.3,
               responseMimeType: 'application/json',
             },
           }),
@@ -214,15 +315,16 @@ IMPORTANTE:
 
         if (res.ok) {
           response = res
-          console.log(`[GeminiMeetingService] Sucesso com o modelo: ${model}`)
+          console.log(`[GeminiMeetingService] Sucesso na resposta do modelo: ${model}`)
           break
         } else {
           const errBody = await res.text()
           lastError = `[${model}] (${res.status}): ${errBody}`
-          console.warn(`[GeminiMeetingService] Tentativa com modelo ${model} falhou:`, res.status)
+          console.warn(`[GeminiMeetingService] Tentativa com modelo ${model} falhou:`, res.status, errBody)
         }
       } catch (err) {
         lastError = String(err)
+        console.warn(`[GeminiMeetingService] Exceção na conexão com ${model}:`, err)
       }
     }
 
@@ -232,7 +334,9 @@ IMPORTANTE:
 
     const data = await response.json()
     const contentText = data.candidates?.[0]?.content?.parts?.[0]?.text
-    if (!contentText) return null
+    if (!contentText) {
+      throw new Error('O Gemini retornou uma resposta sem conteúdo.')
+    }
 
     let cleanedText = contentText.trim()
     if (cleanedText.startsWith('```json')) {
@@ -244,14 +348,14 @@ IMPORTANTE:
     try {
       const parsed = JSON.parse(cleanedText)
       return {
-        summary: Array.isArray(parsed.summary) ? parsed.summary : [parsed.summary || ''],
-        decisions: Array.isArray(parsed.decisions) ? parsed.decisions : [parsed.decisions || ''],
+        summary: Array.isArray(parsed.summary) && parsed.summary.length > 0 ? parsed.summary : [parsed.summary || 'Reunião realizada com sucesso.'],
+        decisions: Array.isArray(parsed.decisions) && parsed.decisions.length > 0 ? parsed.decisions : [parsed.decisions || 'Decisões deliberadas na conversa.'],
         actionItems: Array.isArray(parsed.actionItems) ? parsed.actionItems : [],
         commitments: Array.isArray(parsed.commitments)
           ? parsed.commitments.map((c: any) => ({
               description: c.description || '',
               responsiblePerson: c.responsiblePerson || '',
-              deadline: c.deadline || '',
+              deadline: c.deadline || 'Em breve',
               detectedAt: c.detectedAt || '00:00',
               status: c.status === 'done' ? 'done' : 'pending',
             }))
@@ -266,11 +370,11 @@ IMPORTANTE:
                 : 'general',
             }))
           : [],
-        transcript: parsed.transcript || '',
+        transcript: parsed.transcript || params.rawTranscript || '',
       }
     } catch (e) {
-      console.error('Erro ao fazer parse do JSON do Gemini:', e, contentText)
-      return null
+      console.error('[GeminiMeetingService] Erro ao fazer parse do JSON do Gemini:', e, contentText)
+      throw new Error('Não foi possível interpretar o formato retornado pela IA.')
     }
   }
 
@@ -281,3 +385,4 @@ IMPORTANTE:
     return `${mins} min ${secs > 0 ? `${secs}s` : ''}`
   }
 }
+

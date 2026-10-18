@@ -31,6 +31,7 @@ import { MeetingRecord, MeetingStorage, Commitment } from '../services/MeetingSt
 import { VideoStorageService } from '../services/VideoStorageService'
 import { SemanticSearchService, SearchMatch } from '../services/SemanticSearchService'
 import { BiaChatService, ChatMessage } from '../services/BiaChatService'
+import { GeminiMeetingService } from '../services/GeminiMeetingService'
 
 // Tela Inteira (Full Page) com visual limpo, moderno e claro
 const FullPageContainer = styled.div`
@@ -1251,10 +1252,60 @@ ${commitmentLines}`
     setTimeout(() => setCopySuccess(false), 2500)
   }
 
+  const [isTestingKey, setIsTestingKey] = useState(false)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [isRegenerating, setIsRegenerating] = useState(false)
+
   const handleSaveApiKey = async () => {
     await MeetingStorage.setApiKey(apiKey)
     setSaveSuccess(true)
     setTimeout(() => setSaveSuccess(false), 2500)
+  }
+
+  const handleTestApiKey = async () => {
+    if (!apiKey.trim()) {
+      setTestResult({ success: false, message: 'Insira a chave do Gemini antes de testar.' })
+      return
+    }
+    setIsTestingKey(true)
+    setTestResult(null)
+    try {
+      const res = await GeminiMeetingService.testApiKey(apiKey)
+      setTestResult(res)
+    } catch (err: any) {
+      setTestResult({ success: false, message: err?.message || 'Falha ao conectar com o Gemini.' })
+    } finally {
+      setIsTestingKey(false)
+    }
+  }
+
+  const handleRegenerateAta = async () => {
+    if (!selectedMeeting) return
+    setIsRegenerating(true)
+    try {
+      const videoBlob = await VideoStorageService.getVideoBlob(selectedMeeting.id)
+      const regenerated = await GeminiMeetingService.generateMeetingNotes({
+        audioBlob: videoBlob,
+        rawTranscript: selectedMeeting.transcript,
+        meetingTitle: selectedMeeting.title,
+        roomName: selectedMeeting.roomName,
+        participants: selectedMeeting.participants,
+        durationSeconds: 60,
+      })
+      regenerated.id = selectedMeeting.id
+      regenerated.createdAt = selectedMeeting.createdAt
+      regenerated.durationFormatted = selectedMeeting.durationFormatted !== '0 seg' ? selectedMeeting.durationFormatted : regenerated.durationFormatted
+      regenerated.videoBlobUrl = selectedMeeting.videoBlobUrl
+      regenerated.videoFileName = selectedMeeting.videoFileName
+
+      MeetingStorage.saveMeeting(regenerated)
+      setMeetings(MeetingStorage.getMeetings())
+      alert('✅ Ata gerada e atualizada com sucesso pela Inteligência Artificial!')
+    } catch (err: any) {
+      alert(`⚠️ Erro ao gerar ata com IA: ${err?.message || err}`)
+    } finally {
+      setIsRegenerating(false)
+    }
   }
 
   return (
@@ -1330,7 +1381,10 @@ ${commitmentLines}`
                 >
                   <h4>{m.title}</h4>
                   <div className="meta-info">
-                    <span>{new Date(m.createdAt).toLocaleDateString('pt-BR')}</span>
+                    <span>
+                      {new Date(m.createdAt).toLocaleDateString('pt-BR')} às{' '}
+                      {new Date(m.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                     <span>•</span>
                     <span>{m.durationFormatted}</span>
                     <span>•</span>
@@ -1355,11 +1409,12 @@ ${commitmentLines}`
                     <div className="meta-badges">
                       <span>
                         <CalendarTodayOutlinedIcon style={{ fontSize: 15, color: '#2563eb' }} />
-                        {new Date(selectedMeeting.createdAt).toLocaleDateString('pt-BR')}
+                        {new Date(selectedMeeting.createdAt).toLocaleDateString('pt-BR')} às{' '}
+                        {new Date(selectedMeeting.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       <span>
                         <AccessTimeOutlinedIcon style={{ fontSize: 15, color: '#2563eb' }} />
-                        {selectedMeeting.durationFormatted}
+                        Duração: {selectedMeeting.durationFormatted}
                       </span>
                       <span>
                         <MeetingRoomOutlinedIcon style={{ fontSize: 15, color: '#2563eb' }} />
@@ -1372,7 +1427,18 @@ ${commitmentLines}`
                     </div>
                   </div>
 
-                  <div className="action-buttons">
+                  <div className="action-buttons" style={{ display: 'flex', gap: 10 }}>
+                    <CleanButton
+                      $variant="secondary"
+                      onClick={handleRegenerateAta}
+                      disabled={isRegenerating}
+                      title="Solicita que a IA processe a gravação e gere todos os resumos, decisões e transcrições"
+                      style={{ border: '1px solid #d8b4fe', color: '#7e22ce', background: '#faf5ff' }}
+                    >
+                      <AutoAwesomeIcon style={{ fontSize: 16, color: '#9333ea' }} />
+                      {isRegenerating ? 'Gerando Ata com IA...' : 'Gerar Ata com IA'}
+                    </CleanButton>
+
                     <CleanButton $variant="secondary" onClick={handleCopyMinutes}>
                       {copySuccess ? (
                         <>
@@ -1873,7 +1939,16 @@ ${commitmentLines}`
 
               {saveSuccess && (
                 <Alert severity="success" style={{ marginBottom: 16, borderRadius: 8 }}>
-                  Chave da API do Google Gemini salva com sucesso no navegador!
+                  ✅ Chave da API do Google Gemini salva e sincronizada com sucesso!
+                </Alert>
+              )}
+
+              {testResult && (
+                <Alert
+                  severity={testResult.success ? 'success' : 'error'}
+                  style={{ marginBottom: 16, borderRadius: 8 }}
+                >
+                  {testResult.message}
                 </Alert>
               )}
 
@@ -1886,7 +1961,10 @@ ${commitmentLines}`
                     type="password"
                     placeholder="Cole sua chave aqui (ex: AIzaSy...)"
                     value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
+                    onChange={(e) => {
+                      setApiKey(e.target.value)
+                      setTestResult(null)
+                    }}
                     style={{
                       background: '#f8fafc',
                       border: '1px solid #cbd5e1',
@@ -1911,10 +1989,29 @@ ${commitmentLines}`
                     . O limite gratuito do Gemini é amplo e ideal para atas e transcrições de reuniões corporativas.
                   </p>
 
-                  <div style={{ marginTop: 10 }}>
+                  <div style={{ marginTop: 10, display: 'flex', gap: 12, alignItems: 'center' }}>
                     <CleanButton $variant="primary" onClick={handleSaveApiKey}>
                       <CheckCircleIcon style={{ fontSize: 16 }} />
-                      Salvar Chave de API
+                      Salvar Chave
+                    </CleanButton>
+
+                    <CleanButton
+                      $variant="secondary"
+                      onClick={handleTestApiKey}
+                      disabled={isTestingKey}
+                      style={{ border: '1px solid #93c5fd', color: '#1d4ed8', background: '#eff6ff' }}
+                    >
+                      {isTestingKey ? (
+                        <>
+                          <CircularProgress size={14} style={{ color: '#1d4ed8', marginRight: 6 }} />
+                          Testando Conexão...
+                        </>
+                      ) : (
+                        <>
+                          <AutoAwesomeIcon style={{ fontSize: 16, color: '#2563eb' }} />
+                          Testar Conexão com Gemini
+                        </>
+                      )}
                     </CleanButton>
                   </div>
                 </div>

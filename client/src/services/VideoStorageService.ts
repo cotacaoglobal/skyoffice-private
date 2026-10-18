@@ -47,6 +47,14 @@ export class VideoStorageService {
    * Recupera o Blob do vídeo e gera uma URL segura
    */
   static async getVideoUrl(meetingId: string): Promise<string | null> {
+    const blob = await this.getVideoBlob(meetingId)
+    return blob ? URL.createObjectURL(blob) : null
+  }
+
+  /**
+   * Recupera diretamente o Blob original da gravação
+   */
+  static async getVideoBlob(meetingId: string): Promise<Blob | null> {
     try {
       const db = await openDB()
       return new Promise((resolve, reject) => {
@@ -57,8 +65,7 @@ export class VideoStorageService {
         request.onsuccess = () => {
           const result = request.result
           if (result && result.blob) {
-            const url = URL.createObjectURL(result.blob)
-            resolve(url)
+            resolve(result.blob)
           } else {
             resolve(null)
           }
@@ -66,7 +73,7 @@ export class VideoStorageService {
         request.onerror = () => reject(request.error)
       })
     } catch (e) {
-      console.warn('Falha ao recuperar vídeo do IndexedDB:', e)
+      console.warn('Falha ao recuperar blob do IndexedDB:', e)
       return null
     }
   }
