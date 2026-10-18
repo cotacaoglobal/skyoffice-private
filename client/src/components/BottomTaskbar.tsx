@@ -363,6 +363,8 @@ export default function BottomTaskbar() {
   const [hasNewAtaBadge, setHasNewAtaBadge] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordedChunksRef = useRef<Blob[]>([])
+  const recordingAudioContextRef = useRef<AudioContext | null>(null)
+  const recordingActiveStreamsRef = useRef<MediaStream[]>([])
   // Standup Diário Automático
   const [showStandupModal, setShowStandupModal] = useState(false)
   const [standupData, setStandupData] = useState<DailyStandupDigest | null>(null)
@@ -591,9 +593,6 @@ export default function BottomTaskbar() {
   }
 
   // 5. Gravar Reunião com Mixer de Áudio Completo (Microfone Local + Colegas WebRTC + Tela)
-  const recordingAudioContextRef = useRef<AudioContext | null>(null)
-  const recordingActiveStreamsRef = useRef<MediaStream[]>([])
-
   const handleToggleRecording = async () => {
     setShowMoreMenu(false)
     if (isRecording) {
