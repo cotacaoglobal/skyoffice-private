@@ -52,13 +52,22 @@ export interface MeetingRecord {
   // Novas inteligências corporativas
   pulse?: MeetingPulse
   insights?: StrategicInsight[]
+  // Controle de sincronizacao entre os membros da sala
+  updatedAt?: string
 }
 
 const STORAGE_KEY = 'skyoffice_meeting_records'
 const GEMINI_API_KEY_STORAGE = 'skyoffice_gemini_api_key'
+export const MEETINGS_UPDATED_EVENT = 'skyoffice:meetings-updated'
+
+interface RoomMeetingBridge {
+  publish: (meeting: MeetingRecord) => void
+  remove: (id: string) => void
+}
 
 export class MeetingStorage {
   private static cachedServerKey: string | null = null
+  private static roomBridge: RoomMeetingBridge | null = null
 
   static getHttpBaseUrl(): string {
     const protocol = window.location.protocol
@@ -160,23 +169,189 @@ export class MeetingStorage {
     await this.syncKeyToServer(trimmed)
   }
 
-  static getMeetings(): MeetingRecord[] {
+  static setRoomBridge(bridge: RoomMeetingBridge | null) {
+    this.roomBridge = bridge
+  }
+
+  private static readStoredMeetings(): MeetingRecord[] {
     try {
       const data = localStorage.getItem(STORAGE_KEY)
-      if (!data) return this.getSampleMeetings()
-      return JSON.parse(data)
+      if (!data) return []
+      const parsed = JSON.parse(data)
+      return Array.isArray(parsed) ? parsed : []
     } catch (err) {
       console.error('Erro ao ler reuniões do localStorage', err)
-      return this.getSampleMeetings()
+      return []
     }
   }
 
-  static saveMeeting(meeting: MeetingRecord): void {
+  private static writeStoredMeetings(meetings: MeetingRecord[]): void {
     try {
-      const current = this.getMeetings()
-      // Não duplica se já existir
-      const updated = [meeting, ...current.filter((m) => m.id !== meeting.id)]
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(meetings))
+    } catch (err) {
+      console.error('Erro ao salvar reuniões no localStorage', err)
+    }
+  }
+
+  private static notifyMeetingsUpdated(): void {
+    try {
+      window.dispatchEvent(new CustomEvent(MEETINGS_UPDATED_EVENT))
+    } catch (e) {
+      // ambiente sem window (testes)
+    }
+  }
+
+  private static toSharedPayload(meeting: MeetingRecord): MeetingRecord {
+    // videoBlobUrl é uma URL blob: local do navegador de quem gravou e não
+    // funciona nos demais clientes. O vídeo permanece apenas com o gravador.
+    const { videoBlobUrl, ...shared } = meeting
+    return shared
+  }
+
+  private static upsertLocalMeeting(meeting: MeetingRecord, preferNewest: boolean): void {
+    const current = this.readStoredMeetings()
+    const index = current.findIndex((m) => m.id === meeting.id)
+
+    if (index < 0) {
+      current.unshift(meeting)
+      this.writeStoredMeetings(current)
+      return
+    }
+
+    const local = current[index]
+    if (preferNewest) {
+      const localTime = local.updatedAt ? Date.parse(local.updatedAt) : 0
+      const incomingTime = meeting.updatedAt ? Date.parse(meeting.updatedAt) : 0
+      if (localTime > incomingTime) return
+    }
+
+    const merged: MeetingRecord = { ...local, ...meeting }
+    // Preserva o vídeo local do gravador quando a atualização vier de fora.
+    if (!meeting.videoBlobUrl && local.videoBlobUrl) merged.videoBlobUrl = local.videoBlobUrl
+    if (!meeting.videoFileName && local.videoFileName) merged.videoFileName = local.videoFileName
+
+    current[index] = merged
+    this.writeStoredMeetings(current)
+  }
+
+  private static removeLocalMeeting(id: string): void {
+    const current = this.readStoredMeetings()
+    this.writeStoredMeetings(current.filter((m) => m.id !== id))
+  }
+
+  private static async pushMeetingToServer(meeting: MeetingRecord): Promise<void> {
+    const endpoints = [
+      `${this.getHttpBaseUrl()}/api/meetings`,
+      `${window.location.protocol}//${window.location.hostname}:2567/api/meetings`,
+    ]
+
+    for (const url of endpoints) {
+      try {
+        const res = await this.fetchWithTimeout(
+          url,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(meeting),
+          },
+          5000
+        )
+        if (res.ok) return
+      } catch (e) {
+        // tenta o próximo endpoint
+      }
+    }
+  }
+
+  private static async deleteMeetingOnServer(id: string): Promise<void> {
+    const endpoints = [
+      `${this.getHttpBaseUrl()}/api/meetings/${encodeURIComponent(id)}`,
+      `${window.location.protocol}//${window.location.hostname}:2567/api/meetings/${encodeURIComponent(id)}`,
+    ]
+
+    for (const url of endpoints) {
+      try {
+        const res = await this.fetchWithTimeout(url, { method: 'DELETE' }, 5000)
+        if (res.ok) return
+      } catch (e) {
+        // tenta o próximo endpoint
+      }
+    }
+  }
+
+  static getMeetings(): MeetingRecord[] {
+    const stored = this.readStoredMeetings()
+    if (stored.length > 0) return stored
+    return this.getSampleMeetings()
+  }
+
+  /**
+   * Busca as atas compartilhadas no servidor e mescla com as locais.
+   * Garante que todos os membros da sala vejam as atas geradas por qualquer um.
+   */
+  static async fetchSharedMeetings(): Promise<MeetingRecord[]> {
+    const endpoints = [
+      `${this.getHttpBaseUrl()}/api/meetings`,
+      `${window.location.protocol}//${window.location.hostname}:2567/api/meetings`,
+    ]
+
+    for (const url of endpoints) {
+      try {
+        const res = await this.fetchWithTimeout(url, {}, 5000)
+        if (!res.ok) continue
+        const contentType = res.headers.get('content-type') || ''
+        if (!contentType.includes('application/json')) continue
+
+        const data = await res.json()
+        if (!Array.isArray(data)) continue
+
+        data.forEach((meeting) => {
+          if (meeting && typeof meeting.id === 'string' && meeting.id) {
+            this.upsertLocalMeeting(this.toSharedPayload(meeting), true)
+          }
+        })
+        this.notifyMeetingsUpdated()
+        break
+      } catch (e) {
+        // tenta o próximo endpoint
+      }
+    }
+
+    return this.getMeetings()
+  }
+
+  /** Aplica uma ata recebida de outro membro da sala (via Colyseus). */
+  static applyRemoteMeeting(meeting: MeetingRecord): void {
+    if (!meeting || typeof meeting.id !== 'string' || !meeting.id) return
+    this.upsertLocalMeeting(this.toSharedPayload(meeting), true)
+    this.notifyMeetingsUpdated()
+  }
+
+  /** Remove localmente uma ata removida por outro membro da sala. */
+  static applyRemoteDeletion(id: string): void {
+    if (!id) return
+    this.removeLocalMeeting(id)
+    this.notifyMeetingsUpdated()
+  }
+
+  static saveMeeting(meeting: MeetingRecord, publish = true): void {
+    try {
+      const record: MeetingRecord = { ...meeting, updatedAt: new Date().toISOString() }
+      this.upsertLocalMeeting(record, false)
+      this.notifyMeetingsUpdated()
+
+      if (!publish) return
+
+      // Atas de exemplo não devem ser compartilhadas com a sala
+      if (record.id.startsWith('sample-')) return
+
+      const shared = this.toSharedPayload(record)
+      this.pushMeetingToServer(shared).catch(() => {})
+      try {
+        this.roomBridge?.publish(shared)
+      } catch (e) {
+        console.warn('Falha ao propagar ata para a sala', e)
+      }
     } catch (err) {
       console.error('Erro ao salvar reunião', err)
     }
@@ -184,9 +359,12 @@ export class MeetingStorage {
 
   static deleteMeeting(id: string): void {
     try {
-      const current = this.getMeetings()
-      const updated = current.filter((m) => m.id !== id)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+      this.removeLocalMeeting(id)
+      this.notifyMeetingsUpdated()
+      this.deleteMeetingOnServer(id).catch(() => {})
+      try {
+        this.roomBridge?.remove(id)
+      } catch (e) {}
     } catch (err) {
       console.error('Erro ao deletar reunião', err)
     }

@@ -78,10 +78,10 @@ const VideoGrid = styled.div`
   }
 `
 
-function VideoContainer({ playerName, stream }) {
+function VideoContainer({ playerName, stream, muted = false }) {
   return (
     <div className="video-container">
-      <Video srcObject={stream} autoPlay></Video>
+      <Video srcObject={stream} autoPlay muted={muted}></Video>
       {playerName && <div className="player-name">{playerName}</div>}
     </div>
   )
@@ -92,7 +92,15 @@ export default function ComputerDialog() {
   const playerNameMap = useAppSelector((state) => state.user.playerNameMap)
   const shareScreenManager = useAppSelector((state) => state.computer.shareScreenManager)
   const myStream = useAppSelector((state) => state.computer.myStream)
+  const myScreenShareScope = useAppSelector((state) => state.computer.myScreenShareScope)
   const peerStreams = useAppSelector((state) => state.computer.peerStreams)
+
+  const handleClose = () => {
+    if (shareScreenManager?.myStream && myScreenShareScope === 'computer') {
+      shareScreenManager.stopScreenShare()
+    }
+    dispatch(closeComputerDialog())
+  }
 
   return (
     <Backdrop>
@@ -100,7 +108,7 @@ export default function ComputerDialog() {
         <IconButton
           aria-label="close dialog"
           className="close"
-          onClick={() => dispatch(closeComputerDialog())}
+          onClick={handleClose}
         >
           <CloseIcon />
         </IconButton>
@@ -122,7 +130,7 @@ export default function ComputerDialog() {
         </div>
 
         <VideoGrid>
-          {myStream && <VideoContainer stream={myStream} playerName="You" />}
+          {myStream && <VideoContainer stream={myStream} playerName="You" muted />}
 
           {[...peerStreams.entries()].map(([id, { stream }]) => {
             const playerName = playerNameMap.get(id)

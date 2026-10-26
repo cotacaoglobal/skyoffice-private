@@ -21,6 +21,8 @@ import {
   pushPrivateMessage,
 } from '../stores/ChatStore'
 import { setWhiteboardUrls } from '../stores/WhiteboardStore'
+import { initShareScreenManager } from '../stores/ComputerStore'
+import { MeetingStorage } from './MeetingStorage'
 
 export default class Network {
   private client: Client
@@ -106,9 +108,25 @@ export default class Network {
     this.lobby.leave()
     this.mySessionId = this.room.sessionId
     store.dispatch(setSessionId(this.room.sessionId))
+    store.dispatch(initShareScreenManager(this.room.sessionId))
+    MeetingStorage.setRoomBridge({
+      publish: (meeting) => {
+        try {
+          this.room?.send(Message.PUBLISH_MEETING, meeting)
+        } catch (e) {}
+      },
+      remove: (id) => {
+        try {
+          this.room?.send(Message.DELETE_MEETING, { id })
+        } catch (e) {}
+      },
+    })
     this.webRTC = new WebRTC(this.mySessionId, this)
 
     const cleanLeave = () => {
+      try {
+        store.getState().computer.shareScreenManager?.destroy()
+      } catch (e) {}
       try {
         this.room?.leave()
       } catch (e) {}
@@ -170,6 +188,7 @@ export default class Network {
       phaserEvents.emit(Event.PLAYER_LEFT, key)
       this.webRTC?.deleteVideoStream(key)
       this.webRTC?.deleteOnCalledVideoStream(key)
+      store.getState().computer.shareScreenManager?.onRoomShareStopped(key)
       store.dispatch(pushPlayerLeftMessage(player?.name || 'Colega'))
       store.dispatch(removePlayerNameMap(key))
     }
@@ -262,6 +281,22 @@ export default class Network {
     this.room.onMessage(Message.STOP_SCREEN_SHARE, (clientId: string) => {
       const computerState = store.getState().computer
       computerState.shareScreenManager?.onUserLeft(clientId)
+    })
+
+    // when a room member stops sharing their screen with everyone
+    this.room.onMessage(Message.STOP_ROOM_SCREEN_SHARE, (clientId: string) => {
+      store.getState().computer.shareScreenManager?.onRoomShareStopped(clientId)
+    })
+
+    // novas atas/atualizações geradas por qualquer membro da sala
+    this.room.onMessage(Message.MEETING_PUBLISHED, (meeting) => {
+      MeetingStorage.applyRemoteMeeting(meeting)
+    })
+
+    // atas removidas por outro membro da sala
+    this.room.onMessage(Message.MEETING_DELETED, (payload) => {
+      const id = typeof payload === 'string' ? payload : payload?.id
+      if (id) MeetingStorage.applyRemoteDeletion(id)
     })
 
     // Sincronização de mesas de trabalho reivindicadas
@@ -386,6 +421,10 @@ export default class Network {
 
   onStopScreenShare(id: string) {
     this.room?.send(Message.STOP_SCREEN_SHARE, { computerId: id })
+  }
+
+  onStopRoomScreenShare() {
+    this.room?.send(Message.STOP_ROOM_SCREEN_SHARE)
   }
 
   addChatMessage(content: string, targetClientId?: string, targetName?: string) {

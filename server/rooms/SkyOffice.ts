@@ -81,6 +81,23 @@ export class SkyOffice extends Room<OfficeState> {
       })
     })
 
+    // when a player stops sharing their screen with the whole room
+    this.onMessage(Message.STOP_ROOM_SCREEN_SHARE, (client) => {
+      this.broadcast(Message.STOP_ROOM_SCREEN_SHARE, client.sessionId, { except: client })
+    })
+
+    // quando um membro gera/atualiza uma ata, replica para os demais membros da sala
+    this.onMessage(Message.PUBLISH_MEETING, (client, message: unknown) => {
+      this.broadcast(Message.MEETING_PUBLISHED, message, { except: client })
+    })
+
+    // quando um membro remove uma ata compartilhada
+    this.onMessage(Message.DELETE_MEETING, (client, message: { id?: string }) => {
+      if (message?.id) {
+        this.broadcast(Message.MEETING_DELETED, message.id, { except: client })
+      }
+    })
+
     // when a player connect to a whiteboard, add to the whiteboard connectedUser array
     this.onMessage(Message.CONNECT_TO_WHITEBOARD, (client, message: { whiteboardId: string }) => {
       this.dispatcher.dispatch(new WhiteboardAddUserCommand(), {

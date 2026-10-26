@@ -352,7 +352,8 @@ export default function BottomTaskbar() {
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [showReactions, setShowReactions] = useState(false)
   const [handRaised, setHandRaised] = useState(false)
-  const [isScreenSharing, setIsScreenSharing] = useState(false)
+  const myScreenStream = useAppSelector((state) => state.computer.myStream)
+  const isScreenSharing = !!myScreenStream
 
   // Gravação de tela / áudio
   const [isRecording, setIsRecording] = useState(false)
@@ -882,27 +883,22 @@ export default function BottomTaskbar() {
     }
   }
 
-  // 6. Compartilhar Tela
+  // 6. Compartilhar Tela com todos os membros da sala
   const handleToggleScreenShare = async () => {
     setShowMoreMenu(false)
-    if (isScreenSharing) {
-      setIsScreenSharing(false)
+
+    const manager = store.getState().computer.shareScreenManager
+    if (!manager) {
+      window.alert(
+        'O compartilhamento de tela ainda não está pronto. Aguarde a conexão com o escritório e tente novamente.'
+      )
+      return
+    }
+
+    if (manager.myStream) {
+      manager.stopScreenShare()
     } else {
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-          audio: true,
-        })
-        setIsScreenSharing(true)
-        const track = stream.getVideoTracks()[0]
-        if (track) {
-          track.onended = () => {
-            setIsScreenSharing(false)
-          }
-        }
-      } catch (err) {
-        console.warn('Compartilhamento cancelado', err)
-      }
+      await manager.startRoomShare()
     }
   }
 

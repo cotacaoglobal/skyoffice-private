@@ -16,6 +16,7 @@ import MobileVirtualJoystick from './components/MobileVirtualJoystick'
 import MembersSidebar from './components/MembersSidebar'
 import AuthDialog from './components/AuthDialog'
 import BottomTaskbar from './components/BottomTaskbar'
+import ScreenShareViewer from './components/ScreenShareViewer'
 import PlayerContextMenu from './components/PlayerContextMenu'
 
 const Backdrop = styled.div`
@@ -190,6 +191,7 @@ function App() {
           <MembersSidebar />
           <MobileVirtualJoystick />
           <BottomTaskbar />
+          <ScreenShareViewer />
           <PlayerContextMenu />
         </>
       )

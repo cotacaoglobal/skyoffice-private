@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import styled from 'styled-components'
 import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/Close'
@@ -32,7 +32,7 @@ import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurned
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 
-import { MeetingRecord, MeetingStorage, Commitment } from '../services/MeetingStorage'
+import { MeetingRecord, MeetingStorage, Commitment, MEETINGS_UPDATED_EVENT } from '../services/MeetingStorage'
 import { VideoStorageService } from '../services/VideoStorageService'
 import { SemanticSearchService, SearchMatch } from '../services/SemanticSearchService'
 import { BiaChatService, ChatMessage } from '../services/BiaChatService'
@@ -1386,6 +1386,7 @@ export default function MeetingHistoryDialog({ open, onClose }: Props) {
   const [isRegenerating, setIsRegenerating] = useState(false)
   const [taskViewMode, setTaskViewMode] = useState<'kanban' | 'list'>('kanban')
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false)
+  const insightsAttemptedRef = useRef<Set<string>>(new Set())
 
   // Estados do Chat da Bia
   const [biaMessages, setBiaMessages] = useState<ChatMessage[]>([
@@ -1473,23 +1474,56 @@ export default function MeetingHistoryDialog({ open, onClose }: Props) {
   const [videoUrlsMap, setVideoUrlsMap] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    if (open) {
-      const records = MeetingStorage.getMeetings()
+    if (!open) return
+
+    let cancelled = false
+
+    const applyRecords = (records: MeetingRecord[]) => {
+      if (cancelled) return
       setMeetings(records)
-      if (records.length > 0) {
-        setSelectedMeetingId(records[0].id)
-      }
+      setSelectedMeetingId((prev) =>
+        prev && records.some((m) => m.id === prev) ? prev : records[0]?.id || ''
+      )
+    }
 
-      // Sincroniza a chave do servidor central
-      MeetingStorage.getApiKeyAsync().then((k) => setApiKey(k))
-
-      // Carrega URLs de vídeos persistidos no IndexedDB
+    // Carrega URLs de vídeos persistidos no IndexedDB
+    const loadVideoUrls = (records: MeetingRecord[]) => {
       records.forEach(async (m) => {
         const persistedUrl = await VideoStorageService.getVideoUrl(m.id)
-        if (persistedUrl) {
+        if (persistedUrl && !cancelled) {
           setVideoUrlsMap((prev) => ({ ...prev, [m.id]: persistedUrl }))
         }
       })
+    }
+
+    const initialRecords = MeetingStorage.getMeetings()
+    applyRecords(initialRecords)
+    loadVideoUrls(initialRecords)
+
+    // Sincroniza a chave do servidor central
+    MeetingStorage.getApiKeyAsync().then((k) => {
+      if (!cancelled) setApiKey(k)
+    })
+
+    // Busca as atas compartilhadas por todos os membros da sala
+    MeetingStorage.fetchSharedMeetings()
+      .then((records) => {
+        applyRecords(records)
+        loadVideoUrls(records)
+      })
+      .catch((e) => console.warn('Erro ao sincronizar atas compartilhadas:', e))
+
+    const handleMeetingsUpdated = () => {
+      const records = MeetingStorage.getMeetings()
+      applyRecords(records)
+      loadVideoUrls(records)
+    }
+
+    window.addEventListener(MEETINGS_UPDATED_EVENT, handleMeetingsUpdated)
+
+    return () => {
+      cancelled = true
+      window.removeEventListener(MEETINGS_UPDATED_EVENT, handleMeetingsUpdated)
     }
   }, [open])
 
@@ -1502,6 +1536,10 @@ export default function MeetingHistoryDialog({ open, onClose }: Props) {
     const lacksPulse = !current.pulse
     const lacksInsights = !current.insights || current.insights.length === 0
     if (lacksPulse || lacksInsights) {
+      // Evita regerar em loop quando a atualização da ata dispara novos renders
+      if (insightsAttemptedRef.current.has(current.id)) return
+      insightsAttemptedRef.current.add(current.id)
+
       GeminiMeetingService.generateInsightsAndPulse(current)
         .then(({ pulse, insights }) => {
           const updated: MeetingRecord = {

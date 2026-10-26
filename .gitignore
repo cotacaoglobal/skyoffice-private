@@ -6,3 +6,5 @@ node_modules
 .env
 .env.local
 .env.*.local
+server/meetings.json
+server/office-settings.json
