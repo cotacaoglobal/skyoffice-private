@@ -8,9 +8,23 @@ export default function Video({ srcObject, ...props }: PropsType) {
   const refVideo = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
-    if (!refVideo.current) return
-    refVideo.current.srcObject = srcObject
+    const video = refVideo.current
+    if (!video) return
+    video.srcObject = srcObject
+
+    const tryPlay = () => {
+      video.play().catch(() => {
+        // Se o navegador bloquear autoplay com som, força muted e tenta novamente
+        video.muted = true
+        video.play().catch(() => {})
+      })
+    }
+
+    tryPlay()
+    video.onloadedmetadata = () => {
+      tryPlay()
+    }
   }, [srcObject])
 
-  return <video ref={refVideo} {...props} />
+  return <video ref={refVideo} playsInline autoPlay {...props} />
 }

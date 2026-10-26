@@ -28,7 +28,16 @@ export default class ShareScreenManager {
   constructor(userId: string) {
     this.userId = userId
     const sanatizedId = this.makeId(userId)
-    this.myPeer = new Peer(sanatizedId)
+    this.myPeer = new Peer(sanatizedId, {
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:global.stun.twilio.com:3478' },
+        ],
+      },
+    })
 
     this.myPeer.on('error', (err: any) => {
       console.warn('ShareScreenWebRTC', err?.type || '', err?.message || err)
@@ -47,6 +56,26 @@ export default class ShareScreenManager {
     }
   }
 
+  private dummyStream?: MediaStream
+
+  private createDummyReceiveStream(): MediaStream | undefined {
+    if (this.dummyStream) return this.dummyStream
+    try {
+      const canvas = document.createElement('canvas')
+      canvas.width = 2
+      canvas.height = 2
+      const canvasStream = (canvas as any).captureStream ? (canvas as any).captureStream(1) : null
+      const videoTrack = canvasStream?.getVideoTracks()[0]
+      if (videoTrack) {
+        this.dummyStream = new MediaStream([videoTrack])
+        return this.dummyStream
+      }
+    } catch (e) {
+      console.warn('Erro ao criar dummy stream para resposta de tela:', e)
+    }
+    return undefined
+  }
+
   destroy() {
     if (this.myPeer.destroyed) return
     this.stopScreenShare(false)
@@ -58,6 +87,10 @@ export default class ShareScreenManager {
       } catch (e) {}
     })
     this.incoming.clear()
+    if (this.dummyStream) {
+      this.dummyStream.getTracks().forEach((t) => t.stop())
+      this.dummyStream = undefined
+    }
     try {
       this.myPeer.destroy()
     } catch (e) {}
@@ -146,11 +179,23 @@ export default class ShareScreenManager {
 
   private callAllRoomMembers() {
     const game = phaserGame.scene.keys.game as Game
-    const players = game?.network?.room?.state?.players
-    if (!players) return
+    const targetUserIds = new Set<string>()
 
-    players.forEach((_player, id) => {
-      if (id !== this.userId) this.callPeer(id, 'room')
+    const players = game?.network?.room?.state?.players
+    if (players) {
+      players.forEach((_player, id) => {
+        if (id && id !== this.userId) targetUserIds.add(id)
+      })
+    }
+
+    if (game?.otherPlayerMap) {
+      game.otherPlayerMap.forEach((_player, id) => {
+        if (id && id !== this.userId) targetUserIds.add(id)
+      })
+    }
+
+    targetUserIds.forEach((id) => {
+      this.callPeer(id, 'room')
     })
   }
 
@@ -160,9 +205,17 @@ export default class ShareScreenManager {
     const sanatizedId = this.makeId(userId)
     if (this.outgoing.has(sanatizedId)) return
 
-    const call = this.myPeer.call(sanatizedId, this.myStream, {
-      metadata: { scope },
-    })
+    let call: Peer.MediaConnection
+    try {
+      call = this.myPeer.call(sanatizedId, this.myStream, {
+        metadata: { scope },
+      })
+    } catch (e) {
+      console.warn('Erro ao disparar chamada de tela:', e)
+      return
+    }
+
+    if (!call) return
     this.outgoing.set(sanatizedId, call)
 
     call.on('close', () => {
@@ -231,7 +284,12 @@ export default class ShareScreenManager {
   }
 
   private handleIncomingCall(call: Peer.MediaConnection) {
-    call.answer()
+    const dummy = this.createDummyReceiveStream()
+    if (dummy) {
+      call.answer(dummy)
+    } else {
+      call.answer()
+    }
 
     const scope: ScreenShareScope = call.metadata?.scope === 'room' ? 'room' : 'computer'
     const existing = this.incoming.get(call.peer)

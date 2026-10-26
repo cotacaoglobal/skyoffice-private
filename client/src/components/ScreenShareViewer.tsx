@@ -205,7 +205,7 @@ export default function ScreenShareViewer() {
                 <span>{playerNameMap.get(id) || 'Colega'}</span>
               </CardHeader>
               <VideoHolder>
-                <Video srcObject={stream} autoPlay playsInline controls />
+                <Video srcObject={stream} autoPlay playsInline muted controls />
               </VideoHolder>
             </Card>
           ))}
