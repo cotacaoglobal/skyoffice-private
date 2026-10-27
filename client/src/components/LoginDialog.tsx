@@ -16,6 +16,7 @@ import Adam from '../images/login/Adam_login.png'
 import Ash from '../images/login/Ash_login.png'
 import Lucy from '../images/login/Lucy_login.png'
 import Nancy from '../images/login/Nancy_login.png'
+import Felipe from '../images/login/Felipe_login.png'
 import { useAppSelector, useAppDispatch } from '../hooks'
 import { setLoggedIn } from '../stores/UserStore'
 import { getAvatarString, getColorByString } from '../util'
@@ -308,6 +309,7 @@ const Warning = styled.div`
 `
 
 const avatars = [
+  { name: 'felipe', img: Felipe },
   { name: 'adam', img: Adam },
   { name: 'ash', img: Ash },
   { name: 'lucy', img: Lucy },

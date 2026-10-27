@@ -482,4 +482,82 @@ export const createCharacterAnims = (anims: Phaser.Animations.AnimationManager) 
     repeat: 0,
     frameRate: animsFrameRate,
   })
+
+  // Felipe Animations
+  const registerAnimsFor = (charName: string) => {
+    anims.create({
+      key: `${charName}_idle_right`,
+      frames: anims.generateFrameNames(charName, { start: 0, end: 5 }),
+      repeat: -1,
+      frameRate: animsFrameRate * 0.6,
+    })
+    anims.create({
+      key: `${charName}_idle_up`,
+      frames: anims.generateFrameNames(charName, { start: 6, end: 11 }),
+      repeat: -1,
+      frameRate: animsFrameRate * 0.6,
+    })
+    anims.create({
+      key: `${charName}_idle_left`,
+      frames: anims.generateFrameNames(charName, { start: 12, end: 17 }),
+      repeat: -1,
+      frameRate: animsFrameRate * 0.6,
+    })
+    anims.create({
+      key: `${charName}_idle_down`,
+      frames: anims.generateFrameNames(charName, { start: 18, end: 23 }),
+      repeat: -1,
+      frameRate: animsFrameRate * 0.6,
+    })
+    anims.create({
+      key: `${charName}_run_right`,
+      frames: anims.generateFrameNames(charName, { start: 24, end: 29 }),
+      repeat: -1,
+      frameRate: animsFrameRate,
+    })
+    anims.create({
+      key: `${charName}_run_up`,
+      frames: anims.generateFrameNames(charName, { start: 30, end: 35 }),
+      repeat: -1,
+      frameRate: animsFrameRate,
+    })
+    anims.create({
+      key: `${charName}_run_left`,
+      frames: anims.generateFrameNames(charName, { start: 36, end: 41 }),
+      repeat: -1,
+      frameRate: animsFrameRate,
+    })
+    anims.create({
+      key: `${charName}_run_down`,
+      frames: anims.generateFrameNames(charName, { start: 42, end: 47 }),
+      repeat: -1,
+      frameRate: animsFrameRate,
+    })
+    anims.create({
+      key: `${charName}_sit_down`,
+      frames: anims.generateFrameNames(charName, { start: 48, end: 48 }),
+      repeat: 0,
+      frameRate: animsFrameRate,
+    })
+    anims.create({
+      key: `${charName}_sit_left`,
+      frames: anims.generateFrameNames(charName, { start: 49, end: 49 }),
+      repeat: 0,
+      frameRate: animsFrameRate,
+    })
+    anims.create({
+      key: `${charName}_sit_right`,
+      frames: anims.generateFrameNames(charName, { start: 50, end: 50 }),
+      repeat: 0,
+      frameRate: animsFrameRate,
+    })
+    anims.create({
+      key: `${charName}_sit_up`,
+      frames: anims.generateFrameNames(charName, { start: 51, end: 51 }),
+      repeat: 0,
+      frameRate: animsFrameRate,
+    })
+  }
+
+  registerAnimsFor('felipe')
 }
