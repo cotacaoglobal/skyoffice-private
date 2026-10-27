@@ -8189,6 +8189,7 @@ Responda EXCLUSIVAMENTE em formato JSON (sem markdown adicional):
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: #f8fafc;
   z-index: 10005;
   display: flex;
@@ -8401,6 +8402,8 @@ Responda EXCLUSIVAMENTE em formato JSON (sem markdown adicional):
   @media (max-width: 768px) {
     flex-direction: column;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 90px;
   }
 `,Jq=me.aside`
   width: 340px;
@@ -8548,7 +8551,7 @@ Responda EXCLUSIVAMENTE em formato JSON (sem markdown adicional):
   background: #f8fafc;
 
   @media (max-width: 768px) {
-    padding: 8px 14px 28px 14px;
+    padding: 8px 14px 80px 14px;
     gap: 16px;
     overflow-y: visible;
   }
@@ -10155,6 +10158,7 @@ ${i.decisions.map(o=>`\u2022 ${o}`).join(`
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(6px);
   z-index: 10006;
@@ -10166,7 +10170,7 @@ ${i.decisions.map(o=>`\u2022 ${o}`).join(`
   color: #1e293b;
 
   @media (max-width: 768px) {
-    padding: 14px 10px;
+    padding: 12px 10px;
     align-items: center;
   }
 `,Fte=me.div`
@@ -10183,7 +10187,9 @@ ${i.decisions.map(o=>`\u2022 ${o}`).join(`
 
   @media (max-width: 768px) {
     max-width: 420px;
-    max-height: 94vh;
+    height: 90vh;
+    height: 90dvh;
+    max-height: 90dvh;
     border-radius: 20px;
   }
 `,yte=me.div`
@@ -10321,9 +10327,10 @@ ${i.decisions.map(o=>`\u2022 ${o}`).join(`
   flex-direction: column;
   gap: 16px;
   background: #ffffff;
+  -webkit-overflow-scrolling: touch;
 
   @media (max-width: 768px) {
-    padding: 16px 14px;
+    padding: 16px 14px 64px 14px;
     gap: 14px;
   }
 `,_te=me.div`

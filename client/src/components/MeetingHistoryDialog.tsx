@@ -46,6 +46,7 @@ const FullPageContainer = styled.div`
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: #f8fafc;
   z-index: 10005;
   display: flex;
@@ -268,6 +269,8 @@ const MainLayout = styled.main`
   @media (max-width: 768px) {
     flex-direction: column;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 90px;
   }
 `
 
@@ -423,7 +426,7 @@ const ContentArea = styled.section`
   background: #f8fafc;
 
   @media (max-width: 768px) {
-    padding: 8px 14px 28px 14px;
+    padding: 8px 14px 80px 14px;
     gap: 16px;
     overflow-y: visible;
   }

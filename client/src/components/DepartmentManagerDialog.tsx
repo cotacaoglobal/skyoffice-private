@@ -31,6 +31,7 @@ const ModalBackdrop = styled.div`
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(6px);
   z-index: 10006;
@@ -42,7 +43,7 @@ const ModalBackdrop = styled.div`
   color: #1e293b;
 
   @media (max-width: 768px) {
-    padding: 14px 10px;
+    padding: 12px 10px;
     align-items: center;
   }
 `
@@ -61,7 +62,9 @@ const ModalCard = styled.div`
 
   @media (max-width: 768px) {
     max-width: 420px;
-    max-height: 94vh;
+    height: 90vh;
+    height: 90dvh;
+    max-height: 90dvh;
     border-radius: 20px;
   }
 `
@@ -203,9 +206,10 @@ const ModalBody = styled.div`
   flex-direction: column;
   gap: 16px;
   background: #ffffff;
+  -webkit-overflow-scrolling: touch;
 
   @media (max-width: 768px) {
-    padding: 16px 14px;
+    padding: 16px 14px 64px 14px;
     gap: 14px;
   }
 `
