@@ -100,6 +100,18 @@ export default class Game extends Phaser.Scene {
     groundLayer.skipCull = true
     groundLayer.setCullPadding(4, 4)
 
+    // Piso de mármore personalizado na sala de reunião (colunas 6 a 18, linhas 18 a 23)
+    // O piso original é 440x241 em perspectiva isométrica/diamante. Escalonamos para cobrir os blocos 32x32 perfeitamente.
+    const marbleTileWidth = 64
+    const marbleTileHeight = 32
+    for (let my = 18 * 32; my < 24 * 32; my += marbleTileHeight) {
+      for (let mx = 6 * 32; mx < 19 * 32; mx += marbleTileWidth) {
+        const tile = this.add.image(mx + marbleTileWidth / 2, my + marbleTileHeight / 2, 'marble_floor')
+        tile.setDisplaySize(marbleTileWidth, marbleTileHeight)
+        tile.setDepth(-10) // Fica abaixo dos avatares, cadeiras e mesas, mas acima do fundo
+      }
+    }
+
     // Posição de spawn inicial adaptada ao modelo/tema da sala
     const currentTheme = (store.getState() as any).room?.roomTheme || 'default'
     let spawnX = 705
