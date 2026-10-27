@@ -115,14 +115,18 @@ export const computerSlice = createSlice({
         scope?: ScreenShareScope
       }>
     ) => {
-      state.peerStreams.set(sanitizeId(action.payload.id), {
+      const next = new Map(state.peerStreams)
+      next.set(sanitizeId(action.payload.id), {
         call: action.payload.call,
         stream: action.payload.stream,
         scope: action.payload.scope || 'computer',
       })
+      state.peerStreams = next
     },
     removeVideoStream: (state, action: PayloadAction<string>) => {
-      state.peerStreams.delete(sanitizeId(action.payload))
+      const next = new Map(state.peerStreams)
+      next.delete(sanitizeId(action.payload))
+      state.peerStreams = next
     },
   },
 })
