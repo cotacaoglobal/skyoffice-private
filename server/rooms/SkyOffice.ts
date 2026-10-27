@@ -98,6 +98,11 @@ export class SkyOffice extends Room<OfficeState> {
       }
     })
 
+    // quando um membro atualiza as configurações da IA (chave do Gemini), replica para todos
+    this.onMessage(Message.UPDATE_OFFICE_SETTINGS, (client, message: { geminiApiKey?: string }) => {
+      this.broadcast(Message.OFFICE_SETTINGS_UPDATED, message, { except: client })
+    })
+
     // when a player connect to a whiteboard, add to the whiteboard connectedUser array
     this.onMessage(Message.CONNECT_TO_WHITEBOARD, (client, message: { whiteboardId: string }) => {
       this.dispatcher.dispatch(new WhiteboardAddUserCommand(), {

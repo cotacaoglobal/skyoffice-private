@@ -1558,7 +1558,15 @@ export default function MeetingHistoryDialog({ open, onClose }: Props) {
   if (!open) return null
 
   const selectedMeeting = meetings.find((m) => m.id === selectedMeetingId) || meetings[0]
-  const currentVideoUrl = selectedMeeting ? (videoUrlsMap[selectedMeeting.id] || selectedMeeting.videoBlobUrl) : undefined
+  const currentVideoUrl = selectedMeeting
+    ? videoUrlsMap[selectedMeeting.id] ||
+      selectedMeeting.videoBlobUrl ||
+      (selectedMeeting.videoUrl
+        ? (selectedMeeting.videoUrl.startsWith('http')
+            ? selectedMeeting.videoUrl
+            : `${MeetingStorage.getHttpBaseUrl()}${selectedMeeting.videoUrl}`)
+        : undefined)
+    : undefined
 
   const filteredMeetings = meetings.filter((m) => {
     const text = `${m.title} ${m.roomName} ${m.participants.join(' ')}`.toLowerCase()

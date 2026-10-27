@@ -59,6 +59,48 @@ app.post('/api/office-settings', (req, res) => {
   }
 })
 
+// Pasta para armazenamento central de gravações de vídeo compartilhadas
+const recordingsDir = path.join(__dirname, 'recordings')
+if (!fs.existsSync(recordingsDir)) {
+  fs.mkdirSync(recordingsDir, { recursive: true })
+}
+app.use('/recordings', express.static(recordingsDir))
+
+// Upload de vídeo da reunião para que todos os membros possam assistir e baixar
+app.post('/api/meetings/:id/video', express.raw({ type: '*/*', limit: '250mb' }), (req, res) => {
+  const meetingId = req.params.id
+  if (!meetingId || !req.body || (req.body as Buffer).length === 0) {
+    res.status(400).json({ error: 'Vídeo inválido ou vazio' })
+    return
+  }
+
+  const safeFileName = `${meetingId.replace(/[^a-zA-Z0-9_-]/g, '_')}.webm`
+  const targetPath = path.join(recordingsDir, safeFileName)
+
+  try {
+    fs.writeFileSync(targetPath, req.body)
+    const videoUrl = `/recordings/${safeFileName}`
+
+    // Atualiza a ata correspondente no sharedMeetings
+    const index = sharedMeetings.findIndex((m) => m.id === meetingId)
+    if (index >= 0) {
+      sharedMeetings[index] = {
+        ...sharedMeetings[index],
+        videoUrl,
+        videoFileName: safeFileName,
+        updatedAt: new Date().toISOString(),
+      }
+      persistMeetings()
+    }
+
+    console.log(`[SkyOffice] Gravação de vídeo da reunião ${meetingId} salva em ${targetPath}`)
+    res.json({ success: true, videoUrl, videoFileName: safeFileName })
+  } catch (err) {
+    console.warn(`[SkyOffice] Erro ao salvar gravação de vídeo para ${meetingId}:`, err)
+    res.status(500).json({ error: 'Erro ao salvar gravação no servidor' })
+  }
+})
+
 // Armazenamento compartilhado de atas/resumos de reunião.
 // Qualquer membro da sala consulta as atas geradas por outro membro.
 const meetingsFilePath = path.join(__dirname, 'meetings.json')
@@ -69,8 +111,8 @@ const sanitizeMeeting = (meeting: any) => {
   if (!meeting || typeof meeting.id !== 'string' || !meeting.id) return null
   // Atas de exemplo do cliente não devem entrar no armazenamento compartilhado
   if (meeting.id.startsWith('sample-')) return null
-  // videoBlobUrl é uma URL local (blob:) do navegador de quem gravou e não
-  // funciona para os demais membros, então nunca é compartilhada.
+  // videoBlobUrl é uma URL local (blob:) do navegador de quem gravou.
+  // Preserva videoUrl (URL pública do servidor) e videoFileName
   const { videoBlobUrl, ...shared } = meeting
   return {
     ...shared,
@@ -133,6 +175,16 @@ app.delete('/api/meetings/:id', (req, res) => {
   if (sharedMeetings.length !== before) {
     persistMeetings()
   }
+
+  // Se houver vídeo físico salvo, remove também
+  const safeFileName = `${id.replace(/[^a-zA-Z0-9_-]/g, '_')}.webm`
+  const targetPath = path.join(recordingsDir, safeFileName)
+  if (fs.existsSync(targetPath)) {
+    try {
+      fs.unlinkSync(targetPath)
+    } catch (e) {}
+  }
+
   res.json({ success: true })
 })
 

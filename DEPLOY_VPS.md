@@ -66,6 +66,8 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    client_max_body_size 250M;
+
     # Proxy para WebSocket do Colyseus
     location /colyseus/ {
         proxy_pass http://176.57.188.108:2567/;
@@ -75,13 +77,20 @@ server {
         proxy_set_header Host $host;
     }
 
-    # Proxy para API REST do Colyseus/Express (Configurações da IA, atas, etc)
+    # Proxy para API REST do Colyseus/Express (Configurações da IA, atas, vídeos, etc)
     location /api/ {
         proxy_pass http://176.57.188.108:2567/api/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Proxy para arquivos de vídeo de reuniões gravadas
+    location /recordings/ {
+        proxy_pass http://176.57.188.108:2567/recordings/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
     }
 }
 EOF

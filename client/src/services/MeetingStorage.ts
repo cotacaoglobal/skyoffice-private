@@ -42,6 +42,7 @@ export interface MeetingRecord {
   roomName: string
   participants: string[]
   videoBlobUrl?: string
+  videoUrl?: string
   videoFileName?: string
   summary: string[]
   decisions: string[]
@@ -63,6 +64,7 @@ export const MEETINGS_UPDATED_EVENT = 'skyoffice:meetings-updated'
 interface RoomMeetingBridge {
   publish: (meeting: MeetingRecord) => void
   remove: (id: string) => void
+  updateOfficeSettings?: (settings: { geminiApiKey?: string }) => void
 }
 
 export class MeetingStorage {
@@ -167,6 +169,18 @@ export class MeetingStorage {
     this.cachedServerKey = trimmed
     localStorage.setItem(GEMINI_API_KEY_STORAGE, trimmed)
     await this.syncKeyToServer(trimmed)
+    try {
+      this.roomBridge?.updateOfficeSettings?.({ geminiApiKey: trimmed })
+    } catch (e) {}
+    this.notifyMeetingsUpdated()
+  }
+
+  static applyRemoteApiKey(key: string): void {
+    if (!key) return
+    const trimmed = key.trim().replace(/^["']|["']$/g, '')
+    this.cachedServerKey = trimmed
+    localStorage.setItem(GEMINI_API_KEY_STORAGE, trimmed)
+    this.notifyMeetingsUpdated()
   }
 
   static setRoomBridge(bridge: RoomMeetingBridge | null) {
@@ -202,8 +216,8 @@ export class MeetingStorage {
   }
 
   private static toSharedPayload(meeting: MeetingRecord): MeetingRecord {
-    // videoBlobUrl é uma URL blob: local do navegador de quem gravou e não
-    // funciona nos demais clientes. O vídeo permanece apenas com o gravador.
+    // videoBlobUrl é uma URL blob: local temporária do navegador gravador.
+    // videoUrl é a URL pública no servidor acessível por qualquer membro da sala.
     const { videoBlobUrl, ...shared } = meeting
     return shared
   }
@@ -226,8 +240,9 @@ export class MeetingStorage {
     }
 
     const merged: MeetingRecord = { ...local, ...meeting }
-    // Preserva o vídeo local do gravador quando a atualização vier de fora.
+    // Preserva o vídeo local e a URL pública do servidor
     if (!meeting.videoBlobUrl && local.videoBlobUrl) merged.videoBlobUrl = local.videoBlobUrl
+    if (!meeting.videoUrl && local.videoUrl) merged.videoUrl = local.videoUrl
     if (!meeting.videoFileName && local.videoFileName) merged.videoFileName = local.videoFileName
 
     current[index] = merged
@@ -237,6 +252,45 @@ export class MeetingStorage {
   private static removeLocalMeeting(id: string): void {
     const current = this.readStoredMeetings()
     this.writeStoredMeetings(current.filter((m) => m.id !== id))
+  }
+
+  static async uploadVideoToServer(meetingId: string, videoBlob: Blob): Promise<string | null> {
+    const endpoints = [
+      `${this.getHttpBaseUrl()}/api/meetings/${encodeURIComponent(meetingId)}/video`,
+      `${window.location.protocol}//${window.location.hostname}:2567/api/meetings/${encodeURIComponent(meetingId)}/video`,
+    ]
+
+    for (const url of endpoints) {
+      try {
+        const res = await this.fetchWithTimeout(
+          url,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'video/webm' },
+            body: videoBlob,
+          },
+          30000 // timeout de 30s para uploads de vídeo
+        )
+        if (res.ok) {
+          const data = await res.json()
+          if (data?.videoUrl) {
+            // Atualiza localmente e propaga para a sala
+            const current = this.getMeetings()
+            const meeting = current.find((m) => m.id === meetingId)
+            if (meeting) {
+              meeting.videoUrl = data.videoUrl
+              meeting.videoFileName = data.videoFileName || meeting.videoFileName
+              meeting.updatedAt = new Date().toISOString()
+              this.saveMeeting(meeting, true)
+            }
+            return data.videoUrl
+          }
+        }
+      } catch (e) {
+        console.warn(`Falha ao enviar vídeo da reunião ${meetingId} para ${url}:`, e)
+      }
+    }
+    return null
   }
 
   private static async pushMeetingToServer(meeting: MeetingRecord): Promise<void> {

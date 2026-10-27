@@ -857,9 +857,14 @@ export default function BottomTaskbar() {
             meeting.videoFileName = fileName
             MeetingStorage.saveMeeting(meeting)
 
-            // Salva o arquivo de vídeo no IndexedDB para não sumir após F5
+            // Salva o arquivo de vídeo no IndexedDB local para acesso offline instantâneo
             VideoStorageService.saveVideo(meeting.id, videoBlob).catch((e) =>
               console.warn('Erro ao salvar no IndexedDB', e)
+            )
+
+            // Faz upload do vídeo para o servidor para que todos os outros membros do escritório possam assistir e baixar
+            MeetingStorage.uploadVideoToServer(meeting.id, videoBlob).catch((e) =>
+              console.warn('Erro ao enviar vídeo gravado para o servidor compartilhado', e)
             )
 
             // Ativa o Digest pós-reunião e o badge visual

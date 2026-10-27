@@ -120,7 +120,15 @@ export default class Network {
           this.room?.send(Message.DELETE_MEETING, { id })
         } catch (e) {}
       },
+      updateOfficeSettings: (settings) => {
+        try {
+          this.room?.send(Message.UPDATE_OFFICE_SETTINGS, settings)
+        } catch (e) {}
+      },
     })
+    // Sincroniza atas compartilhadas e configurações de IA imediatamente ao entrar na sala
+    MeetingStorage.fetchSharedMeetings().catch(() => {})
+    MeetingStorage.getApiKeyAsync().catch(() => {})
     this.webRTC = new WebRTC(this.mySessionId, this)
 
     const cleanLeave = () => {
@@ -297,6 +305,13 @@ export default class Network {
     this.room.onMessage(Message.MEETING_DELETED, (payload) => {
       const id = typeof payload === 'string' ? payload : payload?.id
       if (id) MeetingStorage.applyRemoteDeletion(id)
+    })
+
+    // configurações da IA (chave do Gemini) atualizadas por outro membro
+    this.room.onMessage(Message.OFFICE_SETTINGS_UPDATED, (settings: { geminiApiKey?: string }) => {
+      if (settings?.geminiApiKey) {
+        MeetingStorage.applyRemoteApiKey(settings.geminiApiKey)
+      }
     })
 
     // Sincronização de mesas de trabalho reivindicadas
