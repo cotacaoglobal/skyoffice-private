@@ -2,6 +2,50 @@ import Peer from 'peerjs'
 import Network from '../services/Network'
 import store from '../stores'
 import { setVideoConnected } from '../stores/UserStore'
+import phaserGame from '../PhaserGame'
+import Game from '../scenes/Game'
+
+export function detectGender(name?: string): 'female' | 'male' {
+  if (!name || !name.trim()) return 'male'
+  const clean = name.trim().split(/\s+/)[0].toLowerCase()
+
+  // Known feminine names in Portuguese/Spanish/English
+  const femaleExceptions = new Set([
+    'alice', 'aline', 'beatriz', 'carol', 'cleo', 'cloe', 'daiane', 'denise',
+    'elis', 'ellen', 'ester', 'helen', 'inês', 'ines', 'ingrid', 'isabel',
+    'iris', 'ivone', 'jaqueline', 'judite', 'karen', 'kelly', 'laís', 'lais',
+    'lidiane', 'lilian', 'lorena', 'luciene', 'madalena', 'maite', 'maitê',
+    'marise', 'mercedes', 'michelle', 'miriam', 'monique', 'nadir', 'nicole',
+    'noemi', 'rachel', 'raquel', 'regiane', 'rosane', 'rose', 'ruth', 'shirley',
+    'simone', 'solange', 'sueli', 'taís', 'tais', 'viviane', 'yasmin', 'yasmim',
+  ])
+
+  // Known masculine names that end in 'a'
+  const maleExceptions = new Set([
+    'luca', 'lucas', 'elias', 'jonas', 'matias', 'nicolas', 'nicolás',
+    'joshua', 'buda', 'sasha', 'jeová', 'jeova',
+  ])
+
+  if (maleExceptions.has(clean)) return 'male'
+  if (femaleExceptions.has(clean)) return 'female'
+
+  // Common feminine endings
+  if (
+    clean.endsWith('a') ||
+    clean.endsWith('ã') ||
+    clean.endsWith('á') ||
+    clean.endsWith('elly') ||
+    clean.endsWith('ely') ||
+    clean.endsWith('any') ||
+    clean.endsWith('ane') ||
+    clean.endsWith('ete') ||
+    clean.endsWith('elle')
+  ) {
+    return 'female'
+  }
+
+  return 'male'
+}
 
 export default class WebRTC {
   private myPeer: Peer
@@ -11,6 +55,10 @@ export default class WebRTC {
   private buttonGrid = document.querySelector('.button-grid')
   private myVideo = document.createElement('video')
   private myStream?: MediaStream
+  private realCameraTrack?: MediaStreamTrack
+  private avatarStream?: MediaStream
+  private avatarInterval?: number
+  private isVideoMutedByUser = false
   private network: Network
 
   constructor(userId: string, network: Network) {
@@ -167,36 +215,140 @@ export default class WebRTC {
     }
   }
 
-  private createAvatarStream(audioStream?: MediaStream): MediaStream {
+  private getMyPlayerName(): string {
+    const game = phaserGame?.scene?.keys?.game as Game
+    const name = game?.myPlayer?.playerName?.text
+    if (name && name.trim()) return name.trim()
+    return 'Você'
+  }
+
+  private createAvatarStream(audioStream?: MediaStream, nameOverride?: string): MediaStream {
+    if (this.avatarInterval) {
+      window.clearInterval(this.avatarInterval)
+      this.avatarInterval = undefined
+    }
+
     const canvas = document.createElement('canvas')
     canvas.width = 320
     canvas.height = 240
     const ctx = canvas.getContext('2d')
-    if (ctx) {
-      ctx.fillStyle = '#171821'
+
+    const getDisplayName = () => nameOverride || this.getMyPlayerName()
+
+    const drawFrame = (pulse = 0) => {
+      if (!ctx) return
+      const displayName = getDisplayName()
+      const gender = detectGender(displayName)
+      const isFemale = gender === 'female'
+
+      // Background gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, canvas.height)
+      if (isFemale) {
+        grad.addColorStop(0, '#f43f5e') // Vibrant rose / pink
+        grad.addColorStop(0.5, '#ec4899')
+        grad.addColorStop(1, '#be185d')
+      } else {
+        grad.addColorStop(0, '#3b82f6') // Vibrant blue
+        grad.addColorStop(0.5, '#2563eb')
+        grad.addColorStop(1, '#1d4ed8')
+      }
+      ctx.fillStyle = grad
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      ctx.fillStyle = '#00ebc7'
+      // Decorative rounded subtle pattern
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)'
       ctx.beginPath()
-      ctx.arc(160, 95, 42, 0, Math.PI * 2)
+      ctx.arc(40, 30, 80, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.arc(280, 210, 90, 0, Math.PI * 2)
       ctx.fill()
 
-      ctx.fillStyle = '#171821'
-      ctx.font = 'bold 36px Arial'
+      // Avatar circle with border
+      const centerX = 160
+      const centerY = 88
+      const radius = 42
+
+      // Outer glow/ring
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'
+      ctx.beginPath()
+      ctx.arc(centerX, centerY, radius + 5, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Circle base
+      ctx.fillStyle = '#ffffff'
+      ctx.beginPath()
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Avatar Emoji / Character
+      ctx.font = '44px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('👤', 160, 95)
+      ctx.fillText(isFemale ? '👩' : '👨', centerX, centerY + 2)
 
-      ctx.fillStyle = '#f8fafc'
-      ctx.font = 'bold 15px Arial'
+      // Name label
+      ctx.fillStyle = '#ffffff'
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.45)'
+      ctx.shadowBlur = 6
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 2
+      ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('Ao Vivo', 160, 165)
+      ctx.textBaseline = 'middle'
 
+      // Truncate name if too long to keep clean layout
+      let truncatedName = displayName
+      if (truncatedName.length > 18) {
+        truncatedName = truncatedName.substring(0, 16) + '...'
+      }
+      ctx.fillText(truncatedName, centerX, 156)
+
+      // Reset shadow for pill
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+
+      // Online Status Pill
+      const pillWidth = 92
+      const pillHeight = 24
+      const pillX = centerX - pillWidth / 2
+      const pillY = 182
+      const pillRadius = 12
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.28)'
+      ctx.beginPath()
+      if ((ctx as any).roundRect) {
+        ;(ctx as any).roundRect(pillX, pillY, pillWidth, pillHeight, pillRadius)
+      } else {
+        ctx.rect(pillX, pillY, pillWidth, pillHeight)
+      }
+      ctx.fill()
+
+      // Glowing green dot with pulse
+      const dotPulse = Math.sin(pulse) * 0.8
+      const dotRadius = Math.max(3, 4 + dotPulse)
       ctx.fillStyle = '#22c55e'
-      ctx.font = '12px Arial'
-      ctx.textAlign = 'center'
-      ctx.fillText('● Conectado no escritório', 160, 190)
+      ctx.beginPath()
+      ctx.arc(pillX + 16, pillY + pillHeight / 2, dotRadius, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('Online', pillX + 27, pillY + pillHeight / 2)
     }
+
+    let pulseStep = 0
+    drawFrame(0)
+
+    // Redraw every 600ms to keep stream alive and pulse gently
+    this.avatarInterval = window.setInterval(() => {
+      pulseStep += 0.8
+      drawFrame(pulseStep)
+    }, 600)
 
     const canvasStream = (canvas as any).captureStream ? (canvas as any).captureStream(15) : null
     const videoTrack = canvasStream?.getVideoTracks()[0]
@@ -211,7 +363,8 @@ export default class WebRTC {
     }
     if (videoTrack) tracks.push(videoTrack)
 
-    return new MediaStream(tracks)
+    this.avatarStream = new MediaStream(tracks)
+    return this.avatarStream
   }
 
   private replaceTracksOnAllCalls(newStream: MediaStream) {
@@ -252,6 +405,8 @@ export default class WebRTC {
     askMedia({ video: true, audio: true })
       .then((stream) => {
         this.myStream = stream
+        this.realCameraTrack = stream.getVideoTracks()[0]
+        this.isVideoMutedByUser = false
         this.addVideoStream(this.myVideo, this.myStream)
         this.replaceTracksOnAllCalls(this.myStream)
         this.setUpButtons()
@@ -262,7 +417,9 @@ export default class WebRTC {
         console.warn('Câmera indisponível ou em uso, conectando com microfone...', err)
         askMedia({ audio: true, video: false })
           .then((audioStream) => {
+            this.isVideoMutedByUser = true
             this.myStream = this.createAvatarStream(audioStream)
+            this.addVideoStream(this.myVideo, this.myStream)
             this.replaceTracksOnAllCalls(this.myStream)
             this.setUpButtons()
             store.dispatch(setVideoConnected(true))
@@ -270,7 +427,9 @@ export default class WebRTC {
           })
           .catch((finalErr) => {
             console.warn('Permissão de microfone não concedida, criando canal virtual para recepção...', finalErr)
+            this.isVideoMutedByUser = true
             this.myStream = this.createAvatarStream()
+            this.addVideoStream(this.myVideo, this.myStream)
             this.replaceTracksOnAllCalls(this.myStream)
             this.setUpButtons()
             store.dispatch(setVideoConnected(true))
@@ -337,8 +496,8 @@ export default class WebRTC {
 
     const updateDisplay = () => {
       const videoTrack = stream.getVideoTracks()[0]
-      const isEnabled = videoTrack ? videoTrack.enabled : false
-      video.style.display = isEnabled ? 'block' : 'none'
+      // Always show video element if track exists, so avatar stream or video renders clearly
+      video.style.display = videoTrack ? 'block' : 'none'
     }
 
     updateDisplay()
@@ -346,10 +505,12 @@ export default class WebRTC {
     const videoTrack = stream.getVideoTracks()[0]
     if (videoTrack) {
       videoTrack.onmute = () => {
-        video.style.display = 'none'
+        // Keep visible for avatar streams or unmute transitions
+        video.play().catch(() => {})
       }
       videoTrack.onunmute = () => {
-        if (videoTrack.enabled) video.style.display = 'block'
+        video.style.display = 'block'
+        video.play().catch(() => {})
       }
     }
 
@@ -414,24 +575,78 @@ export default class WebRTC {
   }
 
   toggleVideo(): boolean {
-    if (this.myStream) {
-      const track = this.myStream.getVideoTracks()[0]
-      if (track) {
-        track.enabled = !track.enabled
-        this.myVideo.style.display = track.enabled ? 'block' : 'none'
-        return track.enabled
+    // If we have a real camera track available
+    if (this.realCameraTrack && this.realCameraTrack.readyState !== 'ended') {
+      if (!this.isVideoMutedByUser) {
+        // User is muting video -> switch to avatar stream
+        this.isVideoMutedByUser = true
+        this.realCameraTrack.enabled = false
+        const audioTrack = this.myStream?.getAudioTracks()[0]
+        const audioStream = audioTrack ? new MediaStream([audioTrack]) : undefined
+        const avatar = this.createAvatarStream(audioStream)
+        this.myStream = avatar
+        this.myVideo.srcObject = avatar
+        this.myVideo.style.display = 'block'
+        this.myVideo.play().catch(() => {})
+        this.replaceTracksOnAllCalls(avatar)
+        return false
+      } else {
+        // User is unmuting video -> switch back to real camera track
+        this.isVideoMutedByUser = false
+        this.realCameraTrack.enabled = true
+        const tracks: MediaStreamTrack[] = [this.realCameraTrack]
+        const audioTrack = this.myStream?.getAudioTracks()[0]
+        if (audioTrack) tracks.push(audioTrack)
+        const cameraStream = new MediaStream(tracks)
+        this.myStream = cameraStream
+        this.myVideo.srcObject = cameraStream
+        this.myVideo.style.display = 'block'
+        this.myVideo.play().catch(() => {})
+        this.replaceTracksOnAllCalls(cameraStream)
+        return true
       }
     }
-    this.myVideo.style.display = 'none'
-    return false
+
+    // If no real camera was initialized yet, try acquiring camera
+    if (this.isVideoMutedByUser) {
+      navigator.mediaDevices?.getUserMedia({ video: true })
+        .then((stream) => {
+          const videoTrack = stream.getVideoTracks()[0]
+          if (videoTrack) {
+            this.realCameraTrack = videoTrack
+            this.isVideoMutedByUser = false
+            const tracks: MediaStreamTrack[] = [videoTrack]
+            const audioTrack = this.myStream?.getAudioTracks()[0]
+            if (audioTrack) tracks.push(audioTrack)
+            const cameraStream = new MediaStream(tracks)
+            this.myStream = cameraStream
+            this.myVideo.srcObject = cameraStream
+            this.myVideo.style.display = 'block'
+            this.myVideo.play().catch(() => {})
+            this.replaceTracksOnAllCalls(cameraStream)
+          }
+        })
+        .catch((err) => {
+          console.warn('Não foi possível obter webcam:', err)
+        })
+      return false
+    } else {
+      // Toggle off to avatar
+      this.isVideoMutedByUser = true
+      const audioTrack = this.myStream?.getAudioTracks()[0]
+      const audioStream = audioTrack ? new MediaStream([audioTrack]) : undefined
+      const avatar = this.createAvatarStream(audioStream)
+      this.myStream = avatar
+      this.myVideo.srcObject = avatar
+      this.myVideo.style.display = 'block'
+      this.myVideo.play().catch(() => {})
+      this.replaceTracksOnAllCalls(avatar)
+      return false
+    }
   }
 
   isVideoEnabled(): boolean {
-    if (this.myStream) {
-      const track = this.myStream.getVideoTracks()[0]
-      return track ? track.enabled : false
-    }
-    return false
+    return !this.isVideoMutedByUser
   }
 
   private initVideoGridDrag() {
