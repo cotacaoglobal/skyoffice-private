@@ -1180,6 +1180,13 @@ const SemanticSearchBox = styled.div`
   display: flex;
   flex-direction: column;
   gap: 14px;
+  box-sizing: border-box;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    padding: 16px 14px;
+    gap: 12px;
+  }
 
   .input-row {
     display: flex;
@@ -1190,6 +1197,8 @@ const SemanticSearchBox = styled.div`
     border-radius: 12px;
     padding: 10px 16px;
     transition: all 0.2s ease;
+    box-sizing: border-box;
+    width: 100%;
 
     &:focus-within {
       border-color: #2563eb;
@@ -1197,8 +1206,17 @@ const SemanticSearchBox = styled.div`
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
+    .input-field-wrapper {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     input {
       flex: 1;
+      min-width: 0;
       border: none;
       background: transparent;
       font-size: 15px;
@@ -1222,6 +1240,7 @@ const SemanticSearchBox = styled.div`
       display: flex;
       align-items: center;
       gap: 6px;
+      flex-shrink: 0;
       transition: background 0.15s ease;
 
       &:hover {
@@ -1231,6 +1250,26 @@ const SemanticSearchBox = styled.div`
       &:disabled {
         background: #94a3b8;
         cursor: not-allowed;
+      }
+    }
+
+    @media (max-width: 600px) {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 12px;
+      gap: 10px;
+
+      .input-field-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+      }
+
+      .search-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 9px 16px;
       }
     }
   }
@@ -2959,18 +2998,20 @@ ${commitmentLines}`
 
               <SemanticSearchBox>
                 <div className="input-row">
-                  <TravelExploreIcon style={{ color: '#64748b' }} />
-                  <input
-                    type="text"
-                    placeholder="Ex: O que foi decidido sobre o WebRTC? Quem vai entregar na sexta?"
-                    value={semanticQuery}
-                    onChange={(e) => setSemanticQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleSemanticSearch()
-                      }
-                    }}
-                  />
+                  <div className="input-field-wrapper">
+                    <TravelExploreIcon style={{ color: '#64748b', flexShrink: 0 }} />
+                    <input
+                      type="text"
+                      placeholder="Ex: O que foi decidido sobre o WebRTC? Quem vai entregar na sexta?"
+                      value={semanticQuery}
+                      onChange={(e) => setSemanticQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSemanticSearch()
+                        }
+                      }}
+                    />
+                  </div>
                   <button
                     className="search-btn"
                     disabled={isSearching || !semanticQuery.trim()}
