@@ -34,7 +34,24 @@ export default class ShareScreenManager {
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' },
           { urls: 'stun:global.stun.twilio.com:3478' },
+          {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject',
+          },
+          {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject',
+          },
+          {
+            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+            username: 'openrelayproject',
+            credential: 'openrelayproject',
+          },
         ],
       },
     })
@@ -199,7 +216,7 @@ export default class ShareScreenManager {
     })
   }
 
-  private callPeer(userId: string, scope: ScreenShareScope, isRetry = false) {
+  private callPeer(userId: string, scope: ScreenShareScope, retryCount = 0) {
     if (!this.myStream || userId === this.userId) return
 
     const sanatizedId = this.makeId(userId)
@@ -231,7 +248,7 @@ export default class ShareScreenManager {
       }
     })
 
-    if (!isRetry) {
+    if (retryCount < 5) {
       this.clearRetry(sanatizedId)
       const timer = setTimeout(() => {
         this.retryTimers.delete(sanatizedId)
@@ -245,7 +262,7 @@ export default class ShareScreenManager {
         try {
           call.close()
         } catch (e) {}
-        this.callPeer(userId, scope, true)
+        this.callPeer(userId, scope, retryCount + 1)
       }, RETRY_DELAY_MS)
       this.retryTimers.set(sanatizedId, timer)
     }
