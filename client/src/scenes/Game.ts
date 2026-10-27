@@ -128,6 +128,19 @@ export default class Game extends Phaser.Scene {
       item.itemDirection = chairObj.properties[0].value
       const id = chairObj.id ? `${chairObj.id}` : `chair_${i}`
       item.id = id
+
+      // Teste com a Cadeira Gamer (substitui a primeira cadeira de mesa ou cadeira 334)
+      if (chairObj.id === 334 || i === 0) {
+        item.setTexture('gamer_chair')
+        // Ajusta a escala para ficar proporcional ao grid de 32x32 do jogo (100x163 -> ~38x62)
+        item.setScale(0.38)
+        // Ajusta o corpo de colisão / física para manter compatibilidade com o grid
+        if (item.body) {
+          item.body.setSize(32, 64)
+          item.body.setOffset((item.width - 32 / 0.38) / 2, (item.height - 64 / 0.38) / 2)
+        }
+      }
+
       this.chairMap.set(id, item)
     })
 

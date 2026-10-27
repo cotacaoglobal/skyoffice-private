@@ -37,6 +37,7 @@ export default class Bootstrap extends Phaser.Scene {
       frameWidth: 32,
       frameHeight: 64,
     })
+    this.load.image('gamer_chair', 'assets/items/gamer_chair.webp')
     this.load.spritesheet('computers', 'assets/items/computer.png', {
       frameWidth: 96,
       frameHeight: 64,
