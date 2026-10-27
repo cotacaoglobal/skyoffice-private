@@ -40,6 +40,11 @@ const ModalBackdrop = styled.div`
   padding: 24px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: #1e293b;
+
+  @media (max-width: 768px) {
+    padding: 14px 10px;
+    align-items: center;
+  }
 `
 
 const ModalCard = styled.div`
@@ -53,6 +58,12 @@ const ModalCard = styled.div`
   flex-direction: column;
   overflow: hidden;
   border: 1px solid #e2e8f0;
+
+  @media (max-width: 768px) {
+    max-width: 420px;
+    max-height: 94vh;
+    border-radius: 20px;
+  }
 `
 
 const ModalHeader = styled.div`
@@ -63,15 +74,32 @@ const ModalHeader = styled.div`
   align-items: center;
   justify-content: space-between;
 
+  .header-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 14px;
+  }
+
+  .header-top-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+  }
+
   .brand {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    align-items: flex-start;
+    gap: 14px;
+    flex: 1;
 
     .icon-box {
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      border-radius: 12px;
       background: #eff6ff;
       color: #2563eb;
       display: flex;
@@ -79,17 +107,21 @@ const ModalHeader = styled.div`
       justify-content: center;
     }
 
-    h3 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 700;
-      color: #0f172a;
-    }
+    .title-group {
+      h3 {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.25;
+      }
 
-    p {
-      margin: 2px 0 0 0;
-      font-size: 12px;
-      color: #64748b;
+      p {
+        margin: 4px 0 0 0;
+        font-size: 12.5px;
+        color: #64748b;
+        line-height: 1.4;
+      }
     }
   }
 
@@ -104,49 +136,106 @@ const ModalHeader = styled.div`
     align-items: center;
     justify-content: center;
     transition: all 0.15s ease;
+    margin-top: -2px;
+    margin-right: -4px;
 
     &:hover {
       background: #f1f5f9;
       color: #0f172a;
     }
   }
+
+  .new-dept-btn {
+    width: 100%;
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+
+    &:hover {
+      background: #1d4ed8;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 18px 18px 14px 18px;
+
+    .brand {
+      .icon-box {
+        width: 46px;
+        height: 46px;
+        min-width: 46px;
+        border-radius: 12px;
+      }
+
+      .title-group h3 {
+        font-size: 17.5px;
+      }
+
+      .title-group p {
+        font-size: 11.5px;
+      }
+    }
+
+    .new-dept-btn {
+      padding: 9px 16px;
+      font-size: 13.5px;
+      border-radius: 10px;
+    }
+  }
 `
 
 const ModalBody = styled.div`
-  padding: 24px;
+  padding: 20px 24px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
+  background: #ffffff;
+
+  @media (max-width: 768px) {
+    padding: 16px 14px;
+    gap: 14px;
+  }
 `
 
 const DepartmentGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 `
 
 const DeptCard = styled.div<{ $themeColor: string }>`
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 14px;
-  padding: 18px;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   transition: all 0.2s ease;
   border-left: 4px solid ${({ $themeColor }) => $themeColor};
 
   &:hover {
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
 
   .card-top {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: 10px;
 
     h4 {
@@ -156,34 +245,72 @@ const DeptCard = styled.div<{ $themeColor: string }>`
       color: #0f172a;
     }
 
-    .badge-group {
-      display: flex;
-      gap: 6px;
+    .badge-pill {
+      display: inline-flex;
       align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 11.5px;
+      font-weight: 600;
+
+      &.open {
+        background: #f0fdf4;
+        color: #16a34a;
+        border: 1px solid #dcfce7;
+      }
+
+      &.restricted {
+        background: #f5f3ff;
+        color: #7c3aed;
+        border: 1px solid #ede9fe;
+      }
+
+      &.password {
+        background: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fef3c7;
+      }
     }
   }
 
   .description {
     font-size: 13px;
     color: #475569;
-    line-height: 1.4;
+    line-height: 1.45;
     margin: 0;
   }
 
   .members-area {
     background: #f8fafc;
-    border-radius: 8px;
-    padding: 8px 10px;
+    border: 1px solid #f1f5f9;
+    border-radius: 10px;
+    padding: 10px 12px;
     font-size: 12px;
-    color: #64748b;
+    color: #475569;
     display: flex;
     flex-direction: column;
     gap: 6px;
+
+    .members-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .members-subtext {
+      color: #64748b;
+      font-size: 11.5px;
+      margin-left: 26px;
+    }
 
     .member-chips {
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
+      margin-left: 26px;
     }
   }
 
@@ -191,35 +318,41 @@ const DeptCard = styled.div<{ $themeColor: string }>`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-top: 6px;
-    gap: 8px;
+    padding-top: 4px;
+    gap: 10px;
 
     .copy-link {
-      background: transparent;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 12px;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 13px;
       font-weight: 600;
-      color: #475569;
+      color: #2563eb;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       transition: all 0.15s;
 
       &:hover {
-        background: #f1f5f9;
-        color: #0f172a;
+        background: #eff6ff;
+        border-color: #93c5fd;
       }
+    }
+
+    .action-right {
+      display: flex;
+      gap: 6px;
+      align-items: center;
     }
 
     .enter-btn {
       background: #2563eb;
       color: #ffffff;
       border: none;
-      border-radius: 6px;
-      padding: 6px 14px;
+      border-radius: 8px;
+      padding: 7px 16px;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
@@ -227,9 +360,34 @@ const DeptCard = styled.div<{ $themeColor: string }>`
       align-items: center;
       gap: 6px;
       transition: background 0.15s;
+      box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
 
       &:hover {
         background: #1d4ed8;
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 14px 14px;
+
+    .card-top h4 {
+      font-size: 15px;
+    }
+
+    .description {
+      font-size: 12.5px;
+    }
+
+    .card-actions {
+      .copy-link {
+        padding: 6px 12px;
+        font-size: 12.5px;
+      }
+
+      .enter-btn {
+        padding: 6px 14px;
+        font-size: 12.5px;
       }
     }
   }
@@ -323,27 +481,25 @@ export default function DepartmentManagerDialog({
     <ModalBackdrop onClick={onClose}>
       <ModalCard onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
-          <div className="brand">
-            <div className="icon-box">
-              <BusinessIcon style={{ fontSize: 24 }} />
+          <div className="header-content">
+            <div className="header-top-row">
+              <div className="brand">
+                <div className="icon-box">
+                  <BusinessIcon style={{ fontSize: 26 }} />
+                </div>
+                <div className="title-group">
+                  <h3>Departamentos & Salas Corporativas</h3>
+                  <p>Gerencie salas fixas, permissões de membros e links de convite direto</p>
+                </div>
+              </div>
+              <button className="close-btn" onClick={onClose} title="Fechar">
+                <CloseIcon style={{ fontSize: 20 }} />
+              </button>
             </div>
-            <div>
-              <h3>Departamentos & Salas Corporativas</h3>
-              <p>Gerencie salas fixas, permissões de membros e links de convite direto</p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={() => setShowCreateModal(true)}
-              style={{ background: '#2563eb', textTransform: 'none', fontWeight: 600, borderRadius: 8 }}
-            >
+
+            <button className="new-dept-btn" onClick={() => setShowCreateModal(true)}>
+              <AddIcon style={{ fontSize: 18 }} />
               Novo Departamento
-            </Button>
-            <button className="close-btn" onClick={onClose} title="Fechar">
-              <CloseIcon style={{ fontSize: 20 }} />
             </button>
           </div>
         </ModalHeader>
@@ -356,30 +512,21 @@ export default function DepartmentManagerDialog({
                 <DeptCard key={dept.id} $themeColor={themeColor}>
                   <div className="card-top">
                     <h4>{dept.name}</h4>
-                    <div className="badge-group">
+                    <div>
                       {dept.accessType === 'open' && (
-                        <Chip
-                          icon={<PublicIcon style={{ fontSize: 13 }} />}
-                          label="Aberto"
-                          size="small"
-                          style={{ height: 22, fontSize: 10, background: '#f0fdf4', color: '#16a34a' }}
-                        />
+                        <span className="badge-pill open">
+                          <span style={{ fontSize: 10 }}>●</span> Aberto
+                        </span>
                       )}
                       {dept.accessType === 'members_only' && (
-                        <Chip
-                          icon={<GroupIcon style={{ fontSize: 13 }} />}
-                          label="Restrito"
-                          size="small"
-                          style={{ height: 22, fontSize: 10, background: '#f5f3ff', color: '#7c3aed' }}
-                        />
+                        <span className="badge-pill restricted">
+                          <LockIcon style={{ fontSize: 13 }} /> Restrito
+                        </span>
                       )}
                       {dept.accessType === 'password' && (
-                        <Chip
-                          icon={<LockIcon style={{ fontSize: 13 }} />}
-                          label="Com Senha"
-                          size="small"
-                          style={{ height: 22, fontSize: 10, background: '#fffbeb', color: '#b45309' }}
-                        />
+                        <span className="badge-pill password">
+                          <LockIcon style={{ fontSize: 13 }} /> Com Senha
+                        </span>
                       )}
                     </div>
                   </div>
@@ -387,35 +534,35 @@ export default function DepartmentManagerDialog({
                   <p className="description">{dept.description || 'Sem descrição informada.'}</p>
 
                   <div className="members-area">
-                    <span>
-                      👥 <strong>Membros com Acesso:</strong>{' '}
-                      {dept.accessType === 'open' ? 'Todos os colaboradores da empresa' : `${dept.allowedMembers.length} membro(s) autorizados`}
+                    <div className="members-label">
+                      <GroupIcon style={{ fontSize: 17, color: '#475569' }} />
+                      <span>Membros com Acesso:</span>
+                    </div>
+                    <span className="members-subtext">
+                      {dept.accessType === 'open'
+                        ? 'Todos os colaboradores da empresa'
+                        : dept.allowedMembers.length > 0
+                        ? dept.allowedMembers.join(', ')
+                        : 'Apenas diretores e equipe autorizada'}
                     </span>
-                    {dept.allowedMembers.length > 0 && (
-                      <div className="member-chips">
-                        {dept.allowedMembers.map((m, i) => (
-                          <Chip key={i} label={m} size="small" style={{ height: 20, fontSize: 10 }} />
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   <div className="card-actions">
                     <button className="copy-link" onClick={() => handleCopyInviteLink(dept)}>
                       {copiedId === dept.id ? (
                         <>
-                          <CheckCircleIcon style={{ fontSize: 14, color: '#16a34a' }} />
-                          Link Copiado!
+                          <CheckCircleIcon style={{ fontSize: 15, color: '#16a34a' }} />
+                          Copiado!
                         </>
                       ) : (
                         <>
-                          <ContentCopyIcon style={{ fontSize: 14 }} />
+                          <ContentCopyIcon style={{ fontSize: 15 }} />
                           Copiar Link
                         </>
                       )}
                     </button>
 
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <div className="action-right">
                       {dept.id !== 'dept-geral' && (
                         <button
                           onClick={() => handleDeleteDepartment(dept.id)}
