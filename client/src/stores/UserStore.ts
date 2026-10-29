@@ -23,8 +23,14 @@ export const userSlice = createSlice({
   },
   reducers: {
     toggleBackgroundMode: (state) => {
-      const newMode =
-        state.backgroundMode === BackgroundMode.DAY ? BackgroundMode.NIGHT : BackgroundMode.DAY
+      let newMode: BackgroundMode
+      if (state.backgroundMode === BackgroundMode.DAY) {
+        newMode = BackgroundMode.NIGHT
+      } else if (state.backgroundMode === BackgroundMode.NIGHT) {
+        newMode = BackgroundMode.GREEN_HILLS
+      } else {
+        newMode = BackgroundMode.DAY
+      }
 
       state.backgroundMode = newMode
       const bootstrap = phaserGame.scene.keys.bootstrap as Bootstrap

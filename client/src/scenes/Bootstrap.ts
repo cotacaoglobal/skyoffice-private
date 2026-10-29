@@ -19,6 +19,7 @@ export default class Bootstrap extends Phaser.Scene {
       'assets/background/cloud_day.json'
     )
     this.load.image('backdrop_day', 'assets/background/backdrop_day.png')
+    this.load.image('skybox_green_hills', 'assets/background/skyboxGreenHills01Atlas-0_1.webp')
     this.load.atlas(
       'cloud_night',
       'assets/background/cloud_night.png',
