@@ -130,20 +130,22 @@ const LogoWrapper = styled.div`
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 16px;
-  padding: 14px 28px;
+  padding: 16px 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 
   img {
-    height: 60px;
+    height: 75px;
+    max-width: 280px;
     object-fit: contain;
 
     @media (max-width: 768px) {
-      height: 48px;
+      height: 62px;
     }
   }
+}
 `
 
 const PixelPrimaryButton = styled.button`

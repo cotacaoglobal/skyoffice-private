@@ -16,6 +16,7 @@ import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined'
 import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded'
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
 import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded'
 import CircleIcon from '@mui/icons-material/Circle'
@@ -62,13 +63,13 @@ const avatarMap: Record<string, string> = {
 export type SidebarTab = 'home' | 'chat' | 'calendar' | 'meetings' | 'departments' | null
 
 // Container Global do Dock + Painel
-const SidebarWrapper = styled.div`
+const SidebarWrapper = styled.div<{ $hasOpenPanel?: boolean }>`
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
   display: flex;
-  z-index: 9999;
+  z-index: ${({ $hasOpenPanel }) => ($hasOpenPanel ? 10005 : 9999)};
   pointer-events: none;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
@@ -625,9 +626,10 @@ const FullChatContainer = styled.div`
   width: 100%;
   height: 100%;
   background: #ffffff;
+  overflow: hidden;
 `
 
-const ChatSidebarNav = styled.div`
+const ChatSidebarNav = styled.div<{ $hideOnMobile?: boolean }>`
   width: 260px;
   min-width: 260px;
   height: 100%;
@@ -638,8 +640,10 @@ const ChatSidebarNav = styled.div`
   box-sizing: border-box;
 
   @media (max-width: 768px) {
-    width: 220px;
-    min-width: 220px;
+    width: 100%;
+    min-width: 100%;
+    border-right: none;
+    display: ${({ $hideOnMobile }) => ($hideOnMobile ? 'none' : 'flex')};
   }
 `
 
@@ -654,6 +658,27 @@ const ChatNavHeader = styled.div`
     font-size: 15px;
     font-weight: 700;
     color: #0f172a;
+  }
+
+  .mobile-close-btn {
+    display: none;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+
+    @media (max-width: 768px) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    &:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
   }
 `
 
@@ -740,27 +765,61 @@ const ChatNavSection = styled.div`
   }
 `
 
-const ChatMainArea = styled.div`
+const ChatMainArea = styled.div<{ $hideOnMobile?: boolean }>`
   flex: 1;
   height: 100%;
   display: flex;
   flex-direction: column;
   background: #ffffff;
   overflow: hidden;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    min-width: 0;
+    display: ${({ $hideOnMobile }) => ($hideOnMobile ? 'none' : 'flex')};
+  }
 `
 
 const ChatTopBar = styled.div`
-  padding: 12px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: #ffffff;
+  min-height: 52px;
+  box-sizing: border-box;
 
   .recipient-box {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    min-width: 0;
+    overflow: hidden;
+
+    .mobile-back-btn {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      color: #2563eb;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+
+      &:hover {
+        background: #dbeafe;
+      }
+
+      @media (max-width: 768px) {
+        display: flex;
+      }
+    }
 
     .title {
       font-size: 15px;
@@ -982,6 +1041,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
 
   // Sub-abas do Chat Corporativo Tela Cheia (general | activities | support | playerId)
   const [chatCurrentSection, setChatCurrentSection] = useState<string>('general')
+  const [mobileChatView, setMobileChatView] = useState<'list' | 'conversation'>('conversation')
   const chatMessages = useAppSelector((state) => state.chat.chatMessages)
   const privateChats = useAppSelector((state) => state.chat.privateChats)
   const [chatInput, setChatInput] = useState<string>('')
@@ -1119,7 +1179,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
   const activeChatPartner = otherPlayers.find((p) => p.id === chatCurrentSection)
 
   return (
-    <SidebarWrapper>
+    <SidebarWrapper $hasOpenPanel={isPanelOpen}>
       {/* 1. DOCK VERTICAL FIXO (~64px) */}
       <VerticalDock>
         <DockTop>
@@ -1320,11 +1380,14 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
         {activeTabState === 'chat' && (
           <FullChatContainer>
             {/* SIDEBAR INTERNO DO CHAT */}
-            <ChatSidebarNav>
+            <ChatSidebarNav $hideOnMobile={mobileChatView === 'conversation'}>
               <ChatNavHeader>
                 <div className="brand">{roomName || 'WorkOffice'}</div>
-                <div style={{ display: 'flex', gap: '4px' }}>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                   <EditOutlinedIcon style={{ fontSize: 20, color: '#64748b', cursor: 'pointer' }} />
+                  <button className="mobile-close-btn" onClick={() => setIsPanelOpen(false)} title="Fechar Chat">
+                    <CloseRoundedIcon fontSize="small" />
+                  </button>
                 </div>
               </ChatNavHeader>
 
@@ -1337,14 +1400,14 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   <div
                     className={`nav-item ${chatCurrentSection === 'activities' ? 'active' : ''}`}
-                    onClick={() => setChatCurrentSection('activities')}
+                    onClick={() => { setChatCurrentSection('activities'); setMobileChatView('conversation'); }}
                   >
                     <DynamicFeedOutlinedIcon style={{ fontSize: 18, color: '#64748b' }} />
                     <span>Atividade</span>
                   </div>
                   <div
                     className={`nav-item ${chatCurrentSection === 'general' ? 'active' : ''}`}
-                    onClick={() => setChatCurrentSection('general')}
+                    onClick={() => { setChatCurrentSection('general'); setMobileChatView('conversation'); }}
                   >
                     <TagRoundedIcon style={{ fontSize: 18, color: '#64748b' }} />
                     <span>Chat da Reunião</span>
@@ -1358,7 +1421,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                   </div>
                   <div
                     className={`nav-item ${chatCurrentSection === 'general' ? 'active' : ''}`}
-                    onClick={() => setChatCurrentSection('general')}
+                    onClick={() => { setChatCurrentSection('general'); setMobileChatView('conversation'); }}
                   >
                     <TagRoundedIcon style={{ fontSize: 16 }} />
                     <span>general</span>
@@ -1381,7 +1444,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                       <div
                         key={player.id}
                         className={`nav-item ${chatCurrentSection === player.id ? 'active' : ''}`}
-                        onClick={() => setChatCurrentSection(player.id)}
+                        onClick={() => { setChatCurrentSection(player.id); setMobileChatView('conversation'); }}
                       >
                         <img
                           src={avatarMap[player.avatar] || Adam}
@@ -1408,7 +1471,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                   </div>
                   <div
                     className={`nav-item ${chatCurrentSection === 'support' ? 'active' : ''}`}
-                    onClick={() => setChatCurrentSection('support')}
+                    onClick={() => { setChatCurrentSection('support'); setMobileChatView('conversation'); }}
                   >
                     <SupportAgentRoundedIcon style={{ fontSize: 18, color: '#5865F2' }} />
                     <span>Suporte WorkOffice</span>
@@ -1418,10 +1481,18 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
             </ChatSidebarNav>
 
             {/* ÁREA PRINCIPAL DO CHAT */}
-            <ChatMainArea>
+            <ChatMainArea $hideOnMobile={mobileChatView === 'list'}>
               {/* Barra do Topo da Conversa */}
               <ChatTopBar>
                 <div className="recipient-box">
+                  <button
+                    className="mobile-back-btn"
+                    onClick={() => setMobileChatView('list')}
+                    title="Ver lista de canais e membros"
+                  >
+                    <ArrowBackIcon style={{ fontSize: 16 }} />
+                    <span>Canais</span>
+                  </button>
                   {chatCurrentSection === 'general' ? (
                     <div className="title">
                       <TagRoundedIcon style={{ color: '#5865F2' }} />

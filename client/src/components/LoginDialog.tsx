@@ -55,11 +55,16 @@ const TopLogoWrapper = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 
   img {
-    height: 42px;
+    height: 75px;
+    max-width: 280px;
     object-fit: contain;
+
+    @media (max-width: 768px) {
+      height: 60px;
+    }
   }
 `
 
