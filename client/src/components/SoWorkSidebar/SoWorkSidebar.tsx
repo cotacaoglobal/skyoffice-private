@@ -53,6 +53,36 @@ import Ash from '../../images/login/Ash_login.png'
 import Lucy from '../../images/login/Lucy_login.png'
 import Nancy from '../../images/login/Nancy_login.png'
 
+
+// SVGs Oficiais para Google Calendar e Outlook
+const GoogleCalendarIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="24" height="24" rx="4" fill="#ffffff" />
+    <path d="M19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6L3 20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4Z" fill="#4285F4"/>
+    <path d="M19 20H5V9H19V20Z" fill="#FFFFFF"/>
+    <path d="M18 2H16V5H18V2Z" fill="#1967D2"/>
+    <path d="M8 2H6V5H8V2Z" fill="#1967D2"/>
+    <path d="M4.5 4H19.5V8H4.5V4Z" fill="#EA4335" />
+    <path d="M19 8H20.5V20C20.5 20.8 19.8 21.5 19 21.5H18V8H19Z" fill="#34A853" />
+    <path d="M3.5 20C3.5 20.8 4.2 21.5 5 21.5H19V20H5V9H3.5V20Z" fill="#FBBC04" />
+    <text x="12" y="17.5" textAnchor="middle" fontSize="9.5" fontWeight="900" fill="#1A73E8" fontFamily="Arial, sans-serif">31</text>
+  </svg>
+)
+
+const OutlookCalendarIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="24" height="24" rx="4" fill="#ffffff"/>
+    <path d="M14 6L21 8.5V17.5L14 20V6Z" fill="#0078D4"/>
+    <path d="M14 9H20V15H14V9Z" fill="#0078D4"/>
+    <path d="M20 15L14 18V15H20Z" fill="#004C87"/>
+    <path d="M20 18L14 15V18H20Z" fill="#106EBE"/>
+    <path d="M3 7H14V19H3V7Z" fill="#0078D4"/>
+    <circle cx="8.5" cy="13" r="3.5" fill="#004C87"/>
+    <circle cx="8.5" cy="13" r="2" fill="#FFFFFF"/>
+    <path d="M8.5 11C7.4 11 6.5 11.9 6.5 13C6.5 14.1 7.4 15 8.5 15C9.6 15 10.5 14.1 10.5 13C10.5 11.9 9.6 11 8.5 11ZM8.5 14C7.9 14 7.5 13.6 7.5 13C7.5 12.4 7.9 12 8.5 12C9.1 12 9.5 12.4 9.5 13C9.5 13.6 9.1 14 8.5 14Z" fill="#0078D4"/>
+  </svg>
+)
+
 const avatarMap: Record<string, string> = {
   adam: Adam,
   ash: Ash,
@@ -917,7 +947,121 @@ const MessageBubbleRow = styled.div<{ $isSelf?: boolean }>`
   }
 `
 
+
+const EmojiPickerCard = styled.div`
+  position: absolute;
+  bottom: 75px;
+  left: 20px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  z-index: 10005;
+  width: 240px;
+
+  button {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s;
+
+    &:hover {
+      background: #f1f5f9;
+      transform: scale(1.15);
+    }
+  }
+`
+
+const MentionPickerCard = styled.div`
+  position: absolute;
+  bottom: 75px;
+  left: 50px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 10005;
+  width: 210px;
+  max-height: 200px;
+  overflow-y: auto;
+
+  .header {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    padding: 4px 12px 6px 12px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    cursor: pointer;
+    transition: background 0.1s;
+
+    &:hover {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+  }
+`
+
+const AttachMenuCard = styled.div`
+  position: absolute;
+  bottom: 75px;
+  left: 10px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 10005;
+  width: 200px;
+
+  .menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+
+    &:hover {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+  }
+`
+
 const ChatFooterEditor = styled.div`
+  position: relative;
   padding: 16px 20px;
   border-top: 1px solid #e2e8f0;
   background: #ffffff;
@@ -1045,6 +1189,48 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
   const chatMessages = useAppSelector((state) => state.chat.chatMessages)
   const privateChats = useAppSelector((state) => state.chat.privateChats)
   const [chatInput, setChatInput] = useState<string>('')
+
+  const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false)
+  const [showMentionPicker, setShowMentionPicker] = useState<boolean>(false)
+  const [showAttachMenu, setShowAttachMenu] = useState<boolean>(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const emojisList = ['😀', '😂', '😍', '🎉', '👍', '👏', '🚀', '🔥', '👀', '❤️', '💼', '✅', '🤝', '☕', '💡', '✨', '🙌', '💯']
+
+  const handleSelectEmoji = (emoji: string) => {
+    setChatInput((prev) => prev + emoji)
+    setShowEmojiPicker(false)
+    textareaRef.current?.focus()
+  }
+
+  const handleSelectMention = (name: string) => {
+    setChatInput((prev) => {
+      const spacer = prev.length > 0 && !prev.endsWith(' ') ? ' ' : ''
+      return prev + spacer + '@' + name + ' '
+    })
+    setShowMentionPicker(false)
+    textareaRef.current?.focus()
+  }
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setChatInput((prev) => prev + (prev.length > 0 ? '\n' : '') + '📎 [Arquivo: ' + file.name + ']')
+      setShowAttachMenu(false)
+      textareaRef.current?.focus()
+    }
+  }
+
+  const handleInsertLink = () => {
+    const url = prompt('Digite o link que deseja compartilhar:', 'https://')
+    if (url && url !== 'https://') {
+      setChatInput((prev) => prev + (prev.length > 0 ? ' ' : '') + url)
+    }
+    setShowAttachMenu(false)
+    textareaRef.current?.focus()
+  }
+
 
   // Suporte WorkOffice integrado localmente
   const [supportMessages, setSupportMessages] = useState<Array<{ author: string; content: string; time: string }>>([
@@ -1641,8 +1827,66 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
               {/* Editor Inferior (com barra de ferramentas SoWork) */}
               {chatCurrentSection !== 'activities' && (
                 <ChatFooterEditor>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={handleFileUpload}
+                  />
+
+                  {showEmojiPicker && (
+                    <EmojiPickerCard>
+                      {emojisList.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => handleSelectEmoji(emoji)}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </EmojiPickerCard>
+                  )}
+
+                  {showMentionPicker && (
+                    <MentionPickerCard>
+                      <div className="header">Mencionar no chat</div>
+                      <div className="item" onClick={() => handleSelectMention('todos')}>
+                        <span>📢 @todos</span>
+                      </div>
+                      <div className="item" onClick={() => handleSelectMention('aqui')}>
+                        <span>🟢 @aqui</span>
+                      </div>
+                      {otherPlayers.map((p) => (
+                        <div key={p.id} className="item" onClick={() => handleSelectMention(p.name)}>
+                          <span>👤 @{p.name}</span>
+                        </div>
+                      ))}
+                    </MentionPickerCard>
+                  )}
+
+                  {showAttachMenu && (
+                    <AttachMenuCard>
+                      <button
+                        type="button"
+                        className="menu-btn"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <span>📎 Anexar arquivo</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="menu-btn"
+                        onClick={handleInsertLink}
+                      >
+                        <span>🔗 Compartilhar link</span>
+                      </button>
+                    </AttachMenuCard>
+                  )}
+
                   <div className="editor-card">
                     <textarea
+                      ref={textareaRef}
                       placeholder={`Mensagem para ${
                         chatCurrentSection === 'general'
                           ? '#general'
@@ -1657,19 +1901,46 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault()
+                          setShowEmojiPicker(false)
+                          setShowMentionPicker(false)
+                          setShowAttachMenu(false)
                           handleSendChatMessage()
                         }
                       }}
                     />
                     <div className="toolbar">
                       <div className="tools-left">
-                        <button type="button" title="Adicionar arquivo / link">
+                        <button
+                          type="button"
+                          title="Adicionar arquivo / link"
+                          onClick={() => {
+                            setShowAttachMenu(!showAttachMenu)
+                            setShowEmojiPicker(false)
+                            setShowMentionPicker(false)
+                          }}
+                        >
                           <AddRoundedIcon fontSize="small" />
                         </button>
-                        <button type="button" title="Inserir emoji">
+                        <button
+                          type="button"
+                          title="Inserir emoji"
+                          onClick={() => {
+                            setShowEmojiPicker(!showEmojiPicker)
+                            setShowAttachMenu(false)
+                            setShowMentionPicker(false)
+                          }}
+                        >
                           <InsertEmoticonRoundedIcon fontSize="small" />
                         </button>
-                        <button type="button" title="Mencionar pessoa">
+                        <button
+                          type="button"
+                          title="Mencionar pessoa"
+                          onClick={() => {
+                            setShowMentionPicker(!showMentionPicker)
+                            setShowAttachMenu(false)
+                            setShowEmojiPicker(false)
+                          }}
+                        >
                           <AlternateEmailRoundedIcon fontSize="small" />
                         </button>
                       </div>
@@ -1677,7 +1948,12 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                         type="button"
                         className="send-btn"
                         disabled={!chatInput.trim()}
-                        onClick={() => handleSendChatMessage()}
+                        onClick={() => {
+                          setShowEmojiPicker(false)
+                          setShowMentionPicker(false)
+                          setShowAttachMenu(false)
+                          handleSendChatMessage()
+                        }}
                       >
                         <SendRoundedIcon style={{ fontSize: 14 }} />
                         Enviar
@@ -1738,7 +2014,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                       cursor: 'pointer',
                     }}
                   >
-                    <span style={{ color: '#ea4335', fontWeight: 'bold' }}>G</span> Vincular Google Calendar
+                    <GoogleCalendarIcon /> <span>Vincular Google Calendar</span>
                   </button>
 
                   <button
@@ -1758,7 +2034,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                       cursor: 'pointer',
                     }}
                   >
-                    <span style={{ color: '#0078d4', fontWeight: 'bold' }}>O</span> Conectar Calendário Outlook
+                    <OutlookCalendarIcon /> <span>Conectar Calendário Outlook</span>
                   </button>
                 </div>
               </div>

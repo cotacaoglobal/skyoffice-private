@@ -18,7 +18,7 @@ const CardWrapper = styled.div`
   border: 1px solid #e2e8f0;
   border-radius: 20px;
   padding: 36px 36px 28px 36px;
-  width: 410px;
+  width: 440px;
   max-width: calc(100vw - 24px);
   box-shadow: 
     0 20px 45px rgba(30, 58, 138, 0.15),
@@ -43,17 +43,18 @@ const TopLogoWrapper = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 8px;
+  margin-bottom: 8px;
 
   img {
-    height: 75px;
-    max-width: 280px;
+    height: 112px;
+    max-width: 330px;
     object-fit: contain;
 
     @media (max-width: 600px) {
-      height: 62px;
+      height: 90px;
     }
+  }
   }
 `
 

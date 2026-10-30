@@ -68,42 +68,56 @@ const TopLogoWrapper = styled.div`
   }
 `
 
-const Title = styled.p`
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: #2563eb;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-
-  @media (max-width: 768px) {
-    font-size: 12px;
-  }
-`
-
-const RoomName = styled.div`
-  max-width: 500px;
-  max-height: 120px;
-  overflow-wrap: anywhere;
-  overflow-y: auto;
+const HeaderRow = styled.div`
   display: flex;
-  gap: 10px;
-  justify-content: center;
   align-items: center;
-  margin-top: 4px;
+  justify-content: center;
+  gap: 12px;
+  margin: 6px 0 4px 0;
+  flex-wrap: wrap;
 
-  h3 {
-    font-size: 20px;
-    font-weight: 800;
-    color: #0f172a;
-    margin: 0;
+  .entering-badge {
+    font-size: 13px;
+    font-weight: 700;
+    color: #2563eb;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    padding: 6px 12px;
+    border-radius: 9999px;
+  }
+
+  .room-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .room-avatar {
+      width: 32px;
+      height: 32px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    h3 {
+      font-size: 19px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0;
+    }
   }
 
   @media (max-width: 768px) {
-    max-width: 100%;
-    h3 {
-      font-size: 17px;
+    gap: 8px;
+
+    .entering-badge {
+      font-size: 11px;
+      padding: 4px 10px;
+    }
+
+    .room-badge h3 {
+      font-size: 16px;
     }
   }
 `
@@ -343,13 +357,15 @@ export default function LoginDialog() {
       <TopLogoWrapper>
         <img src="/assets/workoffice-logo.jpg" alt="WorkOffice" />
       </TopLogoWrapper>
-      <Title>Entrando na Sala</Title>
-      <RoomName>
-        <Avatar style={{ background: getColorByString(roomName) }}>
-          {getAvatarString(roomName)}
-        </Avatar>
-        <h3>{roomName}</h3>
-      </RoomName>
+      <HeaderRow>
+        <span className="entering-badge">Entrando na Sala</span>
+        <div className="room-badge">
+          <Avatar className="room-avatar" style={{ background: getColorByString(roomName) }}>
+            {getAvatarString(roomName)}
+          </Avatar>
+          <h3>{roomName}</h3>
+        </div>
+      </HeaderRow>
       <Content>
         <Left>
           <SubTitle>Escolha seu avatar</SubTitle>
@@ -383,10 +399,31 @@ export default function LoginDialog() {
             onChange={(e) => {
               setName(e.target.value)
             }}
+            inputProps={{
+              style: {
+                color: '#000000',
+                fontWeight: 600,
+                fontSize: '15px',
+              },
+            }}
             sx={{
+              '& .MuiInputBase-input': {
+                color: '#000000 !important',
+                WebkitTextFillColor: '#000000 !important',
+                fontWeight: '600 !important',
+              },
+              '& .MuiInputLabel-root': {
+                color: '#475569',
+              },
+              '& .MuiInputLabel-root.Mui-focused': {
+                color: '#2563eb',
+              },
               '& .MuiOutlinedInput-root': {
                 borderRadius: '12px',
-                backgroundColor: '#f8fafc',
+                backgroundColor: '#ffffff',
+                '& fieldset': {
+                  borderColor: '#cbd5e1',
+                },
                 '&:hover fieldset': {
                   borderColor: '#2563eb',
                 },
