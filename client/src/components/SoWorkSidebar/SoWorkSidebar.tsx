@@ -15,7 +15,6 @@ import FolderCopyRoundedIcon from '@mui/icons-material/FolderCopyRounded'
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined'
 import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded'
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded'
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
 import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded'
@@ -25,17 +24,24 @@ import HeadphonesRoundedIcon from '@mui/icons-material/HeadphonesRounded'
 import AccessTimeFilledRoundedIcon from '@mui/icons-material/AccessTimeFilledRounded'
 import ExitToAppRoundedIcon from '@mui/icons-material/ExitToAppRounded'
 import CheckroomRoundedIcon from '@mui/icons-material/CheckroomRounded'
-import EditRoundedIcon from '@mui/icons-material/EditRounded'
-import LockRoundedIcon from '@mui/icons-material/LockRounded'
-import TagRoundedIcon from '@mui/icons-material/TagRounded'
 import SendRoundedIcon from '@mui/icons-material/SendRounded'
+import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded'
+import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined'
+import DynamicFeedOutlinedIcon from '@mui/icons-material/DynamicFeedOutlined'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import BookmarkBorderOutlinedIcon from '@mui/icons-material/BookmarkBorderOutlined'
+import StarBorderRoundedIcon from '@mui/icons-material/StarBorderRounded'
+import TagRoundedIcon from '@mui/icons-material/TagRounded'
+import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded'
 import InsertEmoticonRoundedIcon from '@mui/icons-material/InsertEmoticonRounded'
-import VideoCallRoundedIcon from '@mui/icons-material/VideoCallRounded'
+import AlternateEmailRoundedIcon from '@mui/icons-material/AlternateEmailRounded'
+import AddRoundedIcon from '@mui/icons-material/AddRounded'
+import LockRoundedIcon from '@mui/icons-material/LockRounded'
 
 import { useAppSelector, useAppDispatch } from '../../hooks'
 import { setLoggedIn } from '../../stores/UserStore'
 import { setRoomJoined } from '../../stores/RoomStore'
-import { openPrivateChat, setActiveTab, setFocused } from '../../stores/ChatStore'
+import { openPrivateChat, setActiveTab, setFocused, pushPrivateMessage } from '../../stores/ChatStore'
 import { phaserEvents } from '../../events/EventCenter'
 import phaserGame from '../../PhaserGame'
 import Game from '../../scenes/Game'
@@ -71,7 +77,7 @@ const SidebarWrapper = styled.div`
   }
 `
 
-// 1. DOCK VERTICAL FIXO (Estilo WorkOffice ~64px)
+// 1. DOCK VERTICAL FIXO (~64px)
 const VerticalDock = styled.div`
   width: 64px;
   height: 100%;
@@ -101,21 +107,27 @@ const DockTop = styled.div`
   width: 100%;
 `
 
+// Ícone "W" isolado no Dock vertical
 const LogoBadge = styled.div`
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.15);
   border: 1px solid #e2e8f0;
   margin-bottom: 8px;
   cursor: pointer;
   overflow: hidden;
-  padding: 2px;
+  padding: 3px;
   box-sizing: border-box;
+  transition: transform 0.15s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
 
   img {
     width: 100%;
@@ -195,17 +207,17 @@ const AvatarButton = styled.div<{ $statusColor?: string }>`
   }
 `
 
-// 2. PAINEL EXPANSÍVEL LATERAL (FLYOUT DRAWER ~340px)
-const FlyoutPanel = styled.div<{ $open: boolean }>`
-  width: 340px;
+// 2. PAINEL EXPANSÍVEL LATERAL (Normal ~340px / Tela Cheia ~calc(100vw - 64px) quando Chat)
+const FlyoutPanel = styled.div<{ $open: boolean; $fullScreen?: boolean }>`
+  width: ${({ $fullScreen }) => ($fullScreen ? 'calc(100vw - 64px)' : '340px')};
   height: 100%;
   background: #ffffff;
   border-right: 1px solid #e2e8f0;
-  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.06);
+  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   transform: ${({ $open }) => ($open ? 'translateX(0)' : 'translateX(-100%)')};
-  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
   z-index: 10001;
 
@@ -220,18 +232,12 @@ const PanelHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #f1f5f9;
+  min-height: 48px;
 
   .title-group {
     display: flex;
     align-items: center;
-    gap: 8px;
-
-    h2 {
-      margin: 0;
-      font-size: 17px;
-      font-weight: 700;
-      color: #0f172a;
-    }
+    gap: 12px;
   }
 
   .close-icon-btn {
@@ -269,7 +275,7 @@ const PanelBody = styled.div`
   }
 `
 
-// CARDS E ESTILOS INSPIRADOS NO SOWORK
+// CARDS DA ABA HOME
 const InviteCard = styled.div`
   background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
   border: 1px solid #bae6fd;
@@ -444,7 +450,7 @@ const MemberRow = styled.div<{ $isSelf?: boolean }>`
   }
 `
 
-// POPOVER DO USUÁRIO (Estilo WorkOffice Imagem 5)
+// POPOVER DO USUÁRIO
 const UserProfileModal = styled.div`
   position: fixed;
   bottom: 16px;
@@ -613,6 +619,338 @@ const UserProfileModal = styled.div`
   }
 `
 
+// 3. ESTRUTURA COMPLETA DE TELA CHEIA PARA O CHAT (IMAGEM 1 & 2)
+const FullChatContainer = styled.div`
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+`
+
+const ChatSidebarNav = styled.div`
+  width: 260px;
+  min-width: 260px;
+  height: 100%;
+  background: #fafbfc;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    width: 220px;
+    min-width: 220px;
+  }
+`
+
+const ChatNavHeader = styled.div`
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+
+  .brand {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+`
+
+const ChatNavSearch = styled.div`
+  padding: 8px 16px;
+  input {
+    width: 100%;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+    outline: none;
+    box-sizing: border-box;
+    &:focus {
+      border-color: #5865f2;
+    }
+  }
+`
+
+const ChatNavSection = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .group-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #475569;
+    transition: all 0.12s ease;
+
+    &:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
+    &.active {
+      background: #5865f2;
+      color: #ffffff;
+      font-weight: 600;
+
+      svg {
+        color: #ffffff !important;
+      }
+    }
+
+    .avatar-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .badge-unread {
+      margin-left: auto;
+      background: #ef4444;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 9999px;
+    }
+  }
+`
+
+const ChatMainArea = styled.div`
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  overflow: hidden;
+`
+
+const ChatTopBar = styled.div`
+  padding: 12px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+
+  .recipient-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    button {
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+      }
+    }
+  }
+`
+
+const ChatMessagesList = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: #ffffff;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+`
+
+const MessageBubbleRow = styled.div<{ $isSelf?: boolean }>`
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+
+  .user-pic {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #e2e8f0;
+  }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 80%;
+
+    .name-time {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+
+      .time {
+        font-size: 11px;
+        font-weight: normal;
+        color: #94a3b8;
+      }
+    }
+
+    .bubble-text {
+      font-size: 14px;
+      color: #334155;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  }
+`
+
+const ChatFooterEditor = styled.div`
+  padding: 16px 20px;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+
+  .editor-card {
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+
+    &:focus-within {
+      border-color: #5865f2;
+      box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+    }
+
+    textarea {
+      border: none;
+      outline: none;
+      resize: none;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #0f172a;
+      min-height: 52px;
+      line-height: 1.4;
+
+      &::placeholder {
+        color: #94a3b8;
+      }
+    }
+
+    .toolbar {
+      padding: 6px 12px;
+      background: #fafbfc;
+      border-top: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .tools-left {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #64748b;
+
+        button {
+          background: transparent;
+          border: none;
+          color: inherit;
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+
+          &:hover {
+            color: #0f172a;
+            background: #e2e8f0;
+          }
+        }
+      }
+
+      .send-btn {
+        background: #5865f2;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 0.15s ease;
+
+        &:hover {
+          background: #4752c4;
+        }
+
+        &:disabled {
+          background: #cbd5e1;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+`
+
 interface WorkOfficeSidebarProps {
   onOpenMeetingHistory?: () => void
   onOpenDepartments?: () => void
@@ -626,7 +964,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
   const roomName = useAppSelector((state) => state.room.roomName)
 
   // Estado da aba selecionada no Dock
-  const [activeTab, setDockTab] = useState<SidebarTab>('home')
+  const [activeTabState, setDockTab] = useState<SidebarTab>('home')
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(true)
   const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false)
 
@@ -642,9 +980,20 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
   })
   const [otherPlayers, setOtherPlayers] = useState<Array<{ id: string; name: string; avatar: string }>>([])
 
-  // Chat integrado
+  // Sub-abas do Chat Corporativo Tela Cheia (general | activities | support | playerId)
+  const [chatCurrentSection, setChatCurrentSection] = useState<string>('general')
   const chatMessages = useAppSelector((state) => state.chat.chatMessages)
+  const privateChats = useAppSelector((state) => state.chat.privateChats)
   const [chatInput, setChatInput] = useState<string>('')
+
+  // Suporte WorkOffice integrado localmente
+  const [supportMessages, setSupportMessages] = useState<Array<{ author: string; content: string; time: string }>>([
+    {
+      author: 'Suporte WorkOffice',
+      content: 'Olá! Bem-vindo ao WorkOffice. Precisa de ajuda com o escritório virtual, atas de reuniões ou salas?',
+      time: '10:00 AM',
+    },
+  ])
 
   // Atualização em tempo real de jogadores
   useEffect(() => {
@@ -695,7 +1044,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
       return
     }
 
-    if (activeTab === tab && isPanelOpen) {
+    if (activeTabState === tab && isPanelOpen) {
       setIsPanelOpen(false)
     } else {
       setDockTab(tab)
@@ -703,15 +1052,47 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
     }
   }
 
-  // Envio de mensagem rápida no painel de Chat do WorkOffice
-  const handleSendChatMessage = (e: React.FormEvent) => {
-    e.preventDefault()
+  // Envio de mensagem
+  const handleSendChatMessage = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     if (!chatInput.trim()) return
 
+    const val = chatInput.trim()
     const game = phaserGame?.scene?.keys?.game as Game
-    if (game && game.network) {
-      game.network.addChatMessage(chatInput.trim())
+
+    if (chatCurrentSection === 'general') {
+      // Chat público geral
+      if (game && game.network) {
+        game.network.addChatMessage(val)
+      }
+    } else if (chatCurrentSection === 'support') {
+      // Suporte WorkOffice
+      setSupportMessages((prev) => [
+        ...prev,
+        { author: myPlayerInfo.name, content: val, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+        { author: 'Suporte WorkOffice', content: 'Recebemos sua mensagem! Nossa equipe ou a IA de suporte responderá em instantes.', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+      ])
+    } else {
+      // Mensagem Direta (DM com membro específico)
+      const targetMember = otherPlayers.find((p) => p.id === chatCurrentSection)
+      const targetName = targetMember?.name || 'Colega'
+
+      if (game && game.network) {
+        game.network.addChatMessage(val, chatCurrentSection, targetName)
+      }
+
+      dispatch(
+        pushPrivateMessage({
+          partnerId: chatCurrentSection,
+          partnerName: targetName,
+          author: myPlayerInfo.name,
+          content: val,
+          createdAt: Date.now(),
+          isSelf: true,
+        })
+      )
     }
+
     setChatInput('')
   }
 
@@ -734,31 +1115,37 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
     window.location.reload()
   }
 
+  // Membro atual da DM selecionada
+  const activeChatPartner = otherPlayers.find((p) => p.id === chatCurrentSection)
+
   return (
     <SidebarWrapper>
-      {/* 1. DOCK VERTICAL FIXO */}
+      {/* 1. DOCK VERTICAL FIXO (~64px) */}
       <VerticalDock>
         <DockTop>
-          <Tooltip title="Agência Br Escritório" placement="right">
-            <LogoBadge onClick={() => handleTabClick('home')}><img src="/assets/workoffice-logo.jpg" alt="WorkOffice" /></LogoBadge>
+          {/* Logo "W" isolada no Dock */}
+          <Tooltip title="WorkOffice Escritório" placement="right">
+            <LogoBadge onClick={() => handleTabClick('home')}>
+              <img src="/assets/workoffice-icon.jpg" alt="WorkOffice" />
+            </LogoBadge>
           </Tooltip>
 
           <NavButtonGroup>
             <Tooltip title="Equipes & Reuniões" placement="right">
               <NavIconButton
-                $active={isPanelOpen && activeTab === 'home'}
+                $active={isPanelOpen && activeTabState === 'home'}
                 onClick={() => handleTabClick('home')}
               >
-                {isPanelOpen && activeTab === 'home' ? <HomeIcon /> : <HomeOutlinedIcon />}
+                {isPanelOpen && activeTabState === 'home' ? <HomeIcon /> : <HomeOutlinedIcon />}
               </NavIconButton>
             </Tooltip>
 
             <Tooltip title="Chat & Mensagens" placement="right">
               <NavIconButton
-                $active={isPanelOpen && activeTab === 'chat'}
+                $active={isPanelOpen && activeTabState === 'chat'}
                 onClick={() => handleTabClick('chat')}
               >
-                {isPanelOpen && activeTab === 'chat' ? (
+                {isPanelOpen && activeTabState === 'chat' ? (
                   <ChatBubbleRoundedIcon />
                 ) : (
                   <ChatBubbleOutlineRoundedIcon />
@@ -768,10 +1155,10 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
 
             <Tooltip title="Calendário & Agenda" placement="right">
               <NavIconButton
-                $active={isPanelOpen && activeTab === 'calendar'}
+                $active={isPanelOpen && activeTabState === 'calendar'}
                 onClick={() => handleTabClick('calendar')}
               >
-                {isPanelOpen && activeTab === 'calendar' ? (
+                {isPanelOpen && activeTabState === 'calendar' ? (
                   <CalendarMonthRoundedIcon />
                 ) : (
                   <CalendarMonthOutlinedIcon />
@@ -821,15 +1208,19 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
         </DockBottom>
       </VerticalDock>
 
-      {/* 2. PAINEL EXPANSÍVEL LATERAL */}
-      <FlyoutPanel $open={isPanelOpen}>
-        {/* CONTEÚDO: HOME / EQUIPES (IMAGEM 1) */}
-        {activeTab === 'home' && (
+      {/* 2. PAINEL EXPANSÍVEL (Largura normal ou Tela Cheia no Chat) */}
+      <FlyoutPanel $open={isPanelOpen} $fullScreen={activeTabState === 'chat'}>
+        {/* CONTEÚDO: HOME / EQUIPES */}
+        {activeTabState === 'home' && (
           <>
             <PanelHeader>
-              <div className="title-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <img src="/assets/workoffice-logo.jpg" alt="WorkOffice" style={{ height: '24px', objectFit: 'contain' }} />
-                <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>• {roomName || 'Agência Br'}</span>
+              <div className="title-group">
+                <img
+                  src="/assets/workoffice-logo.jpg"
+                  alt="WorkOffice"
+                  style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+                />
+                <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 600 }}>• {roomName || 'Pink Aplly'}</span>
               </div>
               <button className="close-icon-btn" onClick={() => setIsPanelOpen(false)}>
                 <CloseRoundedIcon fontSize="small" />
@@ -863,7 +1254,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                 <div className="sec-title">Horas de Colaboração</div>
                 <CollaborationCard>
                   <div className="left">
-                    <span className="badge">Escritório Agência Br</span>
+                    <span className="badge">Escritório WorkOffice</span>
                     <span className="time">Expediente ativo hoje</span>
                   </div>
                   <span className="count">{1 + otherPlayers.length} presentes</span>
@@ -902,7 +1293,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                   <MemberRow
                     key={player.id}
                     onClick={() => {
-                      dispatch(openPrivateChat({ playerId: player.id, playerName: player.name }))
+                      setChatCurrentSection(player.id)
                       setDockTab('chat')
                     }}
                     title={`Conversar com ${player.name}`}
@@ -925,148 +1316,315 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
           </>
         )}
 
-        {/* CONTEÚDO: CHAT & MENSAGENS (IMAGEM 2) */}
-        {activeTab === 'chat' && (
-          <>
-            <PanelHeader>
-              <div className="title-group">
-                <ChatBubbleRoundedIcon style={{ color: '#5865F2', fontSize: 20 }} />
-                <h2>Chat Corporativo</h2>
-              </div>
-              <button className="close-icon-btn" onClick={() => setIsPanelOpen(false)}>
-                <CloseRoundedIcon fontSize="small" />
-              </button>
-            </PanelHeader>
-
-            <PanelBody style={{ padding: '0px', display: 'flex', flexDirection: 'column' }}>
-              {/* Canais rápidos */}
-              <div
-                style={{
-                  padding: '12px 16px',
-                  background: '#f8fafc',
-                  borderBottom: '1px solid #e2e8f0',
-                  display: 'flex',
-                  gap: '8px',
-                }}
-              >
-                <div
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '8px',
-                    background: '#5865F2',
-                    color: '#fff',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => dispatch(setActiveTab('global'))}
-                >
-                  # geral
+        {/* CONTEÚDO: CHAT CORPORATIVO EM TELA CHEIA (IMAGEM 1 & 2) */}
+        {activeTabState === 'chat' && (
+          <FullChatContainer>
+            {/* SIDEBAR INTERNO DO CHAT */}
+            <ChatSidebarNav>
+              <ChatNavHeader>
+                <div className="brand">{roomName || 'WorkOffice'}</div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <EditOutlinedIcon style={{ fontSize: 20, color: '#64748b', cursor: 'pointer' }} />
                 </div>
-              </div>
+              </ChatNavHeader>
 
-              {/* Mensagens do chat */}
-              <div
-                style={{
-                  flex: 1,
-                  overflowY: 'auto',
-                  padding: '16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                }}
-              >
-                {chatMessages.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '13px', marginTop: '40px' }}>
-                    Nenhuma mensagem recente. Seja o primeiro a falar!
+              <ChatNavSearch>
+                <input type="text" placeholder={`Pesquisar ${roomName || 'WorkOffice'}...`} />
+              </ChatNavSearch>
+
+              <ChatNavSection>
+                {/* Menus Principais de Comunicação */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <div
+                    className={`nav-item ${chatCurrentSection === 'activities' ? 'active' : ''}`}
+                    onClick={() => setChatCurrentSection('activities')}
+                  >
+                    <DynamicFeedOutlinedIcon style={{ fontSize: 18, color: '#64748b' }} />
+                    <span>Atividade</span>
                   </div>
-                ) : (
-                  chatMessages.map((msg, idx) => (
-                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
-                          {msg.chatMessage?.author || 'Colega'}
-                        </span>
-                        <span style={{ fontSize: '10px', color: '#94a3b8' }}>
-                          {new Date(msg.chatMessage?.createdAt || Date.now()).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
+                  <div
+                    className={`nav-item ${chatCurrentSection === 'general' ? 'active' : ''}`}
+                    onClick={() => setChatCurrentSection('general')}
+                  >
+                    <TagRoundedIcon style={{ fontSize: 18, color: '#64748b' }} />
+                    <span>Chat da Reunião</span>
+                  </div>
+                </div>
+
+                {/* Seção Canais */}
+                <div>
+                  <div className="group-title">
+                    <span># Canais</span>
+                  </div>
+                  <div
+                    className={`nav-item ${chatCurrentSection === 'general' ? 'active' : ''}`}
+                    onClick={() => setChatCurrentSection('general')}
+                  >
+                    <TagRoundedIcon style={{ fontSize: 16 }} />
+                    <span>general</span>
+                  </div>
+                </div>
+
+                {/* Seção Mensagens Diretas com Membros do Escritório */}
+                <div>
+                  <div className="group-title">
+                    <span>Mensagens Diretas</span>
+                    <AddRoundedIcon style={{ fontSize: 16, cursor: 'pointer' }} />
+                  </div>
+
+                  {otherPlayers.length === 0 ? (
+                    <div style={{ fontSize: '11px', color: '#94a3b8', padding: '6px 8px' }}>
+                      Nenhum outro membro online no momento.
+                    </div>
+                  ) : (
+                    otherPlayers.map((player) => (
                       <div
+                        key={player.id}
+                        className={`nav-item ${chatCurrentSection === player.id ? 'active' : ''}`}
+                        onClick={() => setChatCurrentSection(player.id)}
+                      >
+                        <img
+                          src={avatarMap[player.avatar] || Adam}
+                          alt={player.name}
+                          className="avatar-icon"
+                        />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {player.name}
+                        </span>
+                        {privateChats[player.id]?.unreadCount > 0 && (
+                          <span className="badge-unread">
+                            {privateChats[player.id].unreadCount}
+                          </span>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Seção Suporte WorkOffice */}
+                <div>
+                  <div className="group-title">
+                    <span>Mensagens de Suporte</span>
+                  </div>
+                  <div
+                    className={`nav-item ${chatCurrentSection === 'support' ? 'active' : ''}`}
+                    onClick={() => setChatCurrentSection('support')}
+                  >
+                    <SupportAgentRoundedIcon style={{ fontSize: 18, color: '#5865F2' }} />
+                    <span>Suporte WorkOffice</span>
+                  </div>
+                </div>
+              </ChatNavSection>
+            </ChatSidebarNav>
+
+            {/* ÁREA PRINCIPAL DO CHAT */}
+            <ChatMainArea>
+              {/* Barra do Topo da Conversa */}
+              <ChatTopBar>
+                <div className="recipient-box">
+                  {chatCurrentSection === 'general' ? (
+                    <div className="title">
+                      <TagRoundedIcon style={{ color: '#5865F2' }} />
+                      <span>general (Chat do Escritório)</span>
+                    </div>
+                  ) : chatCurrentSection === 'activities' ? (
+                    <div className="title">
+                      <DynamicFeedOutlinedIcon style={{ color: '#5865F2' }} />
+                      <span>Feed de Atividades</span>
+                    </div>
+                  ) : chatCurrentSection === 'support' ? (
+                    <div className="title">
+                      <SupportAgentRoundedIcon style={{ color: '#5865F2' }} />
+                      <span>Suporte Oficial WorkOffice</span>
+                    </div>
+                  ) : (
+                    <div className="title">
+                      <img
+                        src={avatarMap[activeChatPartner?.avatar || 'adam'] || Adam}
+                        alt="Avatar"
+                        style={{ width: 28, height: 28, borderRadius: '50%' }}
+                      />
+                      <span>{activeChatPartner?.name || 'Mensagem Direta'}</span>
+                      <span style={{ fontSize: '11px', color: '#22c55e', fontWeight: 'normal' }}>● Online</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="actions">
+                  <button onClick={() => setIsPanelOpen(false)} title="Fechar Chat">
+                    <CloseRoundedIcon fontSize="small" />
+                  </button>
+                </div>
+              </ChatTopBar>
+
+              {/* Lista de Mensagens */}
+              <ChatMessagesList>
+                {/* 1. MODO GERAL */}
+                {chatCurrentSection === 'general' && (
+                  chatMessages.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '60px' }}>
+                      <TagRoundedIcon style={{ fontSize: 48, color: '#cbd5e1' }} />
+                      <div style={{ marginTop: '8px', fontWeight: 600 }}>Início do canal #general</div>
+                      <div style={{ fontSize: '13px' }}>Todas as mensagens públicas do escritório aparecem aqui.</div>
+                    </div>
+                  ) : (
+                    chatMessages.map((msg, idx) => (
+                      <MessageBubbleRow key={idx}>
+                        <img src={Adam} alt="Avatar" className="user-pic" />
+                        <div className="body">
+                          <div className="name-time">
+                            <span>{msg.chatMessage?.author || 'Colega'}</span>
+                            <span className="time">
+                              {new Date(msg.chatMessage?.createdAt || Date.now()).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                          <div className="bubble-text">{msg.chatMessage?.content}</div>
+                        </div>
+                      </MessageBubbleRow>
+                    ))
+                  )
+                )}
+
+                {/* 2. MODO ATIVIDADES (IMAGEM 2) */}
+                {chatCurrentSection === 'activities' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
+                      Atividades Recentes no Escritório
+                    </div>
+                    {chatMessages.slice(-5).map((msg, idx) => (
+                      <div
+                        key={idx}
                         style={{
-                          background: '#f1f5f9',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          fontSize: '13px',
-                          color: '#334155',
-                          wordBreak: 'break-word',
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          padding: '12px 16px',
+                          borderRadius: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
                         }}
                       >
-                        {msg.chatMessage?.content}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <img src={Adam} alt="avatar" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+                          <div>
+                            <span style={{ fontWeight: 600, fontSize: '13px', color: '#0f172a' }}>{msg.chatMessage?.author}</span>
+                            <div style={{ fontSize: '12px', color: '#475569' }}>{msg.chatMessage?.content}</div>
+                          </div>
+                        </div>
+                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>Mensagem no escritório</span>
                       </div>
-                    </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 3. MODO SUPORTE */}
+                {chatCurrentSection === 'support' && (
+                  supportMessages.map((msg, idx) => (
+                    <MessageBubbleRow key={idx}>
+                      <SupportAgentRoundedIcon style={{ fontSize: 36, color: '#5865F2' }} />
+                      <div className="body">
+                        <div className="name-time">
+                          <span>{msg.author}</span>
+                          <span className="time">{msg.time}</span>
+                        </div>
+                        <div className="bubble-text">{msg.content}</div>
+                      </div>
+                    </MessageBubbleRow>
                   ))
                 )}
-              </div>
 
-              {/* Barra de input do Chat */}
-              <form
-                onSubmit={handleSendChatMessage}
-                style={{
-                  padding: '12px',
-                  borderTop: '1px solid #e2e8f0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: '#ffffff',
-                }}
-              >
-                <input
-                  type="text"
-                  placeholder="Mensagem para #geral..."
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onFocus={() => dispatch(setFocused(true))}
-                  onBlur={() => dispatch(setFocused(false))}
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    outline: 'none',
-                    fontSize: '13px',
-                  }}
-                />
-                <button
-                  type="submit"
-                  style={{
-                    background: '#5865F2',
-                    border: 'none',
-                    borderRadius: '8px',
-                    width: '36px',
-                    height: '36px',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <SendRoundedIcon style={{ fontSize: 16 }} />
-                </button>
-              </form>
-            </PanelBody>
-          </>
+                {/* 4. MODO MENSAGEM DIRETA (DM) */}
+                {chatCurrentSection !== 'general' && chatCurrentSection !== 'activities' && chatCurrentSection !== 'support' && (
+                  privateChats[chatCurrentSection]?.messages?.length ? (
+                    privateChats[chatCurrentSection].messages.map((pm, idx) => (
+                      <MessageBubbleRow key={idx}>
+                        <img
+                          src={pm.isSelf ? (avatarMap[myPlayerInfo.avatar] || Adam) : (avatarMap[activeChatPartner?.avatar || 'adam'] || Adam)}
+                          alt="Avatar"
+                          className="user-pic"
+                        />
+                        <div className="body">
+                          <div className="name-time">
+                            <span>{pm.author}</span>
+                            <span className="time">
+                              {new Date(pm.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <div className="bubble-text">{pm.content}</div>
+                        </div>
+                      </MessageBubbleRow>
+                    ))
+                  ) : (
+                    <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '60px' }}>
+                      <LockRoundedIcon style={{ fontSize: 44, color: '#cbd5e1' }} />
+                      <div style={{ marginTop: '8px', fontWeight: 600 }}>Conversa privada com {activeChatPartner?.name}</div>
+                      <div style={{ fontSize: '13px' }}>As mensagens trocadas aqui são visíveis apenas entre vocês dois.</div>
+                    </div>
+                  )
+                )}
+              </ChatMessagesList>
+
+              {/* Editor Inferior (com barra de ferramentas SoWork) */}
+              {chatCurrentSection !== 'activities' && (
+                <ChatFooterEditor>
+                  <div className="editor-card">
+                    <textarea
+                      placeholder={`Mensagem para ${
+                        chatCurrentSection === 'general'
+                          ? '#general'
+                          : chatCurrentSection === 'support'
+                          ? 'Suporte WorkOffice'
+                          : activeChatPartner?.name || 'Colega'
+                      }...`}
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onFocus={() => dispatch(setFocused(true))}
+                      onBlur={() => dispatch(setFocused(false))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          handleSendChatMessage()
+                        }
+                      }}
+                    />
+                    <div className="toolbar">
+                      <div className="tools-left">
+                        <button type="button" title="Adicionar arquivo / link">
+                          <AddRoundedIcon fontSize="small" />
+                        </button>
+                        <button type="button" title="Inserir emoji">
+                          <InsertEmoticonRoundedIcon fontSize="small" />
+                        </button>
+                        <button type="button" title="Mencionar pessoa">
+                          <AlternateEmailRoundedIcon fontSize="small" />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className="send-btn"
+                        disabled={!chatInput.trim()}
+                        onClick={() => handleSendChatMessage()}
+                      >
+                        <SendRoundedIcon style={{ fontSize: 14 }} />
+                        Enviar
+                      </button>
+                    </div>
+                  </div>
+                </ChatFooterEditor>
+              )}
+            </ChatMainArea>
+          </FullChatContainer>
         )}
 
-        {/* CONTEÚDO: CALENDÁRIO (IMAGEM 3) */}
-        {activeTab === 'calendar' && (
+        {/* CONTEÚDO: CALENDÁRIO */}
+        {activeTabState === 'calendar' && (
           <>
             <PanelHeader>
               <div className="title-group">
-                <CalendarMonthRoundedIcon style={{ color: '#5865F2', fontSize: 20 }} />
+                <CalendarMonthRoundedIcon style={{ color: '#5865F2', fontSize: 22 }} />
                 <h2>Calendário</h2>
               </div>
               <button className="close-icon-btn" onClick={() => setIsPanelOpen(false)}>
@@ -1138,7 +1696,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
         )}
       </FlyoutPanel>
 
-      {/* 3. POPOVER DE PERFIL E STATUS (IMAGEM 5) */}
+      {/* 3. POPOVER DE PERFIL E STATUS */}
       {showProfileMenu && (
         <UserProfileModal>
           <div className="header">
@@ -1256,4 +1814,3 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
 }
 
 export default WorkOfficeSidebar
-
