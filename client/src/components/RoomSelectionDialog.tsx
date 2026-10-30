@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import logo from '../images/logo.png'
 import styled from 'styled-components'
 import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
@@ -9,6 +8,8 @@ import Alert from '@mui/material/Alert'
 import Snackbar from '@mui/material/Snackbar'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom'
 
 import { CustomRoomTable } from './CustomRoomTable'
 import { CreateRoomForm } from './CreateRoomForm'
@@ -17,51 +18,6 @@ import { useAppSelector } from '../hooks'
 import phaserGame from '../PhaserGame'
 import Bootstrap from '../scenes/Bootstrap'
 
-const PixelCorner = styled.div<{ $position: 'tl' | 'tr' | 'bl' | 'br' }>`
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  background: #00f5d4;
-  border: 2px solid #020b17;
-  box-shadow: 
-    0 0 8px #00f5d4,
-    inset -2px -2px 0 #0f766e,
-    inset 2px 2px 0 #ffffff;
-  z-index: 10;
-
-  ${({ $position }) =>
-    $position === 'tl' &&
-    `
-    top: -4px;
-    left: -4px;
-    border-radius: 3px 0 0 0;
-  `}
-
-  ${({ $position }) =>
-    $position === 'tr' &&
-    `
-    top: -4px;
-    right: -4px;
-    border-radius: 0 3px 0 0;
-  `}
-
-  ${({ $position }) =>
-    $position === 'bl' &&
-    `
-    bottom: -4px;
-    left: -4px;
-    border-radius: 0 0 0 3px;
-  `}
-
-  ${({ $position }) =>
-    $position === 'br' &&
-    `
-    bottom: -4px;
-    right: -4px;
-    border-radius: 0 0 3px 0;
-  `}
-`
-
 const Backdrop = styled.div`
   position: absolute;
   top: 50%;
@@ -69,7 +25,7 @@ const Backdrop = styled.div`
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 24px;
   align-items: center;
 
   @media (max-width: 768px) {
@@ -82,19 +38,19 @@ const Backdrop = styled.div`
 
 const Wrapper = styled.div`
   position: relative;
-  background: #091326;
-  border: 4px solid #083344;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 20px;
-  padding: 40px 48px 36px 48px;
+  padding: 36px 44px 32px 44px;
   box-shadow: 
-    0 0 0 2px #020b17,
-    0 20px 50px rgba(0, 0, 0, 0.85),
-    0 0 30px rgba(0, 235, 199, 0.22),
-    inset 0 0 0 2px #0d4a5e;
+    0 20px 45px rgba(30, 58, 138, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.05);
   box-sizing: border-box;
+  width: 440px;
+  max-width: calc(100vw - 24px);
 
   @media (max-width: 768px) {
-    padding: 28px 16px;
+    padding: 26px 18px;
     width: calc(100vw - 20px) !important;
     max-width: calc(100vw - 20px) !important;
     box-sizing: border-box;
@@ -107,7 +63,7 @@ const CustomRoomWrapper = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   align-items: center;
   justify-content: center;
   width: 100%;
@@ -115,7 +71,7 @@ const CustomRoomWrapper = styled.div`
 
   .tip {
     font-size: 18px;
-    color: #00f5d4;
+    color: #2563eb;
   }
 `
 
@@ -128,7 +84,7 @@ const TitleWrapper = styled.div`
     grid-row: 1;
     justify-self: start;
     align-self: center;
-    color: #00f5d4;
+    color: #2563eb;
   }
 
   h1 {
@@ -140,25 +96,30 @@ const TitleWrapper = styled.div`
 `
 
 const Title = styled.h1`
-  font-family: 'Silkscreen', 'Press Start 2P', monospace, sans-serif;
-  font-size: 20px;
-  font-weight: 700;
-  color: #ffffff;
-  text-shadow: 0 2px 0 #000000, 0 0 10px rgba(0, 235, 199, 0.3);
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
   text-align: center;
   margin: 0;
-  letter-spacing: 0.3px;
+  letter-spacing: -0.3px;
 
   @media (max-width: 768px) {
-    font-size: 15px;
+    font-size: 16px;
   }
+`
+
+const Subtitle = styled.p`
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
 `
 
 const Content = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  margin: 22px 0 6px 0;
+  gap: 14px;
+  margin: 20px 0 6px 0;
   align-items: center;
   justify-content: center;
   width: 100%;
@@ -166,75 +127,62 @@ const Content = styled.div`
 `
 
 const LogoWrapper = styled.div`
-  background: #061e2f;
-  border: 3px solid #00f5d4;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
-  padding: 12px 24px;
-  box-shadow: 
-    0 0 16px rgba(0, 245, 212, 0.35),
-    inset 0 0 0 2px #020b17;
+  padding: 14px 28px;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 6px;
 
   img {
-    height: 105px;
-    image-rendering: pixelated;
+    height: 60px;
+    object-fit: contain;
 
     @media (max-width: 768px) {
-      height: 85px;
+      height: 48px;
     }
   }
 `
 
 const PixelPrimaryButton = styled.button`
   width: 100%;
-  padding: 14px 20px;
-  background: linear-gradient(180deg, #00f5d4 0%, #00c9ab 100%);
-  border: 2px solid #002b24;
-  border-top: 2px solid #a7f3d0;
-  border-left: 2px solid #a7f3d0;
-  border-bottom: 5px solid #036b5c;
-  border-right: 5px solid #036b5c;
-  border-radius: 14px;
-  color: #01221b;
-  font-family: 'Silkscreen', 'Press Start 2P', monospace, sans-serif;
-  font-size: 13px;
+  padding: 13px 20px;
+  background: #2563eb;
+  border: none;
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.5px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  box-shadow: 0 6px 16px rgba(0, 245, 212, 0.35);
-  transition: all 0.1s ease;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  transition: all 0.15s ease;
   outline: none;
 
   &:hover {
-    background: linear-gradient(180deg, #38ef7d 0%, #00f5d4 100%);
-    box-shadow: 0 8px 22px rgba(0, 245, 212, 0.55);
+    background: #1d4ed8;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
   }
 
   &:active {
-    transform: translateY(3px);
-    border-bottom: 2px solid #036b5c;
-    border-right: 2px solid #036b5c;
+    transform: translateY(1px);
   }
 `
 
 const PixelSecondaryButton = styled.button`
   width: 100%;
   padding: 12px 18px;
-  background: #0a1c36;
-  border: 2px solid #0284c7;
-  border-bottom: 4px solid #034870;
-  border-radius: 14px;
-  color: #38bdf8;
-  font-family: 'Silkscreen', 'Press Start 2P', monospace, sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -244,15 +192,13 @@ const PixelSecondaryButton = styled.button`
   outline: none;
 
   &:hover {
-    background: #0d274d;
-    border-color: #00f5d4;
-    color: #00f5d4;
-    box-shadow: 0 0 14px rgba(0, 245, 212, 0.35);
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #0f172a;
   }
 
   &:active {
-    transform: translateY(2px);
-    border-bottom: 2px solid #034870;
+    transform: translateY(1px);
   }
 `
 
@@ -263,10 +209,9 @@ const ProgressBarWrapper = styled.div`
   width: 100%;
 
   h3 {
-    font-family: 'Silkscreen', monospace, sans-serif;
-    color: #00f5d4;
+    color: #2563eb;
     font-size: 13px;
-    text-shadow: 0 2px 0 #000;
+    font-weight: 600;
   }
 `
 
@@ -311,7 +256,6 @@ export default function RoomSelectionDialog() {
         <Alert
           severity="error"
           variant="outlined"
-          // overwrites the dark theme on render
           style={{ background: '#fdeded', color: '#7d4747' }}
         >
           Tentando conectar ao servidor, por favor tente novamente!
@@ -319,10 +263,6 @@ export default function RoomSelectionDialog() {
       </Snackbar>
       <Backdrop>
         <Wrapper>
-          <PixelCorner $position="tl" />
-          <PixelCorner $position="tr" />
-          <PixelCorner $position="bl" />
-          <PixelCorner $position="br" />
           {showCreateRoomForm ? (
             <CustomRoomWrapper>
               <TitleWrapper>
@@ -362,17 +302,20 @@ export default function RoomSelectionDialog() {
           ) : (
             <>
               <Title>Bem-vindo ao Escritório Virtual</Title>
+              <Subtitle>Ambiente corporativo de alta colaboração</Subtitle>
               <Content>
                 <LogoWrapper>
-                  <img src={logo} alt="logo" />
+                  <img src="/assets/workoffice-logo.jpg" alt="WorkOffice" />
                 </LogoWrapper>
                 <PixelPrimaryButton type="button" onClick={handleConnect}>
-                  ➔ ENTRAR NO ESCRITÓRIO PRINCIPAL
+                  <ArrowForwardIcon style={{ fontSize: 18 }} />
+                  ENTRAR NO ESCRITÓRIO PRINCIPAL
                 </PixelPrimaryButton>
                 <PixelSecondaryButton
                   type="button"
                   onClick={() => (lobbyJoined ? setShowCustomRoom(true) : setShowSnackbar(true))}
                 >
+                  <MeetingRoomIcon style={{ fontSize: 18 }} />
                   CRIAR / BUSCAR SALAS PRIVADAS
                 </PixelSecondaryButton>
               </Content>
@@ -382,7 +325,7 @@ export default function RoomSelectionDialog() {
         {!lobbyJoined && (
           <ProgressBarWrapper>
             <h3> Conectando ao servidor...</h3>
-            <ProgressBar color="secondary" />
+            <ProgressBar color="primary" />
           </ProgressBarWrapper>
         )}
       </Backdrop>

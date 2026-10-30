@@ -26,7 +26,7 @@ import Bootstrap from '../scenes/Bootstrap'
 const MessageText = styled.p`
   margin: 10px;
   font-size: 18px;
-  color: #eee;
+  color: #475569;
   text-align: center;
 `
 
@@ -81,7 +81,7 @@ const PasswordDialog = styled(Dialog)`
   }
 
   .MuiDialog-paper {
-    background: #222639;
+    background: #ffffff; color: #0f172a; border-radius: 16px;
   }
 `
 

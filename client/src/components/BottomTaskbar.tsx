@@ -26,6 +26,7 @@ import StopScreenShareIcon from '@mui/icons-material/StopScreenShare'
 import CampaignIcon from '@mui/icons-material/Campaign'
 import StopIcon from '@mui/icons-material/Stop'
 import DescriptionIcon from '@mui/icons-material/Description'
+import AirlineSeatReclineNormalIcon from '@mui/icons-material/AirlineSeatReclineNormal'
 
 import phaserGame from '../PhaserGame'
 import Game from '../scenes/Game'
@@ -194,17 +195,21 @@ const PopupMenu = styled.div`
   position: absolute;
   bottom: 58px;
   right: 12px;
-  background: #1c1e29;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #1e40af;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 16px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 16px 36px rgba(30, 64, 175, 0.4);
   padding: 8px 0;
   min-width: 250px;
   display: flex;
   flex-direction: column;
   z-index: 10001;
-  color: #f1f5f9;
+  color: #ffffff;
   animation: fadeIn 0.15s ease-out;
+
+  svg {
+    color: #ffffff !important;
+  }
 
   @media (max-width: 650px) {
     bottom: 50px;
@@ -229,7 +234,7 @@ const PopupMenu = styled.div`
 const MenuItem = styled.button<{ $danger?: boolean }>`
   background: transparent;
   border: none;
-  color: ${({ $danger }) => ($danger ? '#f87171' : '#e2e8f0')};
+  color: #ffffff;
   padding: 10px 18px;
   font-size: 13px;
   font-weight: 500;
@@ -240,6 +245,10 @@ const MenuItem = styled.button<{ $danger?: boolean }>`
   text-align: left;
   transition: all 0.12s;
 
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
   .left {
     display: flex;
     align-items: center;
@@ -248,6 +257,8 @@ const MenuItem = styled.button<{ $danger?: boolean }>`
 
   .shortcut {
     font-size: 10px;
+    color: rgba(255, 255, 255, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
     color: #64748b;
     background: rgba(255, 255, 255, 0.06);
     padding: 2px 6px;
@@ -1119,7 +1130,7 @@ export default function BottomTaskbar() {
               }}
               aria-label={isSitting ? 'Levantar da cadeira' : 'Minha Mesa'}
             >
-              <span style={{ fontSize: '18px' }}>🪑</span>
+              <AirlineSeatReclineNormalIcon style={{ fontSize: 18, color: '#ffffff' }} />
             </ActionBtn>
           </Tooltip>
         )}
@@ -1174,30 +1185,7 @@ export default function BottomTaskbar() {
         {/* Menu Pop-up com as Opções da Imagem 3 */}
         {showMoreMenu && (
           <PopupMenu>
-            <MenuItem
-              onClick={() => {
-                setShowMoreMenu(false)
-                setShowMeetingHistory(true)
-              }}
-            >
-              <div className="left">
-                <DescriptionIcon style={{ fontSize: 18, color: '#00f5d4' }} />
-                <span>Central de Atas & Gravações</span>
-              </div>
-              <span className="shortcut" style={{ color: '#00f5d4', border: '1px solid #00f5d4' }}>IA</span>
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                setShowMoreMenu(false)
-                const searchInput = document.querySelector('input[placeholder*="Buscar colega"]') as HTMLInputElement
-                searchInput?.focus()
-              }}
-            >
-              <div className="left">
-                <SearchIcon style={{ fontSize: 18, color: '#38bdf8' }} />
-                <span>Busca global</span>
-              </div>
-            </MenuItem>
+
 
             <MenuItem
               onClick={() => {
@@ -1207,7 +1195,7 @@ export default function BottomTaskbar() {
               }}
             >
               <div className="left">
-                <TimerIcon style={{ fontSize: 18, color: '#f59e0b' }} />
+                <TimerIcon style={{ fontSize: 18, color: '#ffffff' }} />
                 <span>{timerActive ? 'Pausar cronômetro' : 'Iniciar um cronômetro pessoal'}</span>
               </div>
               <span className="shortcut">25m</span>
@@ -1220,7 +1208,7 @@ export default function BottomTaskbar() {
               }}
             >
               <div className="left">
-                <SportsEsportsIcon style={{ fontSize: 18, color: '#a855f7' }} />
+                <SportsEsportsIcon style={{ fontSize: 18, color: '#ffffff' }} />
                 <span>{showJoystick ? 'Ocultar Joystick' : 'Jogar um jogo / Joystick'}</span>
               </div>
             </MenuItem>
@@ -1228,9 +1216,9 @@ export default function BottomTaskbar() {
             <MenuItem onClick={handleToggleRecording} $danger={isRecording}>
               <div className="left">
                 {isRecording ? (
-                  <StopIcon style={{ fontSize: 18, color: '#ef4444' }} />
+                  <StopIcon style={{ fontSize: 18, color: '#ffffff' }} />
                 ) : (
-                  <FiberManualRecordIcon style={{ fontSize: 18, color: '#ef4444' }} />
+                  <FiberManualRecordIcon style={{ fontSize: 18, color: '#ffffff' }} />
                 )}
                 <span>{isRecording ? 'Parar Gravação' : 'Gravar Reunião'}</span>
               </div>
@@ -1238,7 +1226,7 @@ export default function BottomTaskbar() {
 
             <MenuItem onClick={handleToggleHand}>
               <div className="left">
-                <PanToolIcon style={{ fontSize: 18, color: handRaised ? '#eab308' : '#94a3b8' }} />
+                <PanToolIcon style={{ fontSize: 18, color: '#ffffff' }} />
                 <span>{handRaised ? 'Abaixar Mão' : 'Levantar Mão'}</span>
               </div>
             </MenuItem>
@@ -1246,9 +1234,9 @@ export default function BottomTaskbar() {
             <MenuItem onClick={handleToggleScreenShare}>
               <div className="left">
                 {isScreenSharing ? (
-                  <StopScreenShareIcon style={{ fontSize: 18, color: '#00ebc7' }} />
+                  <StopScreenShareIcon style={{ fontSize: 18, color: '#ffffff' }} />
                 ) : (
-                  <ScreenShareIcon style={{ fontSize: 18, color: '#00ebc7' }} />
+                  <ScreenShareIcon style={{ fontSize: 18, color: '#ffffff' }} />
                 )}
                 <span>{isScreenSharing ? 'Parar Compartilhamento' : 'Compartilhar Tela'}</span>
               </div>
@@ -1288,7 +1276,7 @@ export default function BottomTaskbar() {
               }}
             >
               <div className="left">
-                <CampaignIcon style={{ fontSize: 18, color: '#f43f5e' }} />
+                <CampaignIcon style={{ fontSize: 18, color: '#ffffff' }} />
                 <span>Transmissão</span>
               </div>
             </MenuItem>

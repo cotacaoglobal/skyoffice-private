@@ -129,13 +129,18 @@ const StyledFab = styled(Fab)<{ target?: string }>`
 
 const ToggleCollapseFab = styled(StyledFab)<{ $collapsed: boolean }>`
   && {
-    background: ${({ $collapsed }) => ($collapsed ? '#1e1f2b' : '#27293d')};
-    color: ${({ $collapsed }) => ($collapsed ? '#00ebc7' : '#f8fafc')};
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    background: #ffffff !important;
+    color: #0284c7 !important;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 
     &:hover {
-      background: #33364d;
+      background: #f8fafc !important;
+      color: #0369a1 !important;
+    }
+
+    svg {
+      color: #0284c7 !important;
     }
   }
 `
