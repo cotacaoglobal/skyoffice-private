@@ -1464,9 +1464,9 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                 <img
                   src="/assets/workoffice-logo.jpg"
                   alt="WorkOffice"
-                  style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+                  style={{ height: '65px', width: 'auto', objectFit: 'contain' }}
                 />
-                <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 600 }}>• {roomName || 'Pink Aplly'}</span>
+                <span style={{ fontSize: '16px', color: '#475569', fontWeight: 700 }}>• {roomName || 'Pink Aplly'}</span>
               </div>
               <button className="close-icon-btn" onClick={() => setIsPanelOpen(false)}>
                 <CloseRoundedIcon fontSize="small" />
@@ -2014,7 +2014,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                       cursor: 'pointer',
                     }}
                   >
-                    <GoogleCalendarIcon /> <span>Vincular Google Calendar</span>
+                    <img src="/assets/Calendar.svg" alt="Google Calendar" style={{ width: 22, height: 22, objectFit: 'contain' }} /> <span>Vincular Google Calendar</span>
                   </button>
 
                   <button
@@ -2034,7 +2034,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                       cursor: 'pointer',
                     }}
                   >
-                    <OutlookCalendarIcon /> <span>Conectar Calendário Outlook</span>
+                    <img src="/assets/Outlook.svg.webp" alt="Outlook Calendar" style={{ width: 22, height: 22, objectFit: 'contain' }} /> <span>Conectar Calendário Outlook</span>
                   </button>
                 </div>
               </div>
