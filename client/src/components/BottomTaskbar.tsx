@@ -195,27 +195,27 @@ const PopupMenu = styled.div`
   position: absolute;
   bottom: 58px;
   right: 12px;
-  background: #1e40af;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
-  box-shadow: 0 16px 36px rgba(30, 64, 175, 0.4);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16), 0 4px 12px rgba(0, 0, 0, 0.05);
   padding: 8px 0;
-  min-width: 250px;
+  min-width: 260px;
   display: flex;
   flex-direction: column;
   z-index: 10001;
-  color: #ffffff;
+  color: #334155;
   animation: fadeIn 0.15s ease-out;
 
   svg {
-    color: #ffffff !important;
+    color: #2563eb !important;
   }
 
   @media (max-width: 650px) {
     bottom: 50px;
     right: 50%;
     transform: translateX(50%);
-    min-width: 220px;
+    min-width: 230px;
     max-width: 88vw;
   }
 
@@ -234,10 +234,10 @@ const PopupMenu = styled.div`
 const MenuItem = styled.button<{ $danger?: boolean }>`
   background: transparent;
   border: none;
-  color: #ffffff;
+  color: ${({ $danger }) => ($danger ? '#dc2626' : '#334155')};
   padding: 10px 18px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -246,28 +246,28 @@ const MenuItem = styled.button<{ $danger?: boolean }>`
   transition: all 0.12s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: #f1f5f9;
+    color: ${({ $danger }) => ($danger ? '#b91c1c' : '#0f172a')};
   }
 
   .left {
     display: flex;
     align-items: center;
     gap: 12px;
+
+    svg {
+      color: ${({ $danger }) => ($danger ? '#ef4444 !important' : '#2563eb !important')};
+    }
   }
 
   .shortcut {
     font-size: 10px;
-    color: rgba(255, 255, 255, 0.8) !important;
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    color: #64748b;
-    background: rgba(255, 255, 255, 0.06);
+    color: #64748b !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #f8fafc;
     padding: 2px 6px;
     border-radius: 4px;
-  }
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: ${({ $danger }) => ($danger ? '#ef4444' : '#ffffff')};
+    font-weight: 700;
   }
 `
 

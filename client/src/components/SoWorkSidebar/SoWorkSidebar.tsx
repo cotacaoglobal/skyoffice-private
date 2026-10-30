@@ -2014,7 +2014,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                       cursor: 'pointer',
                     }}
                   >
-                    <img src="/assets/Calendar.svg" alt="Google Calendar" style={{ width: 22, height: 22, objectFit: 'contain' }} /> <span>Vincular Google Calendar</span>
+                    <img src="/assets/Calendar.svg" alt="Google Calendar" style={{ width: 24, height: 24, objectFit: 'contain' }} /> <span>Vincular Google Calendar</span>
                   </button>
 
                   <button
@@ -2034,7 +2034,7 @@ export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
                       cursor: 'pointer',
                     }}
                   >
-                    <img src="/assets/Outlook.svg.webp" alt="Outlook Calendar" style={{ width: 22, height: 22, objectFit: 'contain' }} /> <span>Conectar Calendário Outlook</span>
+                    <img src="/assets/Outlook.svg.webp" alt="Outlook Calendar" style={{ width: 24, height: 24, objectFit: 'contain' }} /> <span>Conectar Calendário Outlook</span>
                   </button>
                 </div>
               </div>
