@@ -377,6 +377,20 @@ export default function BottomTaskbar() {
 
   // Gerenciador de Departamentos & Salas Fixas
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false)
+  // Ouvintes de eventos para abrir Atas IA e Departamentos disparados pela Sidebar SoWork
+  useEffect(() => {
+    const handleOpenMeetings = () => setShowMeetingHistory(true)
+    const handleOpenDepartments = () => setShowDepartmentDialog(true)
+
+    phaserEvents.on('OPEN_MEETING_HISTORY', handleOpenMeetings)
+    phaserEvents.on('OPEN_DEPARTMENTS', handleOpenDepartments)
+
+    return () => {
+      phaserEvents.off('OPEN_MEETING_HISTORY', handleOpenMeetings)
+      phaserEvents.off('OPEN_DEPARTMENTS', handleOpenDepartments)
+    }
+  }, [])
+
 
   const handleSwitchDepartment = (dept: DepartmentRoom) => {
     const game = phaserGame?.scene?.keys?.game as Game
@@ -423,6 +437,19 @@ export default function BottomTaskbar() {
   }
 
   useEffect(() => {
+    const handleOpenMeetings = () => setShowMeetingHistory(true)
+    const handleOpenDepartments = () => setShowDepartmentDialog(true)
+
+    phaserEvents.on('OPEN_MEETING_HISTORY', handleOpenMeetings)
+    phaserEvents.on('OPEN_DEPARTMENTS', handleOpenDepartments)
+
+    return () => {
+      phaserEvents.off('OPEN_MEETING_HISTORY', handleOpenMeetings)
+      phaserEvents.off('OPEN_DEPARTMENTS', handleOpenDepartments)
+    }
+  }, [])
+
+  useEffect(() => {
     try {
       // Checa se já dispensou o standup hoje
       if (!DailyStandupService.isStandupDismissedToday()) {
@@ -458,6 +485,19 @@ export default function BottomTaskbar() {
   const [isSitting, setIsSitting] = useState(false)
 
   useEffect(() => {
+    const handleOpenMeetings = () => setShowMeetingHistory(true)
+    const handleOpenDepartments = () => setShowDepartmentDialog(true)
+
+    phaserEvents.on('OPEN_MEETING_HISTORY', handleOpenMeetings)
+    phaserEvents.on('OPEN_DEPARTMENTS', handleOpenDepartments)
+
+    return () => {
+      phaserEvents.off('OPEN_MEETING_HISTORY', handleOpenMeetings)
+      phaserEvents.off('OPEN_DEPARTMENTS', handleOpenDepartments)
+    }
+  }, [])
+
+  useEffect(() => {
     const checkDeskAndSitting = () => {
       const game = phaserGame?.scene?.keys?.game as any
       if (!game) return
@@ -482,6 +522,19 @@ export default function BottomTaskbar() {
 
   // Sincroniza estado de mídia com WebRTC
   useEffect(() => {
+    const handleOpenMeetings = () => setShowMeetingHistory(true)
+    const handleOpenDepartments = () => setShowDepartmentDialog(true)
+
+    phaserEvents.on('OPEN_MEETING_HISTORY', handleOpenMeetings)
+    phaserEvents.on('OPEN_DEPARTMENTS', handleOpenDepartments)
+
+    return () => {
+      phaserEvents.off('OPEN_MEETING_HISTORY', handleOpenMeetings)
+      phaserEvents.off('OPEN_DEPARTMENTS', handleOpenDepartments)
+    }
+  }, [])
+
+  useEffect(() => {
     const interval = setInterval(() => {
       const game = phaserGame?.scene?.keys?.game as Game
       if (game?.network?.webRTC) {
@@ -493,6 +546,19 @@ export default function BottomTaskbar() {
   }, [])
 
   // Cronômetro de gravação
+  useEffect(() => {
+    const handleOpenMeetings = () => setShowMeetingHistory(true)
+    const handleOpenDepartments = () => setShowDepartmentDialog(true)
+
+    phaserEvents.on('OPEN_MEETING_HISTORY', handleOpenMeetings)
+    phaserEvents.on('OPEN_DEPARTMENTS', handleOpenDepartments)
+
+    return () => {
+      phaserEvents.off('OPEN_MEETING_HISTORY', handleOpenMeetings)
+      phaserEvents.off('OPEN_DEPARTMENTS', handleOpenDepartments)
+    }
+  }, [])
+
   useEffect(() => {
     let interval: any
     if (isRecording) {
@@ -506,6 +572,19 @@ export default function BottomTaskbar() {
   }, [isRecording])
 
   // Cronômetro pessoal
+  useEffect(() => {
+    const handleOpenMeetings = () => setShowMeetingHistory(true)
+    const handleOpenDepartments = () => setShowDepartmentDialog(true)
+
+    phaserEvents.on('OPEN_MEETING_HISTORY', handleOpenMeetings)
+    phaserEvents.on('OPEN_DEPARTMENTS', handleOpenDepartments)
+
+    return () => {
+      phaserEvents.off('OPEN_MEETING_HISTORY', handleOpenMeetings)
+      phaserEvents.off('OPEN_DEPARTMENTS', handleOpenDepartments)
+    }
+  }, [])
+
   useEffect(() => {
     let interval: any
     if (timerActive) {
@@ -525,6 +604,19 @@ export default function BottomTaskbar() {
 
   // Atalho de teclado SHIFT + S para compartilhar tela
   useEffect(() => {
+    const handleOpenMeetings = () => setShowMeetingHistory(true)
+    const handleOpenDepartments = () => setShowDepartmentDialog(true)
+
+    phaserEvents.on('OPEN_MEETING_HISTORY', handleOpenMeetings)
+    phaserEvents.on('OPEN_DEPARTMENTS', handleOpenDepartments)
+
+    return () => {
+      phaserEvents.off('OPEN_MEETING_HISTORY', handleOpenMeetings)
+      phaserEvents.off('OPEN_DEPARTMENTS', handleOpenDepartments)
+    }
+  }, [])
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.shiftKey && (e.key === 'S' || e.key === 's')) {
         e.preventDefault()
@@ -536,6 +628,19 @@ export default function BottomTaskbar() {
   }, [isScreenSharing])
 
   // Fecha menus ao clicar fora
+  useEffect(() => {
+    const handleOpenMeetings = () => setShowMeetingHistory(true)
+    const handleOpenDepartments = () => setShowDepartmentDialog(true)
+
+    phaserEvents.on('OPEN_MEETING_HISTORY', handleOpenMeetings)
+    phaserEvents.on('OPEN_DEPARTMENTS', handleOpenDepartments)
+
+    return () => {
+      phaserEvents.off('OPEN_MEETING_HISTORY', handleOpenMeetings)
+      phaserEvents.off('OPEN_DEPARTMENTS', handleOpenDepartments)
+    }
+  }, [])
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (taskbarRef.current && !taskbarRef.current.contains(e.target as Node)) {

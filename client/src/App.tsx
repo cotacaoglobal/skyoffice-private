@@ -14,6 +14,7 @@ import Chat from './components/Chat'
 import HelperButtonGroup from './components/HelperButtonGroup'
 import MobileVirtualJoystick from './components/MobileVirtualJoystick'
 import MembersSidebar from './components/MembersSidebar'
+import SoWorkSidebar from './components/SoWorkSidebar/SoWorkSidebar'
 import AuthDialog from './components/AuthDialog'
 import BottomTaskbar from './components/BottomTaskbar'
 import ScreenShareViewer from './components/ScreenShareViewer'
@@ -187,8 +188,7 @@ function App() {
       ui = (
         /* Render Chat or VideoConnectionDialog if no dialogs are opened. */
         <>
-          <Chat />
-          <MembersSidebar />
+          <SoWorkSidebar />
           <MobileVirtualJoystick />
           <BottomTaskbar />
           <ScreenShareViewer />
