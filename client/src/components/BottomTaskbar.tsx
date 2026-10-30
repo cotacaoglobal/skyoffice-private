@@ -1152,58 +1152,6 @@ export default function BottomTaskbar() {
           </ActionBtn>
         </Tooltip>
 
-        {/* 4.5 Central de Atas & Gravações IA */}
-        <Tooltip title={isGeneratingAta ? 'Gerando Ata com IA...' : 'Central de Atas & Gravações IA'}>
-          <div style={{ position: 'relative' }}>
-            <ActionBtn
-              onClick={() => {
-                setShowMeetingHistory(true)
-                setHasNewAtaBadge(false)
-              }}
-              style={{
-                background: isGeneratingAta ? '#063542' : '#091c36',
-                border: '1.5px solid #00f5d4',
-                color: '#00f5d4',
-                animation: isGeneratingAta ? 'pulse 1.2s infinite' : 'none',
-              }}
-              aria-label="Meeting Notes & AI"
-            >
-              <DescriptionIcon style={{ fontSize: 20 }} />
-            </ActionBtn>
-            {hasNewAtaBadge && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 2,
-                  right: 2,
-                  width: 10,
-                  height: 10,
-                  background: '#ef4444',
-                  borderRadius: '50%',
-                  border: '2px solid #ffffff',
-                  boxShadow: '0 0 6px rgba(239, 68, 68, 0.8)',
-                  pointerEvents: 'none',
-                }}
-              />
-            )}
-          </div>
-        </Tooltip>
-
-        {/* 4.6 Departamentos & Salas Fixas */}
-        <Tooltip title="Departamentos & Salas Corporativas">
-          <ActionBtn
-            onClick={() => setShowDepartmentDialog(true)}
-            style={{
-              background: '#eff6ff',
-              border: '1.5px solid #bfdbfe',
-              color: '#2563eb',
-            }}
-            aria-label="Departamentos"
-          >
-            <BusinessIcon style={{ fontSize: 20 }} />
-          </ActionBtn>
-        </Tooltip>
-
         {/* 5. Miniatura / Avatar do Usuário */}
         <Tooltip title="Seu perfil no escritório">
           <UserThumbnail>

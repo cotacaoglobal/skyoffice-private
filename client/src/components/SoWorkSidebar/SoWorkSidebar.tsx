@@ -3,7 +3,7 @@ import styled from 'styled-components'
 import Tooltip from '@mui/material/Tooltip'
 import Avatar from '@mui/material/Avatar'
 
-// Ícones SoWork
+// Ícones WorkOffice
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined'
 import HomeIcon from '@mui/icons-material/Home'
 import ChatBubbleOutlineRoundedIcon from '@mui/icons-material/ChatBubbleOutlineRounded'
@@ -71,7 +71,7 @@ const SidebarWrapper = styled.div`
   }
 `
 
-// 1. DOCK VERTICAL FIXO (Estilo SoWork ~64px)
+// 1. DOCK VERTICAL FIXO (Estilo WorkOffice ~64px)
 const VerticalDock = styled.div`
   width: 64px;
   height: 100%;
@@ -102,19 +102,26 @@ const DockTop = styled.div`
 `
 
 const LogoBadge = styled.div`
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 18px;
-  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
   margin-bottom: 8px;
   cursor: pointer;
+  overflow: hidden;
+  padding: 2px;
+  box-sizing: border-box;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
 `
 
 const NavButtonGroup = styled.div`
@@ -437,7 +444,7 @@ const MemberRow = styled.div<{ $isSelf?: boolean }>`
   }
 `
 
-// POPOVER DO USUÁRIO (Estilo SoWork Imagem 5)
+// POPOVER DO USUÁRIO (Estilo WorkOffice Imagem 5)
 const UserProfileModal = styled.div`
   position: fixed;
   bottom: 16px;
@@ -606,12 +613,12 @@ const UserProfileModal = styled.div`
   }
 `
 
-interface SoWorkSidebarProps {
+interface WorkOfficeSidebarProps {
   onOpenMeetingHistory?: () => void
   onOpenDepartments?: () => void
 }
 
-export const SoWorkSidebar: React.FC<SoWorkSidebarProps> = ({
+export const WorkOfficeSidebar: React.FC<WorkOfficeSidebarProps> = ({
   onOpenMeetingHistory,
   onOpenDepartments,
 }) => {
@@ -696,7 +703,7 @@ export const SoWorkSidebar: React.FC<SoWorkSidebarProps> = ({
     }
   }
 
-  // Envio de mensagem rápida no painel de Chat do SoWork
+  // Envio de mensagem rápida no painel de Chat do WorkOffice
   const handleSendChatMessage = (e: React.FormEvent) => {
     e.preventDefault()
     if (!chatInput.trim()) return
@@ -733,7 +740,7 @@ export const SoWorkSidebar: React.FC<SoWorkSidebarProps> = ({
       <VerticalDock>
         <DockTop>
           <Tooltip title="Agência Br Escritório" placement="right">
-            <LogoBadge onClick={() => handleTabClick('home')}>BR</LogoBadge>
+            <LogoBadge onClick={() => handleTabClick('home')}><img src="/assets/workoffice-logo.jpg" alt="WorkOffice" /></LogoBadge>
           </Tooltip>
 
           <NavButtonGroup>
@@ -820,8 +827,9 @@ export const SoWorkSidebar: React.FC<SoWorkSidebarProps> = ({
         {activeTab === 'home' && (
           <>
             <PanelHeader>
-              <div className="title-group">
-                <h2>{roomName || 'Agência Br'}</h2>
+              <div className="title-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src="/assets/workoffice-logo.jpg" alt="WorkOffice" style={{ height: '24px', objectFit: 'contain' }} />
+                <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>• {roomName || 'Agência Br'}</span>
               </div>
               <button className="close-icon-btn" onClick={() => setIsPanelOpen(false)}>
                 <CloseRoundedIcon fontSize="small" />
@@ -831,7 +839,7 @@ export const SoWorkSidebar: React.FC<SoWorkSidebarProps> = ({
             <PanelBody>
               {/* Card de Convidar Colegas */}
               <InviteCard>
-                <div className="headline">SoWork é melhor com colegas de equipe!</div>
+                <div className="headline">WorkOffice é melhor com colegas de equipe!</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div className="avatar-cluster">
                     <img src={Adam} alt="Colaborador 1" />
@@ -1247,5 +1255,5 @@ export const SoWorkSidebar: React.FC<SoWorkSidebarProps> = ({
   )
 }
 
-export default SoWorkSidebar
+export default WorkOfficeSidebar
 
